@@ -1,14 +1,14 @@
 #!/bin/sh
 
 source `dirname $0`/box-config.sh
-top_dir="`dirname $0`/../"
+asset_dir="`dirname $0`/../../kms_master_asset"
 backup_dir="kms_asset_backup.`date +'%Y%m%d_%H%M%S'`"
 filename=$backup_dir.tar.bz2
 
 parent_id=3321638512  # kms_backup/asset
 access_token=`git config box.accesstoken` || exit $?
 
-cd $top_dir
+cd $asset_dir
 target_dir=`pwd`
 
 cd # go to home dir

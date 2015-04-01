@@ -3,7 +3,10 @@
 jq=/usr/local/bin/jq
 export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python2.7
 
-sleep=$1
+tool_dir=`pwd | sed -e 's/Box Sync/box/'`
+top_dir=$1
+sleep=$2
+[ -n "$top_dir" ] || top_dir=`pwd`
 [ -n "$sleep" ] || sleep=5
 
 branch=master # git branch for kms/asset
@@ -16,15 +19,21 @@ read json
 echo $json | $jq '.'
 
 # update spine
-if [ $WATCHMAN_TRIGGER = 'spine' ]; then
-  hook/spine-atlas-update.sh || exit $?
-fi
+files=`echo $json | jq -r '.[]["name"]'`
+for file in $files; do
+  if echo $file | grep 'spine/face' -o echo $file | grep 'spine/weapon'; then
+    $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
+    break
+  fi
+done
 
 # build master-data
-hook/build.py build --target $target || exit $?
+$tool_dir/script/build.py build --target $target || exit $?
 
 # git commit + push
 if [ $target = "master" ]; then
+  cd $top_dir
+
   # setup git
   current_branch=`git branch | cut -c 3-`
   if [ $current_branch != $branch ]; then
@@ -50,8 +59,8 @@ if [ $target = "master" ]; then
   # commit git
   if git status | grep 'Changes to be committed:' > /dev/null; then
     echo "something to commit exists"
-    #hook/watchman-git-commit.sh $sleep || exit $?  # blocking
-    hook/watchman-git-commit.sh $sleep &  # non-blocking
+    #$tool_dir/watchman/watchman-commit.sh $sleep || exit $?  # blocking
+    $tool_dir/watchman/watchman-commit.sh $sleep &  # non-blocking
   else
     echo "nothing to commit exists"
   fi

@@ -16,26 +16,21 @@ from logging import info
 import ipdb
 
 class AssetBuilder():
-    def __init__(self, target=None, asset_version=None, top_dir=None, user_dir=None, build_dir=None, flatbuffers_dir=None):
+    def __init__(self, target=None, asset_version=None, top_dir=None, user_dir=None, build_dir=None):
         self_dir = os.path.dirname(os.path.abspath(__file__))
         self.target = target or 'master'
-        if self.target == 'master':
-            top_dir_default  = user_dir_default = os.path.normpath(self_dir+'/..')
-        else:
-            user_dir_default = os.path.normpath(re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', self_dir)+'/..')
-            top_dir_default  = user_dir_default+'_generated'
         self.asset_version   = asset_version   or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
+        user_dir_default     = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', os.path.normpath(self_dir+'/../../kms_master_asset'))
+        top_dir_default      = user_dir_default if self.target == 'master' else user_dir_default+'_generated'
         self.top_dir         = top_dir         or top_dir_default
         self.user_dir        = user_dir        or user_dir_default
         self.build_dir       = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder')
-        self.flatbuffers_dir = flatbuffers_dir or os.path.normpath(self_dir+'/../../flatbuffers')
 
         info("target = %s", self.target)
         info("asset version = '%s'", self.asset_version)
         info("top-dir = %s", self.top_dir)
         info("user-dir = %s", self.user_dir)
         info("build-dir = %s", self.build_dir)
-        info("flatbuffers-dir = %s", self.flatbuffers_dir)
 
         self.asset_dir    = self.user_dir+'/bundled/preload'
         self.manifest_dir = self.top_dir+'/bundled/preload/manifest'
@@ -48,8 +43,8 @@ class AssetBuilder():
 
         self.manifest_bin = self_dir+'/manifest-generate.py'
         self.xls2json_bin = self_dir+'/master-data-xls2json.py'
-        self.json2fbs_bin = self.flatbuffers_dir+'/tool/json2fbs.py'
-        self.flatc_bin    = self.flatbuffers_dir+'/tool/flatc'
+        self.json2fbs_bin = self_dir+'/tool/json2fbs.py'
+        self.flatc_bin    = self_dir+'/tool/flatc'
 
         self.PROJECT_MANIFEST_FILE = 'project.manifest'
         self.VERSION_MANIFEST_FILE = 'version.manifest'
@@ -152,7 +147,7 @@ class AssetBuilder():
         # check file modifications
         asset_modified = master_data_modified = True
         if check_modified:
-            manifest_file = self.manifest_dir+'/'+self.MANIFEST_FILE
+            manifest_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
             xlsx_file     = self.xlsx_dir+'/'+self.XLSX_FILE
             data_file     = self.data_dir+'/'+self.JSON_DATA_FILE
             asset_modified       = self._check_modified(self.asset_dir, manifest_file)
@@ -219,10 +214,9 @@ examples:
     parser.add_argument('--top-dir',         help = 'asset top directory. default: same as script top')
     parser.add_argument('--user-dir',        help = 'user working directory top. default: same as script top')
     parser.add_argument('--build-dir',       help = 'build directory. default: temp dir')
-    parser.add_argument('--flatbuffers-dir', help = 'flatbuffers directory. default: ../../flatbuffers')
     args = parser.parse_args()
 
-    asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, top_dir = args.top_dir, user_dir = args.user_dir, build_dir = args.build_dir, flatbuffers_dir = args.flatbuffers_dir)
+    asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, top_dir = args.top_dir, user_dir = args.user_dir, build_dir = args.build_dir)
     if args.command in ('build', 'build-all'):
         asset_builder.build_all(not args.force)
     elif args.command == 'build-manifest':
