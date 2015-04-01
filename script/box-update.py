@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals
@@ -8,6 +8,8 @@ import shutil
 import hashlib
 import argparse
 import re
+import tempfile
+import json
 
 from pprint import pprint
 from boxsdk import Client
@@ -18,11 +20,10 @@ from boxsdk import OAuth2
 CLIENT_ID = 'tmfiqodo0t15ln6tns6nuw1m6so4izre'
 CLIENT_SECRET = 'ATGmDrTo1qly4Os4HJQF9zNs95qlrK0C'
 
-class store_tokens:
-    def __init__(self, access_token, refresh_token):
-        #print('token file should be updated')
-        print('ACCESS_TOKEN:' + access_token)
-        print('REFRESH_TOKEN:' + refresh_token)
+def store_tokens(access_token, refresh_token):
+    a = {"access_token":access_token, "refresh_token":refresh_token}
+    with open(get_token_file(), "w") as f:
+       json.dump(a, f);
 
 def get_base_folders(box_client):
     folders = {}
@@ -30,6 +31,10 @@ def get_base_folders(box_client):
     for item in f["item_collection"]["entries"]:
         folders[item["name"]] = item["id"]
     return folders
+
+def get_token_file():
+    return tempfile.gettempdir() + '/admin-token-only.box';
+
 
 def donwload_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path = "", force_traverse = True):
     folder = box_client.folder(box_id).get(["name","id", "type", "sha1", "item_collection", "modified_at"])
@@ -104,20 +109,20 @@ def donwload_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='sync box kms directories', epilog="""\
 example:
-    $ ./box-update.py --token_file /tmp/box.json --base_dir /tmp""")
-
-    parser.add_argument('--token_file', required=True, help='token json file path')
-    parser.add_argument('--base_dir', required=True, help='local directory to fetch box files')
+    $ ./box-update.py path/to/local/box/sync-storage""")
     parser.add_argument('--force_traverse', help='ignore local folder\'s modified-at')
+    parser.add_argument('basedir', help='folder where your box folders are synced.')
     args = parser.parse_args()
 
-    with open(args["token_file"]) as f:
+
+
+    with open(get_token_file()) as f:
         j = json.load(f)
         access_token = j["access_token"]
         refresh_token = j["refresh_token"]
 
-    base_dir = args["base_dir"]
-    force_traverse = args["force_traverse"]
+    base_dir = args.basedir
+    force_traverse = args.force_traverse
     oauth = OAuth2(
         client_id=CLIENT_ID,
         client_secret=CLIENT_SECRET,
