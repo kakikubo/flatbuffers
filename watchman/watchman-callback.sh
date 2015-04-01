@@ -3,7 +3,7 @@
 jq=/usr/local/bin/jq
 export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python2.7
 
-tool_dir=`pwd`
+tool_dir=`pwd | sed -e 's/Box Sync/box/'`
 top_dir=$1
 sleep=$2
 [ -n "$top_dir" ] || top_dir=`pwd`
@@ -22,7 +22,7 @@ echo $json | $jq '.'
 files=`echo $json | jq -r '.[]["name"]'`
 for file in $files; do
   if echo $file | grep 'spine/'; then
-    $tool_dir/script/spine-atlas-update.sh || exit $?
+    $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
     break
   fi
 done
