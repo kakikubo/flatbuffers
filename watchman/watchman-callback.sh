@@ -12,9 +12,10 @@ sleep=$2
 branch=master # git branch for kms/asset
 target=`echo $WATCHMAN_ROOT | sed -e 's!.*/kms_\([^_]*\)_asset/.*!\1!'` # asset name
 [ "$target" = $WATCHMAN_ROOT ] && target=unknown
+message="$WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
 
 # logging
-echo "\n\n\n\n\n---- $WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
+echo "\n\n\n\n\n---- $message"
 read json
 echo $json | $jq '.'
 
@@ -67,7 +68,7 @@ echo $json | $jq '.'
 )
 ret=$?
 if [ $ret -ne 0 ]; then
-  $tool_dir/script/sonya.sh "$WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)" $tool_dir/watchman/watchman-callback.log
+  $tool_dir/script/sonya.sh "$message" $tool_dir/watchman/watchman-callback.log
 fi
 
 exit 0
