@@ -2,6 +2,8 @@
 
 self=`basename $0`
 branch=master
+sleep=$1
+[ -n "$sleep" ] || sleep=5
 
 if pgrep -fl $self; then
   echo "other $self is running. abort..."
@@ -9,7 +11,7 @@ if pgrep -fl $self; then
 fi
 
 if git status | grep 'Changes to be committed:' > /dev/null; then
-  sleep 5 # wait to sync complete
+  sleep $sleep # wait to sync complete
 
   echo "git commit and push (committed by $self `hostname`:$WATCHMAN_ROOT)"
   git commit -m "committed by $self `hostname`:$WATCHMAN_ROOT" || exit $?
