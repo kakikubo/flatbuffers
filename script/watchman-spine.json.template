@@ -1,0 +1,11 @@
+["trigger", "__ROOT_DIR__/bundled/preload/files/spine", {
+  "name": "spine",
+  "expression": ["suffix", "png"],
+  "ignore_dirs": ["hook", "log", ".git"],
+  "command": ["__SCRIPT_DIR__/hook/watchman-callback.sh", "5"],
+  "stdin": ["name", "exists", "new", "size"],
+  "stdout": ">>__SCRIPT_DIR__/log/watchman-callback.log",
+  "stderr": ">>__SCRIPT_DIR__/log/watchman-callback.log",
+  "chdir": "__SCRIPT_DIR__"
+}]
+
