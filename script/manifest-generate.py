@@ -29,6 +29,12 @@ def createAsstsWithMd5(root):
                 path = os.path.join(dpath, fname)
                 with open(path, 'r') as f:
                     byte = f.read()
+                    if byte == "": # AssetsManagerEx can not download size 0 file
+                        if fname.endswith("_stringtable.txt"):
+                            continue
+                        else:
+                            raise Exception, path+" is 0 size"
+
                     assetPath = path[len(root):]
                     assetsDic[assetPath] = {'md5': hashlib.md5(byte).hexdigest()}
     return assetsDic
