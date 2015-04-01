@@ -18,52 +18,59 @@ echo "\n\n\n\n\n---- $WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
 read json
 echo $json | $jq '.'
 
-# update spine
-files=`echo $json | jq -r '.[]["name"]'`
-for file in $files; do
-  if echo $file | grep 'spine/face' -o echo $file | grep 'spine/weapon'; then
-    $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
-    break
-  fi
-done
-
-# build master-data
-$tool_dir/script/build.py build --target $target || exit $?
-
-# git commit + push
-if [ $target = "master" ]; then
-  cd $top_dir
-
-  # setup git
-  current_branch=`git branch | cut -c 3-`
-  if [ $current_branch != $branch ]; then
-    echo "current branch is not $branch ($current_branch)"
-    exit 1
-  fi
-
-  subdirs="master bundled/preload/files"
-  for subdir in $subdirs; do
-    # added + changed
-    for f in `git status --short $subdir | grep -e '^.[M\?]' | cut -c 4-`; do
-      echo "$f is added"
-      git add $f || exit $?
-    done
-
-    # deleted
-    for f in `git status --short $subdir | grep -e '^.D' | cut -c 4-`; do
-      echo "$f is deleted"
-      git rm $f || exit $?
-    done
+# sub shell
+(
+  # update spine
+  files=`echo $json | jq -r '.[]["name"]'`
+  for file in $files; do
+    if echo $file | grep 'spine/face' -o echo $file | grep 'spine/weapon'; then
+      $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
+      break
+    fi
   done
 
-  # commit git
-  if git status | grep 'Changes to be committed:' > /dev/null; then
-    echo "something to commit exists"
-    #$tool_dir/watchman/watchman-commit.sh $sleep || exit $?  # blocking
-    $tool_dir/watchman/watchman-commit.sh $sleep &  # non-blocking
-  else
-    echo "nothing to commit exists"
+  # build master-data
+  $tool_dir/script/build.py build --target $target || exit $?
+
+  # git commit + push
+  if [ $target = "master" ]; then
+    cd $top_dir
+
+    # setup git
+    current_branch=`git branch | cut -c 3-`
+    if [ $current_branch != $branch ]; then
+      echo "current branch is not $branch ($current_branch)"
+      exit 1
+    fi
+
+    subdirs="master bundled/preload/files"
+    for subdir in $subdirs; do
+      # added + changed
+      for f in `git status --short $subdir | grep -e '^.[M\?]' | cut -c 4-`; do
+        echo "$f is added"
+        git add $f || exit $?
+      done
+
+      # deleted
+      for f in `git status --short $subdir | grep -e '^.D' | cut -c 4-`; do
+        echo "$f is deleted"
+        git rm $f || exit $?
+      done
+    done
+
+    # commit git
+    if git status | grep 'Changes to be committed:' > /dev/null; then
+      echo "something to commit exists"
+      #$tool_dir/watchman/watchman-commit.sh $sleep || exit $?  # blocking
+      $tool_dir/watchman/watchman-commit.sh $sleep &  # non-blocking
+    else
+      echo "nothing to commit exists"
+    fi
   fi
+)
+ret=$?
+if [ $ret -ne 0 ]; then
+  $tool_dir/script/sonya.sh "$WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)" $tool_dir/watchman/watchman-callback.log
 fi
 
 exit 0

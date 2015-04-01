@@ -14,7 +14,8 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   sleep $sleep # wait to sync complete
 
   echo "git commit and push (committed by $self `hostname`:$WATCHMAN_ROOT)"
-  git commit -m "committed by $self `hostname`:$WATCHMAN_ROOT" || exit $?
+  files=`git status --short | grep -e '^[MAD]'`
+  git commit -m "$files\ncommitted by $self `hostname`:$WATCHMAN_ROOT" || exit $?
   git pull --rebase origin $branch|| exit $?
   git push origin master || exit $?
   echo "automatic sync with git is done"
