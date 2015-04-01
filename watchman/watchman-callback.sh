@@ -43,19 +43,16 @@ echo $json | $jq '.'
       exit 1
     fi
 
-    subdirs="master bundled/preload/files"
-    for subdir in $subdirs; do
-      # added + changed
-      for f in `git status --short $subdir | grep -e '^.[M\?]' | cut -c 4-`; do
-        echo "$f is added"
-        git add $f || exit $?
-      done
+    # added + changed
+    for f in `git status --short | grep -e '^.[M\?]' | cut -c 4-`; do
+      echo "$f is added"
+      git add $f || exit $?
+    done
 
-      # deleted
-      for f in `git status --short $subdir | grep -e '^.D' | cut -c 4-`; do
-        echo "$f is deleted"
-        git rm $f || exit $?
-      done
+    # deleted
+    for f in `git status --short | grep -e '^.D' | cut -c 4-`; do
+      echo "$f is deleted"
+      git rm $f || exit $?
     done
 
     # commit git
