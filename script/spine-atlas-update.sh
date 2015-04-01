@@ -3,7 +3,8 @@
 # move to repository top dir
 cd $1
 
-TexturePacker=/usr/local/bin/TexturePacker
+#TexturePacker=/usr/local/bin/TexturePacker
+TexturePacker=/Applications/TexturePacker.app/Contents/MacOS/TexturePacker
 spine_dir=bundled/preload/files/spine
 options="--texture-format png --format spine --trim-mode None"
 

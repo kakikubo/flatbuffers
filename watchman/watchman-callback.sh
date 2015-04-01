@@ -21,7 +21,7 @@ echo $json | $jq '.'
 # update spine
 files=`echo $json | jq -r '.[]["name"]'`
 for file in $files; do
-  if echo $file | grep 'spine/'; then
+  if echo $file | grep 'spine/face' -o echo $file | grep 'spine/weapon'; then
     $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
     break
   fi
@@ -59,8 +59,8 @@ if [ $target = "master" ]; then
   # commit git
   if git status | grep 'Changes to be committed:' > /dev/null; then
     echo "something to commit exists"
-    #$tool_dir/watchman/watchman-git-commit.sh $sleep || exit $?  # blocking
-    $tool_dir/watchman/watchman-git-commit.sh $sleep &  # non-blocking
+    #$tool_dir/watchman/watchman-commit.sh $sleep || exit $?  # blocking
+    $tool_dir/watchman/watchman-commit.sh $sleep &  # non-blocking
   else
     echo "nothing to commit exists"
   fi

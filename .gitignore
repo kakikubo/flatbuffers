@@ -1,3 +1,6 @@
 # Ignore for watchman
 watchman/watchman-*.json
 watchman/watchman-*.log
+
+*.swp
+*.swo
