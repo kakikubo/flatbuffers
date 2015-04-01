@@ -1,11 +1,16 @@
 #!/bin/sh
 
 # move to repository top dir
-cd "`dirname $0`/../"
+cd $1
 
 TexturePacker=/usr/local/bin/TexturePacker
 spine_dir=bundled/preload/files/spine
 options="--texture-format png --format spine --trim-mode None"
+
+if ! ls $spine_dir > /dev/null; then
+  echo "invalid top dir: `pwd`"
+  exit 1
+fi
 
 # character faces
 character_dirs=`find $spine_dir/face -type d -depth 1`
