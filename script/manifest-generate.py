@@ -9,6 +9,7 @@ import os
 DEV_PACKAGE_URL = 'http://g-pc-4570.intra.gree-office.net:8080/asset/'
 PRO_PACKAGE_URL = 'http://g-pc-4570.intra.gree-office.net:8080/asset/'
 
+MANIFEST_DIR = "manifest/"
 MANIFEST_FILE = 'project.manifest'
 VERSION_FILE = 'version.manifest'
 
@@ -44,12 +45,12 @@ def createManifest(version, root, projectPath, versionPath, mode):
 
     if mode == 'dev':
         manifest['packageUrl'] = DEV_PACKAGE_URL
-        manifest['remoteManifestUrl'] = DEV_PACKAGE_URL + MANIFEST_FILE
-        manifest['remoteVersionUrl'] = DEV_PACKAGE_URL + VERSION_FILE
+        manifest['remoteManifestUrl'] = DEV_PACKAGE_URL + MANIFEST_DIR + MANIFEST_FILE
+        manifest['remoteVersionUrl'] = DEV_PACKAGE_URL + MANIFEST_DIR + VERSION_FILE
     else:
         manifest['packageUrl'] = PRO_PROJECT_URL
-        manifest['remoteManifestUrl'] = PRO_PROJECT_URL + MANIFEST_FILE
-        manifest['remoteVersionUrl'] =  PRO_PROJECT_URL + VERSION_FILE
+        manifest['remoteManifestUrl'] = PRO_PROJECT_URL + MANIFEST_DIR + MANIFEST_FILE
+        manifest['remoteVersionUrl'] = PRO_PROJECT_URL + MANIFEST_DIR + VERSION_FILE
 
     manifest['version'] = version
     manifest['engineVersion'] = ENGINE_VERSION
