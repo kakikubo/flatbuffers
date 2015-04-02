@@ -74,5 +74,4 @@ example:
     parser.add_argument('--url', default=DEFAULT_URL, help='hostname')
     args = parser.parse_args()
 
-    url = parser.url
     createManifest(args.version, args.root, args.project_manifest, args.version_manifest, args.url)
