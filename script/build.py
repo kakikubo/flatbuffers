@@ -33,7 +33,7 @@ class AssetBuilder():
         info("build-dir = %s", self.build_dir)
 
         self.asset_dir    = self.user_dir+'/bundled/preload'
-        self.manifest_dir = self.top_dir+'/bundled/preload/manifest'
+        self.manifest_dir = self.top_dir+'/bundled/manifest'
         self.xlsx_dir     = self.user_dir+'/master'
         self.schema_dir   = self.top_dir+'/master_derivatives'
         self.data_dir     = self.top_dir+'/master_derivatives'
