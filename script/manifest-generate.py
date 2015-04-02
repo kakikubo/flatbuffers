@@ -43,7 +43,7 @@ def createAsstsWithMd5(root):
 def createManifest(version, root, projectPath, versionPath, url):
     manifest = {}
 
-    if not url.endswith("/")
+    if not url.endswith("/"):
         url += "/"
 
     manifest['packageUrl'] = url + PACKAGE_DIR
