@@ -71,12 +71,8 @@ example:
     parser.add_argument('root', metavar='root', help='root directory for asset files')
     parser.add_argument('project_manifest', metavar='project.manifest', help='output path for project.manifest')
     parser.add_argument('version_manifest', metavar='version.manifest', help='output path for version.manifest')
-    parser.add_argument('--dev_user_name', help='special asset set for USER.NAME')
     parser.add_argument('--url', default=DEFAULT_URL, help='hostname')
     args = parser.parse_args()
 
     url = parser.url
-    if args.user_name
-        url += "_" + args.user_name
-
-    createManifest(args.version, args.root, args.project_manifest, args.version_manifest, url)
+    createManifest(args.version, args.root, args.project_manifest, args.version_manifest, args.url)
