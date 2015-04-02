@@ -144,24 +144,14 @@ class AssetBuilder():
 
     # do all processes
     def build_all(self, check_modified=True):
-        # check file modifications
-        asset_modified = master_data_modified = True
-        if check_modified:
-            manifest_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-            xlsx_file     = self.xlsx_dir+'/'+self.XLSX_FILE
-            data_file     = self.data_dir+'/'+self.JSON_DATA_FILE
-            asset_modified       = self._check_modified(self.asset_dir, manifest_file)
-            master_data_modified = self._check_modified(xlsx_file, data_file)
-            if not asset_modified and not master_data_modified:
-                info("no data has changed: %s" % xlsx_file)
-                return False
+        xlsx_file = self.xlsx_dir+'/'+self.XLSX_FILE
+        data_file = self.data_dir+'/'+self.JSON_DATA_FILE
 
         # main process
         try:
             self.setup_dir()
-            if asset_modified:
-                self.build_manifest()
-            if master_data_modified:
+            self.build_manifest()
+            if not check_modified or self._check_modified(xlsx_file, data_file):
                 self.build_json()
                 self.build_fbs()
                 self.build_bin()
