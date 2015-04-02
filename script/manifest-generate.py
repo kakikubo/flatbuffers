@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 
-DEFAULT_URL = 'http://g-pc-4570.intra.gree-office.net:8080/asset'
+DEFAULT_URL = 'http://tmp-kiyoto-suzuki-ffl.gree-dev.net/asset'
 
 PACKAGE_DIR = "preload/"
 MANIFEST_DIR = "manifest/"
@@ -66,7 +66,7 @@ def createManifest(version, root, projectPath, versionPath, url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate asset manifest files for AssetsManagerEx', epilog="""\
 example:
-    $ ./manifest-generate.py 201504010000 bundled/preload/files bundled/preload/files/project.manifest bundled/preload/files/version.manifest""")
+    $ ./manifest-generate.py ""master 201504010000"" bundled/preload/ bundled/manifest/project.manifest bundled/manifest/version.manifest""")
     parser.add_argument('version', metavar='version', help='manifest version string')
     parser.add_argument('root', metavar='root', help='root directory for asset files')
     parser.add_argument('project_manifest', metavar='project.manifest', help='output path for project.manifest')
