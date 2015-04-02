@@ -20,7 +20,7 @@ class AssetBuilder():
         self_dir = os.path.dirname(os.path.abspath(__file__))
         self.target = target or 'master'
         self.asset_version   = asset_version   or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
-        user_dir_default     = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', os.path.normpath(self_dir+'/../../kms_master_asset'))
+        user_dir_default     = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', os.path.normpath(self_dir+'/../../box/kms_master_asset'))
         top_dir_default      = user_dir_default if self.target == 'master' else user_dir_default+'_generated'
         self.top_dir         = top_dir         or top_dir_default
         self.user_dir        = user_dir        or user_dir_default
