@@ -17,8 +17,8 @@ from boxsdk.exception import BoxAPIException
 from boxsdk.object.collaboration import CollaborationRole
 from boxsdk import OAuth2
 
-CLIENT_ID = 'tmfiqodo0t15ln6tns6nuw1m6so4izre'
-CLIENT_SECRET = 'ATGmDrTo1qly4Os4HJQF9zNs95qlrK0C'
+CLIENT_ID = 'mej6etbo3brd22qorp2jcx6dp4q8cy0r'
+CLIENT_SECRET = 'cqXZJRcjgbxE7FoZYlpqvwlxyxtZcmNz'
 
 def store_tokens(access_token, refresh_token):
     a = {"access_token":access_token, "refresh_token":refresh_token}
