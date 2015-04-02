@@ -11,7 +11,7 @@ sleep=$2
 
 branch=master # git branch for kms/asset
 target=`echo $WATCHMAN_ROOT | sed -e 's!.*/kms_\([^_]*\)_asset/.*!\1!'` # asset name
-[ "$target" = $WATCHMAN_ROOT ] && target=unknown
+[ "$target" = "$WATCHMAN_ROOT" ] && target=unknown
 message="$WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
 
 # logging
@@ -24,7 +24,7 @@ echo $json | $jq '.'
   # update spine
   files=`echo $json | jq -r '.[]["name"]'`
   for file in $files; do
-    if echo $file | grep 'spine/face' -o echo $file | grep 'spine/weapon'; then
+    if echo $file | grep 'spine/face\|spine/weapon'; then
       $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
       break
     fi
