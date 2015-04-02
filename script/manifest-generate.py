@@ -6,9 +6,9 @@ import hashlib
 import json
 import os
 
-DEV_PACKAGE_URL = 'http://g-pc-4570.intra.gree-office.net:8080/asset/'
-PRO_PACKAGE_URL = 'http://g-pc-4570.intra.gree-office.net:8080/asset/'
+DEFAULT_URL = 'http://g-pc-4570.intra.gree-office.net:8080/asset'
 
+PACKAGE_DIR = "preload/"
 MANIFEST_DIR = "manifest/"
 MANIFEST_FILE = 'project.manifest'
 VERSION_FILE = 'version.manifest'
@@ -40,17 +40,15 @@ def createAsstsWithMd5(root):
                     assetsDic[assetPath] = {'md5': hashlib.md5(byte).hexdigest()}
     return assetsDic
 
-def createManifest(version, root, projectPath, versionPath, mode):
+def createManifest(version, root, projectPath, versionPath, url):
     manifest = {}
 
-    if mode == 'dev':
-        manifest['packageUrl'] = DEV_PACKAGE_URL
-        manifest['remoteManifestUrl'] = DEV_PACKAGE_URL + MANIFEST_DIR + MANIFEST_FILE
-        manifest['remoteVersionUrl'] = DEV_PACKAGE_URL + MANIFEST_DIR + VERSION_FILE
-    else:
-        manifest['packageUrl'] = PRO_PROJECT_URL
-        manifest['remoteManifestUrl'] = PRO_PROJECT_URL + MANIFEST_DIR + MANIFEST_FILE
-        manifest['remoteVersionUrl'] = PRO_PROJECT_URL + MANIFEST_DIR + VERSION_FILE
+    if not url.endswith("/")
+        url += "/"
+
+    manifest['packageUrl'] = url + PACKAGE_DIR
+    manifest['remoteManifestUrl'] = url + MANIFEST_DIR + MANIFEST_FILE
+    manifest['remoteVersionUrl'] = url + MANIFEST_DIR + VERSION_FILE
 
     manifest['version'] = version
     manifest['engineVersion'] = ENGINE_VERSION
@@ -73,7 +71,12 @@ example:
     parser.add_argument('root', metavar='root', help='root directory for asset files')
     parser.add_argument('project_manifest', metavar='project.manifest', help='output path for project.manifest')
     parser.add_argument('version_manifest', metavar='version.manifest', help='output path for version.manifest')
-    parser.add_argument('--mode', default='dev', help='mode name (dev, production) default: dev')
+    parser.add_argument('--dev_user_name', help='special asset set for USER.NAME')
+    parser.add_argument('--url', default=DEFAULT_URL, help='hostname')
     args = parser.parse_args()
 
-    createManifest(args.version, args.root, args.project_manifest, args.version_manifest, args.mode)
+    url = parser.url
+    if args.user_name
+        url += "_" + args.user_name
+
+    createManifest(args.version, args.root, args.project_manifest, args.version_manifest, url)
