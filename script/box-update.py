@@ -46,7 +46,6 @@ def donwload_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path
         with open(meta_path) as f:
            is_dirty = folder["modified_at"] != f.read()
     if not (is_dirty or force_traverse):
-        print("skipped " + local_path)
         return
 
     print("\n" + box_path + ":")
@@ -89,10 +88,8 @@ def donwload_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path
                 with open(local_item_path, "wb") as f:
                     f.write(content)
                 print("\tdone")
-            else:
-                print("skipped " + local_item_path)
     for i in local_items:
-        i = local_path + i
+        i = local_path + "/" + i
         if os.path.isdir(i):
             shutil.rmtree(i)
         else:
