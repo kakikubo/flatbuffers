@@ -10,6 +10,8 @@ import argparse
 import re
 import tempfile
 import json
+import urllib3
+import logging
 
 from pprint import pprint
 from boxsdk import Client
@@ -17,8 +19,8 @@ from boxsdk.exception import BoxAPIException
 from boxsdk.object.collaboration import CollaborationRole
 from boxsdk import OAuth2
 
-CLIENT_ID = 'tmfiqodo0t15ln6tns6nuw1m6so4izre'
-CLIENT_SECRET = 'ATGmDrTo1qly4Os4HJQF9zNs95qlrK0C'
+CLIENT_ID = 'mej6etbo3brd22qorp2jcx6dp4q8cy0r'
+CLIENT_SECRET = 'cqXZJRcjgbxE7FoZYlpqvwlxyxtZcmNz'
 
 def store_tokens(access_token, refresh_token):
     a = {"access_token":access_token, "refresh_token":refresh_token}
@@ -46,7 +48,6 @@ def donwload_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path
         with open(meta_path) as f:
            is_dirty = folder["modified_at"] != f.read()
     if not (is_dirty or force_traverse):
-        print("skipped " + local_path)
         return
 
     print("\n" + box_path + ":")
@@ -89,10 +90,8 @@ def donwload_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path
                 with open(local_item_path, "wb") as f:
                     f.write(content)
                 print("\tdone")
-            else:
-                print("skipped " + local_item_path)
     for i in local_items:
-        i = local_path + i
+        i = local_path + "/" + i
         if os.path.isdir(i):
             shutil.rmtree(i)
         else:
@@ -114,13 +113,12 @@ example:
     parser.add_argument('basedir', help='folder where your box folders are synced.')
     args = parser.parse_args()
 
-
-
     with open(get_token_file()) as f:
         j = json.load(f)
         access_token = j["access_token"]
         refresh_token = j["refresh_token"]
 
+    logging.captureWarnings(True)
     base_dir = args.basedir
     force_traverse = args.force_traverse
     oauth = OAuth2(
