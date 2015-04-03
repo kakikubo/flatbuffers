@@ -10,6 +10,8 @@ import argparse
 import re
 import tempfile
 import json
+import urllib3
+import logging
 
 from pprint import pprint
 from boxsdk import Client
@@ -111,13 +113,12 @@ example:
     parser.add_argument('basedir', help='folder where your box folders are synced.')
     args = parser.parse_args()
 
-
-
     with open(get_token_file()) as f:
         j = json.load(f)
         access_token = j["access_token"]
         refresh_token = j["refresh_token"]
 
+    logging.captureWarnings(True)
     base_dir = args.basedir
     force_traverse = args.force_traverse
     oauth = OAuth2(
