@@ -15,6 +15,7 @@ echo "watch root dir: $root_dir"
 # setup dirs
 dirs="editor master bundled/preload/files bundled/preload/master bundled/manifest"
 for dir in $dirs; do
+  echo "setup $root_dir/$dir"
   mkdir -p $root_dir/$dir || exit $?
 done
 
