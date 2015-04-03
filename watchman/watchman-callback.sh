@@ -24,13 +24,13 @@ echo $json | $jq '.'
   # update spine
   files=`echo $json | jq -r '.[]["name"]'`
   for file in $files; do
-    if echo $file | grep 'spine/face\|spine/weapon'; then
+    if echo $file | grep 'spine/face/[^/]*/.*.png\|spine/weapon/.*.png'; then
       $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
       break
     fi
   done
 
-  # build master-data
+  # build asset
   $tool_dir/script/build.py build --target $target || exit $?
 
   # git commit + push
