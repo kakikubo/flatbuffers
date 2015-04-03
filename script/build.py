@@ -13,7 +13,7 @@ from subprocess import check_call, check_output
 from shutil import move, rmtree
 from logging import info
 
-import ipdb
+#import ipdb
 
 class AssetBuilder():
     def __init__(self, target=None, asset_version=None, top_dir=None, user_dir=None, build_dir=None):
@@ -43,8 +43,8 @@ class AssetBuilder():
 
         self.manifest_bin = self_dir+'/manifest-generate.py'
         self.xls2json_bin = self_dir+'/master-data-xls2json.py'
-        self.json2fbs_bin = self_dir+'/tool/json2fbs.py'
-        self.flatc_bin    = self_dir+'/tool/flatc'
+        self.json2fbs_bin = self_dir+'/json2fbs.py'
+        self.flatc_bin    = self_dir+'/flatc'
 
         self.PROJECT_MANIFEST_FILE = 'project.manifest'
         self.VERSION_MANIFEST_FILE = 'version.manifest'
