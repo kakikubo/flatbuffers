@@ -68,7 +68,7 @@ echo $json | $jq '.'
 )
 ret=$?
 if [ $ret -ne 0 ]; then
-  $tool_dir/script/sonya.sh "$message" $tool_dir/watchman/watchman-callback.log
+  $tool_dir/script/sonya.sh "(devil) $message" $tool_dir/watchman/watchman-callback.log
 fi
 
 exit 0

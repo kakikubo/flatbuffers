@@ -25,7 +25,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   echo "automatic sync with git is done"
 
   commit_id=`git log | head -1 | cut -c 8-`
-  `dirname $0`/../script/sonya.sh "`hostname`:$WATCHMAN_ROOT" $commit_log_file $gitlab_url/kms/asset/commit/$commit_id || exit $?
+  `dirname $0`/../script/sonya.sh ":) `hostname`:$WATCHMAN_ROOT" $commit_log_file $gitlab_url/kms/asset/commit/$commit_id || exit $?
 fi
 
 exit 0
