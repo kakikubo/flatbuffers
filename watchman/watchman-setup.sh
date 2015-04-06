@@ -12,6 +12,14 @@ cd $root_dir || exit $?
 root_dir=`pwd`
 echo "watch root dir: $root_dir"
 
+# setup dirs
+dirs="editor master bundled/preload/files bundled/preload/master bundled/manifest"
+for dir in $dirs; do
+  echo "setup $root_dir/$dir"
+  mkdir -p $root_dir/$dir || exit $?
+done
+
+# setup watchman trigger
 for template in $tool_dir/watchman/*.json.template; do
   json=`echo $template | sed -e 's/\.template$//'`
   cat $template | sed -e "s!__ROOT_DIR__!$root_dir!g" | sed -e "s!__TOOL_DIR__!$tool_dir!g" > $json
