@@ -11,6 +11,7 @@ import logging
 from time import strftime
 from subprocess import check_call, check_output
 from shutil import move, rmtree
+from glob import glob
 from logging import info
 
 #import ipdb
@@ -32,14 +33,15 @@ class AssetBuilder():
         info("user-dir = %s", self.user_dir)
         info("build-dir = %s", self.build_dir)
 
-        self.asset_dir    = self.user_dir+'/bundled/preload'
-        self.manifest_dir = self.top_dir+'/bundled/manifest'
-        self.xlsx_dir     = self.user_dir+'/master'
-        self.schema_dir   = self.top_dir+'/master_derivatives'
-        self.data_dir     = self.top_dir+'/master_derivatives'
-        self.fbs_dir      = self.top_dir+'/master_derivatives'
-        self.bin_dir      = self.top_dir+'/bundled/preload/master'
-        self.header_dir   = self.top_dir+'/master_header'
+        self.asset_dir     = self.user_dir+'/bundled/preload'
+        self.manifest_dir  = self.top_dir+'/bundled/manifest'
+        self.xlsx_dir      = self.top_dir+'/master'
+        self.user_xlsx_dir = self.user_dir+'/master'
+        self.schema_dir    = self.top_dir+'/master_derivatives'
+        self.data_dir      = self.top_dir+'/master_derivatives'
+        self.fbs_dir       = self.top_dir+'/master_derivatives'
+        self.bin_dir       = self.top_dir+'/bundled/preload/master'
+        self.header_dir    = self.top_dir+'/master_header'
 
         self.manifest_bin = self_dir+'/manifest-generate.py'
         self.xls2json_bin = self_dir+'/master-data-xls2json.py'
@@ -48,7 +50,6 @@ class AssetBuilder():
 
         self.PROJECT_MANIFEST_FILE = 'project.manifest'
         self.VERSION_MANIFEST_FILE = 'version.manifest'
-        self.XLSX_FILE             = 'master_data.xlsx'
         self.JSON_SCHEMA_FILE      = 'master_schema.json'
         self.JSON_DATA_FILE        = 'master_data.json'
         self.FBS_FILE              = 'master_data.fbs'
@@ -59,9 +60,20 @@ class AssetBuilder():
 
     # setup dest directories
     def setup_dir(self):
-        for path in (self.build_dir, self.asset_dir, self.manifest_dir, self.xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir):
+        for path in (self.build_dir, self.asset_dir, self.manifest_dir, self.xlsx_dir, self.user_xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
+
+    # get xlsx master data files
+    def _get_xlsxes(self, xlsx_dirs=None):
+        xlsx_dirs = xlsx_dirs or (self.xlsx_dir, self.user_xlsx_dir)
+        xlsxes = []
+        for xlsx_dir in xlsx_dirs:
+            for xlsx_path in glob("%s/*.xlsx" % xlsx_dir):
+                if (re.match('^~\$', os.path.basename(xlsx_path))):
+                    continue
+                xlsxes.append(xlsx_path)
+        return xlsxes
 
     # check modification of user editted files
     def _check_modified(self, target, base):
@@ -84,13 +96,13 @@ class AssetBuilder():
         return True
 
     # cerate json from xlsx
-    def build_json(self, src_xlsx=None, dest_schema=None, dest_data=None):
-        src_xlsx    = src_xlsx    or self.xlsx_dir+'/'+self.XLSX_FILE
+    def build_json(self, src_xlsxes=None, dest_schema=None, dest_data=None):
+        src_xlsxes  = src_xlsxes  or self._get_xlsxes()
         dest_schema = dest_schema or self.build_dir+'/'+self.JSON_SCHEMA_FILE
         dest_data   = dest_data   or self.build_dir+'/'+self.JSON_DATA_FILE
         info("build json: %s + %s" % (os.path.basename(dest_schema), os.path.basename(dest_data)))
 
-        cmdline = [self.xls2json_bin, src_xlsx, dest_schema, dest_data, '--target', self.target]
+        cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data, '--target', self.target]
         check_call(cmdline)
         return True
 
@@ -144,15 +156,23 @@ class AssetBuilder():
 
     # do all processes
     def build_all(self, check_modified=True):
-        xlsx_file = self.xlsx_dir+'/'+self.XLSX_FILE
-        data_file = self.data_dir+'/'+self.JSON_DATA_FILE
+        # check modified
+        xlsxes = self._get_xlsxes()
+        modified = False
+        if check_modified:
+            for xlsx in xlsxes:
+                if self._check_modified(xlsx, self.data_dir+'/'+self.JSON_DATA_FILE):
+                    modified = True
+                    break
+            if not modified:
+                info("xlsxes are not modified")
 
         # main process
         try:
             self.setup_dir()
             self.build_manifest()
-            if not check_modified or self._check_modified(xlsx_file, data_file):
-                self.build_json()
+            if not check_modified or modified:
+                self.build_json(xlsxes)
                 self.build_fbs()
                 self.build_bin()
             self.install()
@@ -200,10 +220,10 @@ examples:
     parser.add_argument('command',     help = 'build command (build|build-manifest|build-json|build-fbs|build-bin|install|cleanup)')
     parser.add_argument('--target', default = 'master', help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
     parser.add_argument('--force',  default = False, action = 'store_true', help = 'skip check timestamp. always build')
-    parser.add_argument('--asset-version',   help = 'asset version. default: <target>.<unix-timestamp>')
-    parser.add_argument('--top-dir',         help = 'asset top directory. default: same as script top')
-    parser.add_argument('--user-dir',        help = 'user working directory top. default: same as script top')
-    parser.add_argument('--build-dir',       help = 'build directory. default: temp dir')
+    parser.add_argument('--asset-version', help = 'asset version. default: <target>.<unix-timestamp>')
+    parser.add_argument('--top-dir',       help = 'asset top directory. default: same as script top')
+    parser.add_argument('--user-dir',      help = 'user working directory top. default: same as script top')
+    parser.add_argument('--build-dir',     help = 'build directory. default: temp dir')
     args = parser.parse_args()
 
     asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, top_dir = args.top_dir, user_dir = args.user_dir, build_dir = args.build_dir)
@@ -214,9 +234,9 @@ examples:
     elif args.command == 'build-json':
         asset_builder.build_json()
     elif args.command == 'build-fbs':
-        asset_builder.build_json()
+        asset_builder.build_fbs()
     elif args.command == 'build-bin':
-        asset_builder.build_json()
+        asset_builder.build_bin()
     elif args.command == 'install':
         asset_builder.install()
     elif args.command == 'cleanup':
