@@ -22,7 +22,7 @@ echo $json | $jq '.'
 # sub shell
 (
   # update spine
-  files=`echo $json | jq -r '.[]["name"]'`
+  files=`echo $json | $jq -r '.[]["name"]'`
   for file in $files; do
     if echo $file | grep 'spine/face/[^/]*/.*.png\|spine/weapon/.*.png'; then
       $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
