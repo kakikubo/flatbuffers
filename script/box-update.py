@@ -85,7 +85,7 @@ def update_item(box_client, local_path_base, root_folders, box_item_type, box_it
                     os.makedirs(local_path)
         else:
             print("unknown event:" + event_type)
-    return 1
+    return 128
 
 def download_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path = ""):
     folder = box_client.folder(box_id).get(["name","id", "type", "sha1", "item_collection", "modified_at"])
@@ -180,4 +180,4 @@ example:
                 box_id=box_id,
                 local_path_base=base_dir,
                 box_path=item_name)
-        exit(1)
+        exit(128)
