@@ -45,7 +45,7 @@ def update_item(box_client, local_path_base, root_folders, box_item_type, box_it
         folders.pop(0)
         root = folders[0]
         if root["name"] not in root_folders or root["id"] != root_folders[root["name"]]:
-            return;
+            return  0
 
         local_path = local_path_base
         for i in folders:
@@ -64,7 +64,7 @@ def update_item(box_client, local_path_base, root_folders, box_item_type, box_it
         folders.pop(0)
         root = folders[0]
         if root["name"] not in root_folders or root["id"] != root_folders[root["name"]]:
-            return;
+            return 0
 
         local_path = local_path_base
         for i in folders:
@@ -85,6 +85,7 @@ def update_item(box_client, local_path_base, root_folders, box_item_type, box_it
                     os.makedirs(local_path)
         else:
             print("unknown event:" + event_type)
+    return 1
 
 def download_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path = ""):
     folder = box_client.folder(box_id).get(["name","id", "type", "sha1", "item_collection", "modified_at"])
@@ -171,10 +172,12 @@ example:
 
     root_folders = get_base_folders(box_client)
     if args.command_type == "item":
-        update_item(box_client, base_dir, root_folders, args.item_type, args.item_name, args.item_id, args.event_type, args.parent_folder_id)
+        ret = update_item(box_client, base_dir, root_folders, args.item_type, args.item_name, args.item_id, args.event_type, args.parent_folder_id)
+        exit(ret)
     elif args.command_type == "traverse":
         for item_name, box_id in root_folders.iteritems():
             download_dirty_files(box_client,
                 box_id=box_id,
                 local_path_base=base_dir,
                 box_path=item_name)
+        exit(1)
