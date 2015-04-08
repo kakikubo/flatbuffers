@@ -9,7 +9,7 @@ sleep=$1
 
 commit_log_file=/tmp/watchman-commit-message.log
 gitlab_url=http://g-pc-4114.intra.gree-office.net:3000
-version_manifest=master/version.manifest
+version_manifest=bundled/manifest/version.manifest
 version_tag=
 
 if pgrep -fl $self; then
@@ -29,7 +29,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
 
   # append commit id to version + tag
   if grep $version_manifest $commit_log_file; then
-    cat $version_manifest | $jq ".version = .version + \"$commit_id\"" > $version_manifest.tmp
+    cat $version_manifest | $jq ".version = .version + \" $commit_id\"" > $version_manifest.tmp
     mv $version_manifest.tmp $version_manifest || exit $?
     git add $version_manifest || exit $?
     git commit --amend --file $commit_log_file || exit $?
