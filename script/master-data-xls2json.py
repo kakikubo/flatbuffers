@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # -*- cording: utf-8 -*-
+# vim:fenc=utf-8 ff=unix ft=python ts=4 sw=4 sts=4 si et fdm=indent fdl=99:
 import sys
+import os
 import re
 import xlrd
 import json
 import codecs
 import argparse
+import logging
 from collections import OrderedDict
-from logging import error, warning
+from logging import info, error, warning
 
 import ipdb
 import pprint
@@ -101,17 +104,37 @@ def normalize(data, schema, target):
     return normalized
   
 if __name__ == '__main__':
+    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
+
     parser = argparse.ArgumentParser(description = 'master data xlsx to json converter')
-    parser.add_argument('input_xlsx',  metavar = 'input.xlsx',  help = 'input Excel master data file')
-    parser.add_argument('schema_json', metavar = 'schema.json', help = 'output schema json file')
-    parser.add_argument('data_json',   metavar = 'data.json',   help = 'output data json file')
+    parser.add_argument('input_xlsxes',    metavar = 'input.xlsx(es)',  nargs = "*", help = 'input Excel master data files')
+    parser.add_argument('--schema-json',   metavar = 'schema.json', help = 'output schema json file. default:  master_schema.json')
+    parser.add_argument('--data-json',     metavar = 'data.json',   help = 'output data json file. default:  master_data.json')
     parser.add_argument('--target',        default = 'master',  help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
-    parser.add_argument('--except-sheets', default = 'enum',    help = 'except sheets (, separated list) default: enum')
+    parser.add_argument('--except-sheets', default = '',        help = 'except sheets (, separated list) default: ')
     args = parser.parse_args()
-  
-    xls = parse_xls(args.input_xlsx, args.except_sheets.split(','))
-    data = normalize(xls['data'], xls['schema'], args.target)
-    for t in ((args.schema_json, xls['schema']), (args.data_json, data)):
+    schema_json_file = args.schema_json or 'master_schema.json'
+    data_json_file   = args.data_json   or 'master_data.json'
+    except_sheets    = args.except_sheets.split(',')
+    
+    # parse excel
+    data   = OrderedDict()
+    schema = OrderedDict()
+    for input_xlsx in args.input_xlsxes:
+        bname = os.path.basename(input_xlsx)
+        if re.match('^~\$', bname):
+            continue
+        info("input: %s" % bname)
+        xls = parse_xls(input_xlsx, except_sheets)
+        data.update(xls['data'])
+        schema.update(xls['schema'])
+    for t in data['table']:
+        info("table: %s" % t['name'])
+
+    # write json
+    data = normalize(data, schema, args.target)
+    for t in ((schema_json_file, schema), (data_json_file, data)):
+        info("output: %s" % t[0])
         with codecs.open(t[0], "w") as fp:
             j = json.dumps(t[1], ensure_ascii = False, indent = 4)
             fp.write(j.encode("utf-8"))
