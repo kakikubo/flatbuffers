@@ -85,13 +85,25 @@ def update_item(box_client, local_path_base, root_folders, box_item_type, box_it
                     os.makedirs(local_path)
         else:
             print("unknown event:" + event_type)
+            exit(1)
     return 128
 
 def download_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path = ""):
-    folder = box_client.folder(box_id).get(["name","id", "type", "sha1", "item_collection", "modified_at"])
-    local_path = local_path_base + "/" + box_path
+    box_items = []
+    box_folder = box_client.folder(box_id)
 
-    print("\n" + box_path + ":")
+    collection = box_folder.get()["item_collection"]
+    box_items += collection["entries"]
+    item_num = collection["total_count"]
+    num_tried = 0
+    while len(box_items) != item_num and num_tried < 100:
+        box_items += box_client.folder(box_id).get_items(1000, len(box_items))
+        num_tried += 1
+
+    if (num_tried == 100):
+        exit(1)
+
+    local_path = local_path_base + "/" + box_path
 
     if not os.path.exists(local_path):
         os.makedirs(local_path)
@@ -101,34 +113,33 @@ def download_dirty_files(box_client, local_path_base="tmp", box_id="0", box_path
         if not (i.startswith(".")):
             local_items.append(i)
 
-    for item in folder["item_collection"]["entries"]:
-        item_name = item["name"]
-        item_id = item["id"]
-        item_type = item["type"]
+    for box_item in box_items:
+        box_item_name = box_item["name"]
+        box_item_id = box_item["id"]
+        box_item_type = box_item["type"]
 
-        if item_name in local_items:
-            local_items.remove(item_name)
+        if box_item_name in local_items:
+            local_items.remove(box_item_name)
 
-        local_item_path = local_path + "/" + item_name
+        local_item_path = local_path + "/" + box_item_name
 
-        if item_type == "folder":
+        if box_item_type == "folder":
             download_dirty_files(box_client=box_client,
                 local_path_base=local_path_base,
-                box_id=item_id,
-                box_path=box_path + "/" + item_name)
-        elif item_type == "file":
+                box_id=box_item_id,
+                box_path=box_path + "/" + box_item_name)
+        elif box_item_type == "file":
             is_dirty_file = True
             if os.path.exists(local_item_path):
                 with open(local_item_path) as f:
                     local_sha1 = hashlib.sha1(f.read()).hexdigest()
-                    is_dirty_file = item["sha1"] != local_sha1
+                    is_dirty_file = box_item["sha1"] != local_sha1
             if is_dirty_file:
-                print("downloading:" + item_name, end="")
+                print("downloading:" + box_item_name)
                 sys.stdout.flush()
-                content = box_client.file(item_id).content()
+                content = box_client.file(box_item_id).content()
                 with open(local_item_path, "wb") as f:
                     f.write(content)
-                print("\tdone")
     for i in local_items:
         i = local_path + "/" + i
         if os.path.isdir(i):
