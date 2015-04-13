@@ -41,7 +41,7 @@ Jenkins マシンでは ~/.tool を ~/Box Sync/tool にシンボリックリン�
 https://confluence.gree-office.net/pages/viewpage.action?pageId=158727563
 
 自動生成対象にはおおまかにいって以下のものがあります
-- manifest.json -> Cocos-2d-x AssetMangerEx 用のダウンロードファイルリスト bundled/preload/files 以下の更新があったことをクライアントに通知する
+- manifest.json -> Cocos-2d-x AssetMangerEx 用のダウンロードファイルリスト contents/files 以下の更新があったことをクライアントに通知する
 - master_data.bin + master_header/*.h -> マスタデータを flatbuffers 化したもの。Excel から生成する
 
 ### master-data-xls2json.py
@@ -54,7 +54,7 @@ master-data-xls2json.py で生成した JSON を読み込んで、FlatBuffers �
 .fbs と .json を読み込んで、.bin と .h を生成します
 
 ### manifest-generate.py
-bundled/preload/files 上のファイルから Cocos-2d-x AssetManagerEx 用の project.manifest と version.manifest を生成します
+contents/files 上のファイルから Cocos-2d-x AssetManagerEx 用の project.manifest と version.manifest を生成します
 
 ### box-update.py
 Box API を使って、手元のデータと Box 上のデータを同期します。
@@ -69,7 +69,7 @@ Box Web Hook から呼び出されます。
 
 ## watchman
 
-- 監視対象は <kms_x_asset>/bundled/preload/files と master/ 以下のみです 
+- 監視対象は <kms_x_asset>/contents/files と master/ 以下のみです 
   - watchman/watchman-xxx.json.template を参照してください
 - コールバックでは以下のことをします
   - build.py build を実行し、自動生成ファイル一式を更新します

@@ -6,19 +6,20 @@ import hashlib
 import json
 import os
 
-DEFAULT_URL = 'http://tmp-kiyoto-suzuki-ffl.gree-dev.net/asset'
+BASE_URL = 'http://g-pc-4570.intra.gree-office.net:8080/'
 
-PACKAGE_DIR = "preload/"
-MANIFEST_DIR = "manifest/"
+MASTER_DIR = 'asset/'
+PACKAGE_DIR = 'preload/'
+MANIFEST_DIR = 'manifest/'
 MANIFEST_FILE = 'project.manifest'
 VERSION_FILE = 'version.manifest'
 
 ENGINE_VERSION = 'Cocos2d-x v3.4'
 
 
-def createAsstsWithMd5(root):
-    if 0 < len(root) and root[len(root)-1] != '/':
-      root = root+'/' # force root directory to end with '/'
+def createAssetsWithMd5(root, base):
+    if 0 < len(root) and not root.endswith('/'):
+      root += '/' # force root directory to end with '/'
 
     assetsDic = {}
     for assetsDir in [root]:
@@ -37,27 +38,34 @@ def createAsstsWithMd5(root):
                             raise Exception, path+" is 0 size"
 
                     assetPath = path[len(root):]
-                    assetsDic[assetPath] = {'md5': hashlib.md5(byte).hexdigest()}
+                    asset = {}
+                    asset['md5'] = hashlib.md5(byte).hexdigest()
+                    asset['path'] = base + assetPath
+                    assetsDic[assetPath] = asset
     return assetsDic
 
-def createManifest(version, root, projectPath, versionPath, url):
+def createVersionManifest(dir, version):
+    if 0 < len(dir) and not dir.endswith('/'):
+        dir += '/' # force root directory to end with '/'
+
     manifest = {}
-
-    if not url.endswith("/"):
-        url += "/"
-
-    manifest['packageUrl'] = url + PACKAGE_DIR
-    manifest['remoteManifestUrl'] = url + MANIFEST_DIR + MANIFEST_FILE
-    manifest['remoteVersionUrl'] = url + MANIFEST_DIR + VERSION_FILE
-
+    
+    manifest['packageUrl'] = BASE_URL
+    manifest['remoteManifestUrl'] = BASE_URL + dir + MANIFEST_DIR + MANIFEST_FILE
+    manifest['remoteVersionUrl'] = BASE_URL + dir + MANIFEST_DIR + VERSION_FILE
+    
     manifest['version'] = version
     manifest['engineVersion'] = ENGINE_VERSION
+    return manifest
+
+def createManifest(version, root, projectPath, versionPath):
+    manifest = createVersionManifest(MASTER_DIR, version)
 
     with open(versionPath, 'w') as f:
         json.dump(manifest, f, sort_keys=True, indent=2)
 
     manifest['assets'] = {}
-    manifest['assets'].update(createAsstsWithMd5(root))
+    manifest['assets'].update(createAssetsWithMd5(root, MASTER_DIR))
 
     with open(projectPath, 'w') as f:
         json.dump(manifest, f, sort_keys=True, indent=2)
@@ -66,12 +74,11 @@ def createManifest(version, root, projectPath, versionPath, url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate asset manifest files for AssetsManagerEx', epilog="""\
 example:
-    $ ./manifest-generate.py ""master 201504010000"" bundled/preload/ bundled/manifest/project.manifest bundled/manifest/version.manifest""")
+    $ ./manifest-generate.py ""master 201504010000"" asset/contents/ asset/dev/project.manifest asset/dev/version.manifest""")
     parser.add_argument('version', metavar='version', help='manifest version string')
     parser.add_argument('root', metavar='root', help='root directory for asset files')
     parser.add_argument('project_manifest', metavar='project.manifest', help='output path for project.manifest')
     parser.add_argument('version_manifest', metavar='version.manifest', help='output path for version.manifest')
-    parser.add_argument('--url', default=DEFAULT_URL, help='hostname')
     args = parser.parse_args()
 
-    createManifest(args.version, args.root, args.project_manifest, args.version_manifest, args.url)
+    createManifest(args.version, args.root, args.project_manifest, args.version_manifest)
