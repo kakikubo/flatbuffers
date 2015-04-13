@@ -11,6 +11,17 @@ import argparse
 import logging
 from collections import OrderedDict
 from logging import info, error, warning
+from xlrd.biffh import (
+    error_text_from_code,
+    XL_CELL_BLANK,
+    XL_CELL_TEXT,
+    XL_CELL_BOOLEAN,
+    XL_CELL_ERROR,
+    XL_CELL_EMPTY,
+    XL_CELL_DATE,
+    XL_CELL_NUMBER
+)
+# error_text_from_code[value] 
 
 import ipdb
 import pprint
@@ -46,7 +57,10 @@ def parse_xls(xls_path, except_sheets=[]):
                     v = row[j].value
                     k = key.value
                     t = types[j].value
-                    if len(k) == 0:
+                    c = row[j].ctype
+                    if c == XL_CELL_ERROR:
+                        raise Exception("Cell Error found: ctype = %d" % c)
+                    elif c in (XL_CELL_BLANK, XL_CELL_EMPTY):
                         continue;
                     elif t.find('ignore') >= 0:
                         continue
