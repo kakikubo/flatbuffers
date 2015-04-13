@@ -12,7 +12,7 @@ cd $root_dir || exit $?
 root_dir=`pwd`
 echo "watch root dir: $root_dir"
 
-$base = `basename "$root_dir"`
+base = `basename "$root_dir"`
 # setup dirs
 dirs="../${base}_tmp editor master contents/files contents/master manifests/dev"
 for dir in $dirs; do
