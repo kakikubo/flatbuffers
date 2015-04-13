@@ -44,6 +44,12 @@ echo $json | $jq '.'
       exit 1
     fi
 
+    # renamed + changed
+    for f in `git status --short | grep -e '^R[M\?]' | cut -f 4 -d ' '`; do
+      echo "$f is added"
+      git add $f || exit $?
+    done
+
     # added + changed
     for f in `git status --short | grep -e '^.[M\?]' | cut -c 4-`; do
       echo "$f is added"
