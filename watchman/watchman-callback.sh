@@ -44,6 +44,8 @@ echo $json | $jq '.'
       exit 1
     fi
 
+    IFS_BACKUP=$IFS
+    IFS=$'\n'
     # renamed + changed
     for f in `git status --short | grep -e '^R[M\?]' | cut -f 4 -d ' '`; do
       echo "$f is added"
@@ -61,6 +63,7 @@ echo $json | $jq '.'
       echo "$f is deleted"
       git rm $f || exit $?
     done
+    IFS=$IFS_BACKUP
 
     # commit git
     if git status | grep 'Changes to be committed:' > /dev/null; then
