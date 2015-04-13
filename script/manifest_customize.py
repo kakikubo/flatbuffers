@@ -41,7 +41,7 @@ def customizeManifest(version, root, dir_name, base_manifest, projectPath, versi
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Update asset manifest files for AssetsManagerEx', epilog="""\
     example:
-    $ ./manifest_customize.py ""master 201504010000"" asset_USER_NAME/contents/ asset_USER_NAME asset/dev/project.manifest asset_USER_NAME/dev/project.manifest asset_USER_NAME/dev/version.manifest""")
+    $ ./manifest_customize.py ""master 201504010000"" asset_USER_NAME/contents/ asset_USER_NAME asset/manifests/dev/project.manifest asset_USER_NAME/manifests/dev/project.manifest asset_USER_NAME/dev/version.manifest""")
     parser.add_argument('version', metavar='version', help='manifest version string')
     parser.add_argument('root', metavar='root', help='root directory for asset files')
     parser.add_argument('dir_name', metavar='dir_name', help='target directory name (e.g. v1.0, asset_masaru.ida, ...)')

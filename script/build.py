@@ -34,7 +34,7 @@ class AssetBuilder():
         info("build-dir = %s", self.build_dir)
 
         self.asset_dir     = self.user_dir+'/contents'
-        self.manifest_dir  = self.top_dir+'/dev'
+        self.manifest_dir  = self.top_dir+'/manifests/dev'
         self.xlsx_dir      = self.top_dir+'/master'
         self.user_xlsx_dir = self.user_dir+'/master'
         self.schema_dir    = self.top_dir+'/master_derivatives'
