@@ -1,4 +1,4 @@
-["trigger", "__ROOT_DIR__/bundled/preload/files", {
+["trigger", "__ROOT_DIR__/contents/files", {
   "name": "asset",
   "expression": ["type", "f"],
   "ignore_dirs": ["watchman", ".git"],

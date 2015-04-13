@@ -33,18 +33,18 @@ class AssetBuilder():
         info("user-dir = %s", self.user_dir)
         info("build-dir = %s", self.build_dir)
 
-        self.asset_dir     = self.user_dir+'/bundled/preload'
-        self.manifest_dir  = self.top_dir+'/bundled/manifest'
+        self.asset_dir     = self.user_dir+'/contents'
+        self.manifest_dir  = self.top_dir+'/dev'
         self.xlsx_dir      = self.top_dir+'/master'
         self.user_xlsx_dir = self.user_dir+'/master'
         self.schema_dir    = self.top_dir+'/master_derivatives'
         self.data_dir      = self.top_dir+'/master_derivatives'
         self.fbs_dir       = self.top_dir+'/master_derivatives'
-        self.bin_dir       = self.top_dir+'/bundled/preload/master'
+        self.bin_dir       = self.top_dir+'/contents/master'
         self.header_dir    = self.top_dir+'/master_header'
 
-        self.manifest_bin = self_dir+'/manifest-generate.py'
-        self.xls2json_bin = self_dir+'/master-data-xls2json.py'
+        self.manifest_bin = self_dir+'/manifest_generate.py'
+        self.xls2json_bin = self_dir+'/master_data_xls2json.py'
         self.json2fbs_bin = self_dir+'/json2fbs.py'
         self.flatc_bin    = self_dir+'/flatc'
 
