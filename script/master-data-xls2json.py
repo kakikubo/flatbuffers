@@ -21,7 +21,7 @@ def parse_xls(xls_path, except_sheets=[]):
     schema = OrderedDict()
     xls_book = xlrd.open_workbook(xls_path)
     for sheet in xls_book.sheets():
-        if sheet.name in except_sheets:
+        if sheet.name in except_sheets or re.match('^_', sheet.name):
             continue
         keys  = sheet.row(0)
         types = sheet.row(1)
