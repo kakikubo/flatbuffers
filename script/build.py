@@ -196,7 +196,7 @@ if __name__ == '__main__':
 commands:
   build              do all build processes
   build-all          same as 'build'
-  build-manifest     generate project.manifest + version.manifest from bundled/preload/**
+  build-manifest     generate project.manifest + version.manifest from contents/**
   build-json         generate master_data.json + master_schema.json from master_data.xlsx
   build-fbs          generate master_data.fbs from master_data.json
   build-bin          generate master_data.bin + master_header/*.h from master_data.json + master_data.fbs

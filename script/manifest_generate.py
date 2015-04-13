@@ -74,7 +74,7 @@ def createManifest(version, root, projectPath, versionPath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate asset manifest files for AssetsManagerEx', epilog="""\
 example:
-    $ ./manifest-generate.py ""master 201504010000"" asset/bundled/preload/ asset/bundled/manifest/project.manifest asset/bundled/manifest/version.manifest""")
+    $ ./manifest-generate.py ""master 201504010000"" asset/contents/ asset/dev/project.manifest asset/dev/version.manifest""")
     parser.add_argument('version', metavar='version', help='manifest version string')
     parser.add_argument('root', metavar='root', help='root directory for asset files')
     parser.add_argument('project_manifest', metavar='project.manifest', help='output path for project.manifest')

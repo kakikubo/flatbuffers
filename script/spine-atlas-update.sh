@@ -5,7 +5,7 @@ cd $1
 
 #TexturePacker=/usr/local/bin/TexturePacker
 TexturePacker=/Applications/TexturePacker.app/Contents/MacOS/TexturePacker
-spine_dir=bundled/preload/files/spine
+spine_dir=contents/files/spine
 options="--texture-format png --format spine --trim-mode None"
 
 if ! ls $spine_dir > /dev/null; then
