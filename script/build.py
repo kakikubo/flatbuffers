@@ -22,7 +22,7 @@ class AssetBuilder():
         self.target = target or 'master'
         self.asset_version   = asset_version   or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
         user_dir_default     = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', os.path.normpath(self_dir+'/../../box/kms_master_asset'))
-        top_dir_default      = user_dir_default if self.target == 'master' else user_dir_default+'_generated'
+        top_dir_default      = user_dir_default if self.target == 'master' else 'generated/'+user_dir_default
         self.top_dir         = top_dir         or top_dir_default
         self.user_dir        = user_dir        or user_dir_default
         self.build_dir       = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder')
@@ -34,7 +34,7 @@ class AssetBuilder():
         info("build-dir = %s", self.build_dir)
 
         self.asset_dir     = self.user_dir+'/contents'
-        self.manifest_dir  = self.top_dir+'/dev'
+        self.manifest_dir  = self.top_dir+'/manifests/dev'
         self.xlsx_dir      = self.top_dir+'/master'
         self.user_xlsx_dir = self.user_dir+'/master'
         self.schema_dir    = self.top_dir+'/master_derivatives'

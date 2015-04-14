@@ -9,7 +9,7 @@ sleep=$1
 
 commit_log_file=/tmp/watchman-commit-message.log
 gitlab_url=http://g-pc-4114.intra.gree-office.net:3000
-version_manifest=dev/version.manifest
+version_manifest=manifests/dev/version.manifest
 version_tag=
 
 if pgrep -fl $self; then
