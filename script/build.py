@@ -17,6 +17,10 @@ from logging import info
 
 #import ipdb
 DEV_URL = 'http://tmp-kiyoto-suzuki-ffl.gree-dev.net/cdn'
+DEV_HOST = 'ubuntu@10.1.1.24'
+DEV_CDN_ROOT = '/var/www/cdn/'
+DEV_SSH_KEY = '/Users/ffl.jenkins/.ssh/id_rsa.openstack'
+
 MASTER_LATEST_DIR = 'ver1'
 
 class AssetBuilder():
@@ -178,14 +182,14 @@ class AssetBuilder():
         project_file          = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         version_file          = self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
         
-        host = 'ubuntu@10.1.1.24'
-        dst_dir = '/var/www/cdn/'+MASTER_LATEST_DIR
-        dst_asset = host+':'+dst_dir+'/contents'
-        dst_project_manifest  = host+':'+dst_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dst_version_manifest  = host+':'+dst_dir+'/'+self.VERSION_MANIFEST_FILE
-        dst_top_manifest      = host+':/var/www/cdn/'+self.VERSION_MANIFEST_FILE
+        dst_dir = DEV_CDN_ROOT+MASTER_LATEST_DIR
+        dst_asset = DEV_HOST+':'+dst_dir+'/contents'
+        dst_project_manifest  = DEV_HOST+':'+dst_dir+'/'+self.PROJECT_MANIFEST_FILE
+        dst_version_manifest  = DEV_HOST+':'+dst_dir+'/'+self.VERSION_MANIFEST_FILE
+        dst_top_manifest      = DEV_HOST+':'+DEV_CDN_ROOT+self.VERSION_MANIFEST_FILE
         
-        check_call(['ssh', '-i', '/Users/ffl.jenkins/.ssh/id_rsa.openstack', host, 'mkdir', '-p', dst_dir])
+        check_call(['ssh', '-i', DEV_SSH_KEY, host, 'mkdir', '-p', dst_dir])
+        rsync = ['rsync', '-a', '-e', "ssh -i "+DEV_SSH_KEY]
         manifest = {}
         with open(project_file, 'r') as f:
             manifest = json.load(f)
@@ -197,22 +201,19 @@ class AssetBuilder():
             for key in assets:
                 asset = assets.get(key)
                 path = asset.get('path')
-                info("checking %s %s",path, self.remote_dir_asset+"/"+key)
                 if path == self.remote_dir_asset+"/"+key:
                     (path, name)  = os.path.split(tmp+"/"+key)
                     if not os.path.exists(path):
                         os.makedirs(path)
                     copy(self.local_asset_search_path + "/"+ key, tmp + "/"+key)
-                    info("copied %s",tmp+"/"+key)
-            check_call(['rsync', '-a', '-e',  "ssh -i /Users/ffl.jenkins/.ssh/id_rsa.openstack", tmp+"/", dst_asset])
+            check_call(rsync + ['--delete', tmp+"/", dst_asset])
         finally:
             rmtree(tmp)
         
-
-        rsync = ['rsync', '-a', '-e', "ssh -i /Users/ffl.jenkins/.ssh/id_rsa.openstack"]
         check_call(rsync + [version_file, dst_top_manifest])
         check_call(rsync + [version_file, dst_version_manifest])
         check_call(rsync + [project_file, dst_project_manifest])
+
     # do all processes
     def build_all(self, check_modified=True):
         # check modified
