@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 
-ENGINE_VERSION = 'Cocos2d-x v3.4'
+ENGINE_VERSION = 'Cocos2d-x v3.5'
 
 def loadManifest(path):
     manifest = {}

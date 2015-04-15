@@ -105,7 +105,7 @@ class AssetBuilder():
         if self.target == 'master':
             reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
             url_project_manifest  = DEV_URL + '/' + MASTER_LATEST_DIR+'/'+self.PROJECT_MANIFEST_FILE
-            url_version_manifest  = DEV_URL + '/' + MASTER_LATEST_DIR+'/'+self.VERSION_MANIFEST_FILE
+            url_version_manifest  = DEV_URL + '/'+self.VERSION_MANIFEST_FILE
         else:
             reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
             url_project_manifest  = DEV_URL + '/' + self.target+'/'+self.PROJECT_MANIFEST_FILE
@@ -185,8 +185,7 @@ class AssetBuilder():
         dst_dir = DEV_CDN_ROOT+MASTER_LATEST_DIR
         dst_asset = DEV_HOST+':'+dst_dir+'/contents'
         dst_project_manifest  = DEV_HOST+':'+dst_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dst_version_manifest  = DEV_HOST+':'+dst_dir+'/'+self.VERSION_MANIFEST_FILE
-        dst_top_manifest      = DEV_HOST+':'+DEV_CDN_ROOT+self.VERSION_MANIFEST_FILE
+        dst_version_manifest  = DEV_HOST+':'+DEV_CDN_ROOT+self.VERSION_MANIFEST_FILE
         
         check_call(['ssh', '-i', DEV_SSH_KEY, DEV_HOST, 'mkdir', '-p', dst_dir])
         rsync = ['rsync', '-a', '-e', "ssh -i "+DEV_SSH_KEY]
@@ -210,7 +209,6 @@ class AssetBuilder():
         finally:
             rmtree(tmp)
         
-        check_call(rsync + [version_file, dst_top_manifest])
         check_call(rsync + [version_file, dst_version_manifest])
         check_call(rsync + [project_file, dst_project_manifest])
 
