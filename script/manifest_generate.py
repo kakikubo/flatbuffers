@@ -81,7 +81,7 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate asset manifest files for AssetsManagerEx', epilog="""\
 example:
-    $ ./manifest_generate.py  --reference_manifest_path asset/manifests/dev/project.manifest ""master 201504010000"" asset_USER_NAME/contents/ asset_USER_NAME asset_USER_NAME/manifests/dev/project.manifest asset_USER_NAME/dev/version.manifest""")
+    $ ./manifest_generate.py  --ref reference.manifest project.manifest version.manifest ""version 1"" http://example.com/project.manifest http://exmaple.com/version.manifest http://exmaple.com/cdn ver1 asset""")
 
     parser.add_argument('dst_file_project_manifest', metavar='project.manifest', help='output path for project.manifest')
     parser.add_argument('dst_file_version_manifest', metavar='version.manifest', help='output path for version.manifest')
