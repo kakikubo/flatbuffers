@@ -44,26 +44,10 @@ echo $json | $jq '.'
       exit 1
     fi
 
-    IFS_BACKUP=$IFS
-    IFS=$'\n'
-    # renamed + changed
-    for f in `git status --short | grep -e '^R[M\?]' | cut -f 4 -d ' '`; do
-      echo "$f is added"
-      git add "$f" || exit $?
-    done
-
-    # added + changed
-    for f in `git status --short | grep -e '^.[M\?]' | cut -c 4-`; do
-      echo "$f is added"
-      git add "$f" || exit $?
-    done
-
-    # deleted
-    for f in `git status --short | grep -e '^.D' | cut -c 4-`; do
-      echo "$f is deleted"
-      git rm "$f" || exit $?
-    done
-    IFS=$IFS_BACKUP
+    # git add + git rm
+    git status --short | grep -e '^R[M\?]' | cut -f 4 -d ' ' | xargs git add || exit $?  # renamed + changed
+    git status --short | grep -e '^.[M\?]' | cut -c 4-       | xargs git add || exit $?  # added + changed
+    git status --short | grep -e '^.D'     | cut -c 4-       | xargs git rm  || exit $?  # deleted
 
     # commit git
     if git status | grep 'Changes to be committed:' > /dev/null; then
