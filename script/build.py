@@ -11,7 +11,7 @@ import logging
 import json
 from time import strftime
 from subprocess import check_call, check_output
-from shutil import move, rmtree, copy
+from shutil import move, rmtree, copy, copytree
 from glob import glob
 from logging import info
 
@@ -214,9 +214,9 @@ class AssetBuilder():
                             os.makedirs(path)
                         copy(self.local_asset_search_path + "/"+ key, tmp + "/"+key)
             else:
-                dst_version_manifest  = DEV_HOST+':'+dst_dir+self.VERSION_MANIFEST_FILE
-                copy(self.local_asset_search_path, tmp+"/")
-                copy(self.bin_dir, tmp)
+                dst_version_manifest = DEV_HOST+':'+dst_dir+"/"+self.VERSION_MANIFEST_FILE
+                copytree(self.local_asset_search_path+"/files", tmp+"/files")
+                copytree(self.bin_dir, tmp+"/master")
 
             usernames = []
             for f in os.listdir(self.users_dir) :
