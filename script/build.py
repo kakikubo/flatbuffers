@@ -188,7 +188,7 @@ class AssetBuilder():
         dst_version_manifest  = DEV_HOST+':'+DEV_CDN_ROOT+self.VERSION_MANIFEST_FILE
         
         check_call(['ssh', '-i', DEV_SSH_KEY, DEV_HOST, 'mkdir', '-p', dst_dir])
-        rsync = ['rsync', '-a', '-e', "ssh -i "+DEV_SSH_KEY]
+        rsync = ['rsync', '-rlOt', '-e', "ssh -i "+DEV_SSH_KEY]
         manifest = {}
         with open(project_file, 'r') as f:
             manifest = json.load(f)
