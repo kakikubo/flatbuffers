@@ -27,15 +27,17 @@ class AssetBuilder():
     def __init__(self, target=None, asset_version=None, top_dir=None, user_dir=None, build_dir=None):
         self_dir = os.path.dirname(os.path.abspath(__file__))
         self.target = target or 'master'
+        self.is_master = self.target == 'master'
         self.asset_version   = asset_version   or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
         master_dir      = os.path.normpath(self_dir+'/../../box/kms_master_asset')
+        self.users_dir = os.path.normpath(self_dir+'/../../box/users_generated')
         user_dir_default     = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', master_dir)
         self.master_manifest_dir = master_dir + "/manifests"
-        top_dir_default      = user_dir_default if self.target == 'master' else 'generated/'+user_dir_default
+        top_dir_default      = user_dir_default if self.is_master else self.users_dir+"/"+target
         self.top_dir         = top_dir         or top_dir_default
         self.user_dir        = user_dir        or user_dir_default
         self.build_dir       = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder')
-        self.remote_dir_asset = MASTER_LATEST_DIR + '/contents' if self.target == 'master' else self.target + '/contents'
+        self.remote_dir_asset = MASTER_LATEST_DIR + '/contents' if self.is_master else self.target + '/contents'
         
         info("target = %s", self.target)
         info("asset version = '%s'", self.asset_version)
@@ -44,9 +46,10 @@ class AssetBuilder():
         info("build-dir = %s", self.build_dir)
 
         self.local_asset_search_path = self.user_dir+'/contents'
+        self.user_xlsx_dir = self.user_dir+'/master'
+
         self.manifest_dir  = self.top_dir+'/manifests'
         self.xlsx_dir      = self.top_dir+'/master'
-        self.user_xlsx_dir = self.user_dir+'/master'
         self.schema_dir    = self.top_dir+'/master_derivatives'
         self.data_dir      = self.top_dir+'/master_derivatives'
         self.fbs_dir       = self.top_dir+'/master_derivatives'
@@ -71,7 +74,7 @@ class AssetBuilder():
 
     # setup dest directories
     def setup_dir(self):
-        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.xlsx_dir, self.user_xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir):
+        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.xlsx_dir, self.user_xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir, self.users_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -102,7 +105,7 @@ class AssetBuilder():
         dest_version_manifest = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
         url_asset             = DEV_URL + '/'
         
-        if self.target == 'master':
+        if self.is_master:
             reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
             url_project_manifest  = DEV_URL + '/' + MASTER_LATEST_DIR+'/'+self.PROJECT_MANIFEST_FILE
             url_version_manifest  = DEV_URL + '/'+self.VERSION_MANIFEST_FILE
@@ -181,37 +184,55 @@ class AssetBuilder():
     def deploy_dev(self):
         project_file          = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         version_file          = self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
-        
-        dst_dir = DEV_CDN_ROOT+MASTER_LATEST_DIR
-        dst_asset = DEV_HOST+':'+dst_dir+'/contents'
-        dst_project_manifest  = DEV_HOST+':'+dst_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dst_version_manifest  = DEV_HOST+':'+DEV_CDN_ROOT+self.VERSION_MANIFEST_FILE
-        
-        check_call(['ssh', '-i', DEV_SSH_KEY, DEV_HOST, 'mkdir', '-p', dst_dir])
+       
         rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
 
-        manifest = {}
-        with open(project_file, 'r') as f:
-            manifest = json.load(f)
-    
+        if self.is_master:
+            dst_dir = DEV_CDN_ROOT+MASTER_LATEST_DIR
+        else:
+            dst_dir = DEV_CDN_ROOT+self.target
+
+        check_call(['ssh', '-i', DEV_SSH_KEY, DEV_HOST, 'mkdir', '-p', dst_dir])
+        dst_asset = DEV_HOST+':'+dst_dir+'/contents'
+        dst_project_manifest  = DEV_HOST+':'+dst_dir+'/'+self.PROJECT_MANIFEST_FILE
+        dst_listfile = DEV_HOST+':'+DEV_CDN_ROOT+"dev.asset_list.json"
+
         try:
             tmp = tempfile.mkdtemp(prefix = 'kms_asset_builder_contents')
+            if self.is_master:
+                dst_version_manifest  = DEV_HOST+':'+DEV_CDN_ROOT+self.VERSION_MANIFEST_FILE
+                manifest = {}
+                with open(project_file, 'r') as f:
+                    manifest = json.load(f)
+                assets = manifest.get('assets')
+                for key in assets:
+                    asset = assets.get(key)
+                    path = asset.get('path')
+                    if path == self.remote_dir_asset+"/"+key:
+                        (path, name)  = os.path.split(tmp+"/"+key)
+                        if not os.path.exists(path):
+                            os.makedirs(path)
+                        copy(self.local_asset_search_path + "/"+ key, tmp + "/"+key)
+            else:
+                dst_version_manifest  = DEV_HOST+':'+dst_dir+self.VERSION_MANIFEST_FILE
+                copy(self.local_asset_search_path, tmp+"/")
+                copy(self.bin_dir, tmp)
+
+            usernames = []
+            for f in os.listdir(self.users_dir) :
+                if os.path.isdir(self.users_dir+"/"+f):
+                    usernames +=[f]
+
+            list_file = self.build_dir + "/tmp.txt"
+            with open(list_file, 'w') as f:
+                json.dump(usernames, f, sort_keys=True, indent=2)
             
-            assets = manifest.get('assets')
-            for key in assets:
-                asset = assets.get(key)
-                path = asset.get('path')
-                if path == self.remote_dir_asset+"/"+key:
-                    (path, name)  = os.path.split(tmp+"/"+key)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                    copy(self.local_asset_search_path + "/"+ key, tmp + "/"+key)
+            check_call(rsync + [list_file, dst_listfile])
             check_call(rsync + ['--delete', tmp+"/", dst_asset])
+            check_call(rsync + [version_file, dst_version_manifest])
+            check_call(rsync + [project_file, dst_project_manifest])
         finally:
             rmtree(tmp)
-        
-        check_call(rsync + [version_file, dst_version_manifest])
-        check_call(rsync + [project_file, dst_project_manifest])
 
     # do all processes
     def build_all(self, check_modified=True):
@@ -229,11 +250,11 @@ class AssetBuilder():
         # main process
         try:
             self.setup_dir()
-            self.build_manifest()
             if not check_modified or modified:
                 self.build_json(xlsxes)
                 self.build_fbs()
                 self.build_bin()
+            self.build_manifest()
             self.install()
             self.deploy_dev()
         finally:
