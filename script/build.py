@@ -36,7 +36,8 @@ class AssetBuilder():
         top_dir_default      = user_dir_default if self.is_master else self.users_dir+"/"+target
         self.top_dir         = top_dir         or top_dir_default
         self.user_dir        = user_dir        or user_dir_default
-        self.build_dir       = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder')
+        self.build_dir       = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder_build')
+        self.deply_src_dir   = tempfile.mkdtemp(prefix = 'kms_asset_builder_deploy')
         self.remote_dir_asset = MASTER_LATEST_DIR + '/contents' if self.is_master else self.target + '/contents'
         
         info("target = %s", self.target)
@@ -197,43 +198,39 @@ class AssetBuilder():
         dst_project_manifest  = DEV_HOST+':'+dst_dir+'/'+self.PROJECT_MANIFEST_FILE
         dst_listfile = DEV_HOST+':'+DEV_CDN_ROOT+"dev.asset_list.json"
 
-        try:
-            tmp = tempfile.mkdtemp(prefix = 'kms_asset_builder_contents')
-            if self.is_master:
-                dst_version_manifest  = DEV_HOST+':'+DEV_CDN_ROOT+self.VERSION_MANIFEST_FILE
-                manifest = {}
-                with open(project_file, 'r') as f:
-                    manifest = json.load(f)
-                assets = manifest.get('assets')
-                for key in assets:
-                    asset = assets.get(key)
-                    path = asset.get('path')
-                    if path == self.remote_dir_asset+"/"+key:
-                        (path, name)  = os.path.split(tmp+"/"+key)
-                        if not os.path.exists(path):
-                            os.makedirs(path)
-                        copy(self.local_asset_search_path + "/"+ key, tmp + "/"+key)
-            else:
-                dst_version_manifest = DEV_HOST+':'+dst_dir+"/"+self.VERSION_MANIFEST_FILE
-                copytree(self.local_asset_search_path+"/files", tmp+"/files")
-                copytree(self.bin_dir, tmp+"/master")
+        if self.is_master:
+            dst_version_manifest  = DEV_HOST+':'+DEV_CDN_ROOT+self.VERSION_MANIFEST_FILE
+            manifest = {}
+            with open(project_file, 'r') as f:
+                manifest = json.load(f)
+            assets = manifest.get('assets')
+            for key in assets:
+                asset = assets.get(key)
+                path = asset.get('path')
+                if path == self.remote_dir_asset+"/"+key:
+                    (path, name)  = os.path.split(self.deply_src_dir+"/"+key)
+                    if not os.path.exists(path):
+                        os.makedirs(path)
+                    copy(self.local_asset_search_path + "/"+ key, self.deply_src_dir + "/"+key)
+        else:
+            dst_version_manifest = DEV_HOST+':'+dst_dir+"/"+self.VERSION_MANIFEST_FILE
+            copytree(self.local_asset_search_path+"/files", self.deply_src_dir+"/files")
+            copytree(self.bin_dir, self.deply_src_dir+"/master")
 
-            usernames = []
-            for f in os.listdir(self.users_dir) :
-                if os.path.isdir(self.users_dir+"/"+f):
-                    usernames +=[f]
+        usernames = []
+        for f in os.listdir(self.users_dir) :
+            if os.path.isdir(self.users_dir+"/"+f):
+                usernames +=[f]
 
-            list_file = self.build_dir + "/tmp.txt"
-            with open(list_file, 'w') as f:
-                json.dump(usernames, f, sort_keys=True, indent=2)
-            os.chmod(list_file, 0664)
-            check_call(rsync + [list_file, dst_listfile])
-            check_call("find " + tmp + " -type f -print | xargs chmod 664", shell=True)
-            check_call(rsync + ['--delete', tmp+"/", dst_asset])
-            check_call(rsync + [version_file, dst_version_manifest])
-            check_call(rsync + [project_file, dst_project_manifest])
-        finally:
-            rmtree(tmp)
+        list_file = self.build_dir + "/tmp.txt"
+        with open(list_file, 'w') as f:
+            json.dump(usernames, f, sort_keys=True, indent=2)
+        os.chmod(list_file, 0664)
+        check_call(rsync + [list_file, dst_listfile])
+        check_call("find " + self.deply_src_dir + " -type f -print | xargs chmod 664", shell=True)
+        check_call(rsync + ['--delete', self.deply_src_dir+"/", dst_asset])
+        check_call(rsync + [version_file, dst_version_manifest])
+        check_call(rsync + [project_file, dst_project_manifest])
 
     # do all processes
     def build_all(self, check_modified=True):
@@ -265,6 +262,7 @@ class AssetBuilder():
     # clean up
     def cleanup(self):
         rmtree(self.build_dir)
+        rmtree(self.deply_src_dir)
         return True
 
 if __name__ == '__main__':
