@@ -228,6 +228,7 @@ class AssetBuilder():
                 json.dump(usernames, f, sort_keys=True, indent=2)
             
             check_call(rsync + [list_file, dst_listfile])
+            check_call("find " + tmp + " -type f -print | xargs chmod 664", shell=True)
             check_call(rsync + ['--delete', tmp+"/", dst_asset])
             check_call(rsync + [version_file, dst_version_manifest])
             check_call(rsync + [project_file, dst_project_manifest])
