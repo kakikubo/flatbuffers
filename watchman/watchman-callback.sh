@@ -53,9 +53,9 @@ echo $json | $jq '.'
     fi
 
     # git add + git rm
-    git status --short | grep -e '^R[M\?]' | cut -f 4 -d ' ' | xargs -0 git add || exit $?  # renamed + changed
-    git status --short | grep -e '^.[M\?]' | cut -c 4-       | xargs -0 git add || exit $?  # added + changed
-    git status --short | grep -e '^.D'     | cut -c 4-       | xargs -0 git rm  || exit $?  # deleted
+    git status --short | grep -e '^R[M\?]' | cut -f 4 -d ' ' | xargs git add || exit $?  # renamed + changed
+    git status --short | grep -e '^.[M\?]' | cut -c 4-       | xargs git add || exit $?  # added + changed
+    git status --short | grep -e '^.D'     | cut -c 4-       | xargs git rm  || exit $?  # deleted
 
     # commit git
     if git status | grep 'Changes to be committed:' > /dev/null; then
