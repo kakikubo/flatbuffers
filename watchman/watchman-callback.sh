@@ -32,6 +32,14 @@ echo $json | $jq '.'
 
   # build asset
   $tool_dir/script/build.py build --target $target || exit $?
+  if [ $target = "master" ]; then
+    for user_target in `ls ${tool_dir}/../box/users_generated`
+    do
+      if [ -d ${tool_dir}/../box/users_generated/${user_target} ]; then
+        $tool_dir/script/build.py build --target $user_target || exit $?
+      fi
+    done
+  fi
 
   # git commit + push
   if [ $target = "master" ]; then
