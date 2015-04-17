@@ -226,7 +226,7 @@ class AssetBuilder():
             list_file = self.build_dir + "/tmp.txt"
             with open(list_file, 'w') as f:
                 json.dump(usernames, f, sort_keys=True, indent=2)
-            
+            os.chmod(list_file, 0664)
             check_call(rsync + [list_file, dst_listfile])
             check_call("find " + tmp + " -type f -print | xargs chmod 664", shell=True)
             check_call(rsync + ['--delete', tmp+"/", dst_asset])
