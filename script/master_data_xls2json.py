@@ -58,14 +58,14 @@ def parse_xls(xls_path, except_sheets=[]):
                     k = key.value
                     t = types[j].value
                     c = row[j].ctype
-                    if c == XL_CELL_ERROR:
-                        raise Exception("Cell Error found: ctype = %d" % c)
-                    #elif c in (XL_CELL_BLANK, XL_CELL_EMPTY):
-                    #    continue
-                    elif len(k) == 0:
+                    if len(k) == 0:
                         continue
                     elif t.find('ignore') >= 0:
                         continue
+                    elif c == XL_CELL_ERROR:
+                        raise Exception("Cell Error found: ctype = %d" % c)
+                    #elif c in (XL_CELL_BLANK, XL_CELL_EMPTY):
+                    #    continue
                     elif t.find('int') >= 0:
                         v = int(v) if v != '' else 0
                     elif t.find('float') >= 0:
