@@ -60,6 +60,8 @@ def parse_xls(xls_path, except_sheets=[]):
                     c = row[j].ctype
                     if len(k) == 0:
                         continue
+                    elif re.match('^_', k):
+                        continue
                     elif t.find('ignore') >= 0:
                         continue
                     elif c == XL_CELL_ERROR:
