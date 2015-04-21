@@ -228,6 +228,7 @@ class AssetBuilder():
         os.chmod(list_file, 0664)
         check_call(rsync + [list_file, dst_listfile])
         check_call("find " + self.deply_src_dir + " -type f -print | xargs chmod 664", shell=True)
+        check_call("find " + self.deply_src_dir + " -type d -print | xargs chmod 775", shell=True)
         check_call(rsync + ['--delete', self.deply_src_dir+"/", dst_asset])
         check_call(['ssh', '-i', DEV_SSH_KEY, DEV_HOST, 'chmod', '775', dst_dir+"/contents"])
         check_call(rsync + [version_file, dst_version_manifest])
