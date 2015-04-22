@@ -4,3 +4,5 @@ watchman/watchman-*.log
 
 *.swp
 *.swo
+
+.DS_Store
