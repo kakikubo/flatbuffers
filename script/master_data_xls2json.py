@@ -89,35 +89,35 @@ def normalize(data, schema, target):
     for table in data['table']:
         if table['type'].find('ignore') >= 0:
             continue
-        primary_key = table['primaryKey']
-        version_key = table['versionKey']
-  
         filtered = []
-        id_mapping = OrderedDict()
-        for d in data[table['name']]:
-            if version_key in d:
-                if d[version_key] != '' and d[version_key] != target:
-                    continue
-                del d[version_key]  # delete versionKey
-  
-            # filter by primary key
-            if d[primary_key] is not None:
-                if d[primary_key] >= 0:
-                    id_mapping[d[primary_key]] = d  # override
-                elif d[primary_key] < 0:
-                    id = abs(d[primary_key])
-                    if id in id_mapping:
-                        del id_mapping[id]  # delete
-            else:
-              warning("no primary key record: %s: %s" % (table['name'], d))
-  
-        # object -> list
-        filtered = []
-        for id in id_mapping:
-            filtered.append(id_mapping[id])
-  
-        if table['type'].find('object') >= 0:
-            filtered = filtered[0] # by object, not object array
+        if table['type'].find('json') < 0:
+            primary_key = table['primaryKey']
+            version_key = table['versionKey']
+      
+            id_mapping = OrderedDict()
+            for d in data[table['name']]:
+                if version_key in d:
+                    if d[version_key] != '' and d[version_key] != target:
+                        continue
+                    del d[version_key]  # delete versionKey
+      
+                # filter by primary key
+                if d[primary_key] is not None:
+                    if d[primary_key] >= 0:
+                        id_mapping[d[primary_key]] = d  # override
+                    elif d[primary_key] < 0:
+                        id = abs(d[primary_key])
+                        if id in id_mapping:
+                            del id_mapping[id]  # delete
+                else:
+                  warning("no primary key record: %s: %s" % (table['name'], d))
+      
+            # object -> list
+            for id in id_mapping:
+                filtered.append(id_mapping[id])
+      
+            if table['type'].find('object') >= 0:
+                filtered = filtered[0] # by object, not object array
         normalized[table['name']] = filtered
     return normalized
   
