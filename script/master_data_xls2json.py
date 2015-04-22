@@ -151,9 +151,9 @@ if __name__ == '__main__':
 
     # write json
     data = normalize(data, schema, args.target)
-    for t in ((schema_json_file, schema), (data_json_file, data)):
-        info("output: %s" % t[0])
-        with codecs.open(t[0], "w") as fp:
-            j = json.dumps(t[1], ensure_ascii = False, indent = 4)
+    for f, d in ((schema_json_file, schema), (data_json_file, data)):
+        info("output: %s" % f)
+        with codecs.open(f, "w") as fp:
+            j = json.dumps(d, ensure_ascii = False, indent = 4)
             fp.write(j.encode("utf-8"))
     exit(0)
