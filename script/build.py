@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 import os
 import sys
 import re
@@ -48,6 +49,9 @@ class AssetBuilder():
 
         self.local_asset_search_path = self.user_dir+'/contents'
         self.user_xlsx_dir = self.user_dir+'/master'
+
+        user_editor_json = self.user_dir+'/editor/editor_data.json'
+        self.editor_json = user_editor_json if os.path.exists(user_editor_json) else self.top_dir+'/editor/editor_data.json'
 
         self.manifest_dir  = self.top_dir+'/manifests'
         self.xlsx_dir      = self.top_dir+'/master'
@@ -133,6 +137,22 @@ class AssetBuilder():
         cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data, '--target', self.target]
         check_call(cmdline)
         return True
+
+    # merge editor's json data into the master json data
+    def merge_editor_json(self):
+        json_file = self.build_dir+'/'+self.JSON_DATA_FILE
+        with open(json_file, 'r') as f:
+            json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
+
+        with open(self.editor_json, 'r') as f:
+            editor_json_data = json.loads(f.read())
+
+        for key in editor_json_data:
+            json_data[key] = editor_json_data[key]
+
+        with open(json_file, 'w') as f:
+            j = json.dumps(json_data, ensure_ascii = False, indent = 4)
+            f.write(j.encode("utf-8"))
 
     # create fbs from json
     def build_fbs(self, src_json=None, dest_fbs=None, root_type=None, name_space=None):
@@ -237,21 +257,22 @@ class AssetBuilder():
     # do all processes
     def build_all(self, check_modified=True):
         # check modified
-        xlsxes = self._get_xlsxes()
+        build_depends = self._get_xlsxes() + [self.editor_json]
         modified = False
         if check_modified:
-            for xlsx in xlsxes:
-                if self._check_modified(xlsx, self.data_dir+'/'+self.JSON_DATA_FILE):
+            for src in build_depends:
+                if self._check_modified(src, self.bin_dir+'/'+self.BIN_FILE):
                     modified = True
                     break
             if not modified:
-                info("xlsxes are not modified")
+                info("xlsxes and editor data are not modified")
 
         # main process
         try:
             self.setup_dir()
             if not check_modified or modified:
-                self.build_json(xlsxes)
+                self.build_json()
+                self.merge_editor_json()
                 self.build_fbs()
                 self.build_bin()
             self.build_manifest()
