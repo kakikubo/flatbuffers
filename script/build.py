@@ -11,12 +11,13 @@ import argparse
 import logging
 import json
 from time import strftime
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, call
 from shutil import move, rmtree, copy, copytree
 from glob import glob
-from logging import info
+from logging import info, warning
 
 #import ipdb
+
 DEV_URL = 'http://tmp-kiyoto-suzuki-ffl.gree-dev.net/cdn'
 DEV_HOST = 'ubuntu@10.1.1.24'
 DEV_CDN_ROOT = '/var/www/cdn/'
@@ -40,6 +41,7 @@ class AssetBuilder():
         self.build_dir       = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder_build')
         self.deply_src_dir   = tempfile.mkdtemp(prefix = 'kms_asset_builder_deploy')
         self.remote_dir_asset = MASTER_LATEST_DIR + '/contents' if self.is_master else self.target + '/contents'
+        self.auto_cleanup = not build_dir   # do not clean up when user specified
         
         info("target = %s", self.target)
         info("asset version = '%s'", self.asset_version)
@@ -60,22 +62,25 @@ class AssetBuilder():
         self.fbs_dir       = self.top_dir+'/master_derivatives'
         self.bin_dir       = self.top_dir+'/contents/master'
         self.header_dir    = self.top_dir+'/master_header'
+        self.gd_dir        = self.top_dir+'/glyph_designer/'
+        self.font_dir      = self.top_dir+'/contents/files/font'
 
-        self.manifest_bin = self_dir+'/manifest_generate.py'
-        self.xls2json_bin = self_dir+'/master_data_xls2json.py'
-        self.json2fbs_bin = self_dir+'/json2fbs.py'
-        self.flatc_bin    = self_dir+'/flatc'
+        self.manifest_bin  = self_dir+'/manifest_generate.py'
+        self.xls2json_bin  = self_dir+'/master_data_xls2json.py'
+        self.json2fbs_bin  = self_dir+'/json2fbs.py'
+        self.flatc_bin     = self_dir+'/flatc'
+        self.json2font_bin = self_dir+'/json2font.py'
         
-        self.PROJECT_MANIFEST_FILE = 'dev.project.manifest'
-        self.VERSION_MANIFEST_FILE = 'dev.version.manifest'
+        self.PROJECT_MANIFEST_FILE   = 'dev.project.manifest'
+        self.VERSION_MANIFEST_FILE   = 'dev.version.manifest'
         self.REFERENCE_MANIFEST_FILE = 'dev.reference.manifest'
-        self.JSON_SCHEMA_FILE      = 'master_schema.json'
-        self.JSON_DATA_FILE        = 'master_data.json'
-        self.FBS_FILE              = 'master_data.fbs'
-        self.BIN_FILE              = 'master_data.bin'
-        self.HEADER_FILE           = 'master_data_generated.h'
-        self.FBS_ROOT_TYPE         = 'MasterDataFBS'
-        self.FBS_NAME_SPACE        = 'kms.fbs'
+        self.JSON_SCHEMA_FILE        = 'master_schema.json'
+        self.JSON_DATA_FILE          = 'master_data.json'
+        self.FBS_FILE                = 'master_data.fbs'
+        self.BIN_FILE                = 'master_data.bin'
+        self.HEADER_FILE             = 'master_data_generated.h'
+        self.FBS_ROOT_TYPE           = 'MasterDataFBS'
+        self.FBS_NAME_SPACE          = 'kms.fbs'
 
     # setup dest directories
     def setup_dir(self):
@@ -104,11 +109,11 @@ class AssetBuilder():
 
     # create manifest json from
     def build_manifest(self, asset_version=None, src_local_asset_search_path=None, dest_project_manifest=None, dest_version_manifest=None):
-        asset_version         = asset_version or self.asset_version
-        local_asset_search_path         = src_local_asset_search_path or self.local_asset_search_path
-        dest_project_manifest = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dest_version_manifest = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
-        url_asset             = DEV_URL + '/'
+        asset_version           = asset_version or self.asset_version
+        local_asset_search_path = src_local_asset_search_path or self.local_asset_search_path
+        dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        url_asset               = DEV_URL + '/'
         
         if self.is_master:
             reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
@@ -182,10 +187,25 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    # create fnt+png from json
+    def build_font(self, src_json=None, src_gd_dir=None, dest_font_dir=None):
+        # check GDCL
+        if call(['GDCL'], stdout = open(os.devnull, 'w')) == 127:
+            warning("GDCL is not installed. skip to build font")
+            return False
+
+        # build font by GDCL
+        src_json      = src_json      or self.build_dir+'/'+self.JSON_DATA_FILE
+        src_gd_dir    = src_gd_dir    or self.gd_dir
+        dest_font_dir = dest_font_dir or self.build_dir
+        cmdline = [self.json2font_bin, src_json, src_gd_dir, dest_font_dir]
+        check_call(cmdline)
+        return True
+
     # copy all generated files 
     def install(self, build_dir=None):
         build_dir = build_dir or self.build_dir
-        list = (
+        list = [
             (build_dir+'/'+self.PROJECT_MANIFEST_FILE, self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE),
             (build_dir+'/'+self.VERSION_MANIFEST_FILE, self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE),
             (build_dir+'/'+self.JSON_SCHEMA_FILE,      self.schema_dir+'/'+self.JSON_SCHEMA_FILE),
@@ -193,13 +213,17 @@ class AssetBuilder():
             (build_dir+'/'+self.FBS_FILE,              self.fbs_dir+'/'+self.FBS_FILE),
             (build_dir+'/'+self.BIN_FILE,              self.bin_dir+'/'+self.BIN_FILE),
             (build_dir+'/'+self.HEADER_FILE,           self.header_dir+'/'+self.HEADER_FILE)
-        )
-        for pair in list:
-            if os.path.exists(pair[0]):
-                info("install: %s -> %s" % (os.path.basename(pair[0]), os.path.dirname(pair[1])))
-                if os.path.exists(pair[1]):
-                    os.remove(pair[1])
-                move(pair[0], pair[1])
+        ]
+        for font_path in glob("%s/*.fnt" % build_dir):
+            png_path = re.sub('.fnt$', '.png', font_path)
+            list.append((font_path, self.font_dir+'/'+os.path.basename(font_path)))
+            list.append((png_path,  self.font_dir+'/'+os.path.basename(png_path)))
+        for src, dest in list:
+            if os.path.exists(src):
+                info("install: %s -> %s" % (os.path.basename(src), os.path.dirname(dest)))
+                if os.path.exists(dest):
+                    os.remove(dest)
+                move(src, dest)
         return True
 
     def deploy_dev(self):
@@ -275,11 +299,13 @@ class AssetBuilder():
                 self.merge_editor_json()
                 self.build_fbs()
                 self.build_bin()
+                self.build_font()
             self.build_manifest()
             self.install()
             self.deploy_dev()
         finally:
-            self.cleanup()
+            if self.auto_cleanup:
+                self.cleanup()
         return True
 
     # clean up
@@ -303,6 +329,7 @@ commands:
   build-json         generate master_data.json + master_schema.json from master_data.xlsx
   build-fbs          generate master_data.fbs from master_data.json
   build-bin          generate master_data.bin + master_header/*.h from master_data.json + master_data.fbs
+  build-font         generate bitmap font from master_data.json
   install            install files from build dir
   cleanup            cleanup build dir
 
@@ -340,6 +367,8 @@ examples:
         asset_builder.build_fbs()
     elif args.command == 'build-bin':
         asset_builder.build_bin()
+    elif args.command == 'build-font':
+        asset_builder.build_font()
     elif args.command == 'install':
         asset_builder.install()
     elif args.command == 'cleanup':
