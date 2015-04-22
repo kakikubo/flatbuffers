@@ -1,6 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
+import urllib
 import argparse
 import hashlib
 import json
@@ -73,6 +74,9 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
                     continue
             baseAssets[key] = asset
         manifest['assets'] = baseAssets
+
+    for key in manifest['assets'].keys():
+        manifest['assets'][key]['path'] = urllib.quote(manifest['assets'][key]['path'])
 
     for key in manifest['assets'].keys():
         if key == ".DS_Store" or key.endswith("/.DS_Store"):
