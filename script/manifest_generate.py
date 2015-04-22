@@ -74,6 +74,9 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
             baseAssets[key] = asset
         manifest['assets'] = baseAssets
 
+    for key in manifest['assets'].keys():
+        if key == ".DS_Store" or key.endswith("/.DS_Store"):
+            manifest['assets'].pop(key) 
     with open(dst_file_project_manifest, 'w') as f:
         json.dump(manifest, f, sort_keys=True, indent=2)
 
