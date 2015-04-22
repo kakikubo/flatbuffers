@@ -145,7 +145,7 @@ class AssetBuilder():
             json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
         with open(self.editor_json, 'r') as f:
-            editor_json_data = json.loads(f.read())
+            editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
         for key in editor_json_data:
             json_data[key] = editor_json_data[key]
