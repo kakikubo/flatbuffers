@@ -35,6 +35,8 @@ class AssetBuilder():
         self.users_dir = os.path.normpath(self_dir+'/../../box/users_generated')
         user_dir_default     = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', master_dir)
         self.master_manifest_dir = master_dir + "/manifests"
+        self.master_xlsx_dir      = master_dir+'/master'
+
         top_dir_default      = user_dir_default if self.is_master else self.users_dir+"/"+target
         self.top_dir         = top_dir         or top_dir_default
         self.user_dir        = user_dir        or user_dir_default
@@ -53,10 +55,9 @@ class AssetBuilder():
         self.user_xlsx_dir = self.user_dir+'/master'
 
         user_editor_json = self.user_dir+'/editor/editor_data.json'
-        self.editor_json = user_editor_json if os.path.exists(user_editor_json) else self.top_dir+'/editor/editor_data.json'
+        self.editor_json = user_editor_json if os.path.exists(user_editor_json) else master_dir+'/editor/editor_data.json'
 
         self.manifest_dir  = self.top_dir+'/manifests'
-        self.xlsx_dir      = self.top_dir+'/master'
         self.schema_dir    = self.top_dir+'/master_derivatives'
         self.data_dir      = self.top_dir+'/master_derivatives'
         self.fbs_dir       = self.top_dir+'/master_derivatives'
@@ -84,20 +85,21 @@ class AssetBuilder():
 
     # setup dest directories
     def setup_dir(self):
-        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.xlsx_dir, self.user_xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir, self.users_dir):
+        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.master_xlsx_dir, self.user_xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir, self.users_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
 
     # get xlsx master data files
-    def _get_xlsxes(self, xlsx_dirs=None):
-        xlsx_dirs = xlsx_dirs or (self.xlsx_dir, self.user_xlsx_dir)
-        xlsxes = []
+    def _get_xlsxes(self):
+        xlsx_dirs = (self.master_xlsx_dir, self.user_xlsx_dir)
+        xlsxes = {}
         for xlsx_dir in xlsx_dirs:
             for xlsx_path in glob("%s/*.xlsx" % xlsx_dir):
-                if (re.match('^~\$', os.path.basename(xlsx_path))):
+                basename = os.path.basename(xlsx_path)
+                if re.match('^~\$', basename):
                     continue
-                xlsxes.append(xlsx_path)
-        return xlsxes
+                xlsxes[basename] = xlsx_path
+        return xlsxes.values()
 
     # check modification of user editted files
     def _check_modified(self, target, base):
