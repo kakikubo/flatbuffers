@@ -45,8 +45,6 @@ def json2fbs(jsonFile, rootName, nameSpace = ''):
         else:
             print 'unsupported format. params:[{0}][{1}][{2}]'.format(jsonFile, rootName, nameSpace)
 
-
-
 # ---
 # default help message
 #

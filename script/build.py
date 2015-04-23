@@ -54,8 +54,11 @@ class AssetBuilder():
         self.local_asset_search_path = self.user_dir+'/contents'
         self.user_xlsx_dir = self.user_dir+'/master'
 
-        user_editor_json = self.user_dir+'/editor/editor_data.json'
-        self.editor_json = user_editor_json if os.path.exists(user_editor_json) else master_dir+'/editor/editor_data.json'
+        user_editor_data = self.user_dir+'/editor/editor_data.json'
+        self.editor_data = user_editor_data if os.path.exists(user_editor_data) else master_dir+'/editor/editor_data.json'
+
+        user_editor_schema = self.user_dir+'/editor/editor_schema.json'
+        self.editor_schema = user_editor_schema if os.path.exists(user_editor_schema) else master_dir+'/editor/editor_schema.json'
 
         self.manifest_dir  = self.top_dir+'/manifests'
         self.schema_dir    = self.top_dir+'/master_derivatives'
@@ -147,23 +150,24 @@ class AssetBuilder():
 
     # merge editor's json data into the master json data
     def merge_editor_json(self):
-        json_file = self.build_dir+'/'+self.JSON_DATA_FILE
-        with open(json_file, 'r') as f:
-            json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
+        for master_file, editor_file in ((self.build_dir+'/'+self.JSON_DATA_FILE, self.editor_data_file), (self.build_dir+'/'+self.JSON_SCHEMA_FILE, self.editor_schema_file)):
+            with open(master_file, 'r') as f:
+                json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
-        with open(self.editor_json, 'r') as f:
-            editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
+            with open(editor_file, 'r') as f:
+                editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
-        for key in editor_json_data:
-            json_data[key] = editor_json_data[key]
+            for key in editor_json_data:
+                json_data[key] = editor_json_data[key]
 
-        with open(json_file, 'w') as f:
-            j = json.dumps(json_data, ensure_ascii = False, indent = 4)
-            f.write(j.encode("utf-8"))
+            with open(master_file, 'w') as f:
+                j = json.dumps(json_data, ensure_ascii = False, indent = 4)
+                f.write(j.encode("utf-8"))
+
 
     # create fbs from json
     def build_fbs(self, src_json=None, dest_fbs=None, root_type=None, name_space=None):
-        src_json   = src_json   or self.build_dir+'/'+self.JSON_DATA_FILE
+        src_json   = src_json   or self.build_dir+'/'+self.JSON_SCHEMA_FILE
         dest_fbs   = dest_fbs   or self.build_dir+'/'+self.FBS_FILE
         root_type  = root_type  or self.FBS_ROOT_TYPE
         name_space = name_space or self.FBS_NAME_SPACE
