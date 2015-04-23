@@ -57,8 +57,8 @@ class AssetBuilder():
         user_editor_data = self.user_dir+'/editor/editor_data.json'
         self.editor_data = user_editor_data if os.path.exists(user_editor_data) else master_dir+'/editor/editor_data.json'
 
-        user_editor_schema = self.user_dir+'/editor/editor_schema.json'
-        self.editor_schema = user_editor_schema if os.path.exists(user_editor_schema) else master_dir+'/editor/editor_schema.json'
+        user_editor_schema = self.user_dir+'/editor_schema/editor_schema.json'
+        self.editor_schema = user_editor_schema if os.path.exists(user_editor_schema) else master_dir+'/editor_schema/editor_schema.json'
 
         self.manifest_dir  = self.top_dir+'/manifests'
         self.schema_dir    = self.top_dir+'/master_derivatives'
@@ -150,7 +150,7 @@ class AssetBuilder():
 
     # merge editor's json data into the master json data
     def merge_editor_file(self):
-        for master_file, editor_file in ((self.build_dir+'/'+self.JSON_DATA_FILE, self.editor_data_file), (self.build_dir+'/'+self.JSON_SCHEMA_FILE, self.editor_schema_file)):
+        for master_file, editor_file in ((self.build_dir+'/'+self.JSON_DATA_FILE, self.editor_data), (self.build_dir+'/'+self.JSON_SCHEMA_FILE, self.editor_schema)):
             with open(master_file, 'r') as f:
                 json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 

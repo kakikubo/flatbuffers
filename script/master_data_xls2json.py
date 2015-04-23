@@ -86,7 +86,7 @@ def parse_xls(xls_path, except_sheets=[]):
   
 def normalize_schema(schema, tables):
     normalized = OrderedDict()
-    meta = OrderedDict()
+    meta = []
     for table in tables:
         if table['type'].find('ignore') >= 0:
             continue
@@ -96,15 +96,16 @@ def normalize_schema(schema, tables):
             normalized[table_name] = "swaped later"
         else:
             filtered = []
-            for c in schema[table_name]:
-                if c['type'].find('ignore') >= 0 or \
-                   c['name'] == table['versionKey'] or \
-                   re.match('^_', c['name']):
+            for name in schema[table_name]:
+                d = schema[table_name][name]
+                if d['type'].find('ignore') >= 0 or \
+                   d['name'] == table['versionKey'] or \
+                   re.match('^_', d['name']):
                     continue
                 filtered.append(d)
 
-            normalized[name] = filtered
-        meta[name] = table
+            normalized[table_name] = filtered
+        meta.append(table)
     normalized["_meta"] = meta
     return normalized
   

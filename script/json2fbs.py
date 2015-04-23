@@ -25,7 +25,7 @@ def printFbs(rootName, nameSpace, jsonData):
     for meta in jsonData["_meta"]:
         name = meta["name"]
         table_name = name[0:1].upper() + name[1:]
-        if meta["type"] == "array":
+        if meta["type"].find("array") >= 0:
             print "    " + name + ":[" + table_name + "];"
         else:
             print "    " + name + ":" + table_name + ";"
