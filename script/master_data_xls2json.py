@@ -84,7 +84,31 @@ def parse_xls(xls_path, except_sheets=[]):
         data[sheet.name] = sheet_data
     return {'data': data, 'schema': schema}
   
-def normalize(data, schema, target):
+def normalize_schema(schema, tables):
+    normalized = OrderedDict()
+    meta = OrderedDict()
+    for table in tables:
+        if table['type'].find('ignore') >= 0:
+            continue
+
+        table_name = table['name']
+        if table['type'].find('json') >= 0:
+            normalized[table_name] = "swaped later"
+        else:
+            filtered = []
+            for c in schema[table_name]:
+                if c['type'].find('ignore') >= 0 or \
+                   c['name'] == table['versionKey'] or \
+                   re.match('^_', c['name']):
+                    continue
+                filtered.append(d)
+
+            normalized[name] = filtered
+        meta[name] = table
+    normalized["_meta"] = meta
+    return normalized
+  
+def normalize_data(data, target):
     normalized = OrderedDict()
     for table in data['table']:
         if table['type'].find('ignore') >= 0:
@@ -150,10 +174,11 @@ if __name__ == '__main__':
         info("table: %s" % t['name'])
 
     # write json
-    data = normalize(data, schema, args.target)
-    for f, d in ((schema_json_file, schema), (data_json_file, data)):
-        info("output: %s" % f)
-        with codecs.open(f, "w") as fp:
-            j = json.dumps(d, ensure_ascii = False, indent = 4)
+    schema = normalize_schema(schema, data['table'])
+    data = normalize_data(data, args.target)
+    for t in ((schema_json_file, schema), (data_json_file, data)):
+        info("output: %s" % t[0])
+        with codecs.open(t[0], "w") as fp:
+            j = json.dumps(t[1], ensure_ascii = False, indent = 4)
             fp.write(j.encode("utf-8"))
     exit(0)

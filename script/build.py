@@ -149,7 +149,7 @@ class AssetBuilder():
         return True
 
     # merge editor's json data into the master json data
-    def merge_editor_json(self):
+    def merge_editor_file(self):
         for master_file, editor_file in ((self.build_dir+'/'+self.JSON_DATA_FILE, self.editor_data_file), (self.build_dir+'/'+self.JSON_SCHEMA_FILE, self.editor_schema_file)):
             with open(master_file, 'r') as f:
                 json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
@@ -287,7 +287,7 @@ class AssetBuilder():
     # do all processes
     def build_all(self, check_modified=True):
         # check modified
-        build_depends = self._get_xlsxes() + [self.editor_json]
+        build_depends = self._get_xlsxes() + [self.editor_data, self.editor_schema]
         modified = False
         if check_modified:
             for src in build_depends:
@@ -302,7 +302,7 @@ class AssetBuilder():
             self.setup_dir()
             if not check_modified or modified:
                 self.build_json()
-                self.merge_editor_json()
+                self.merge_editor_file()
                 self.build_fbs()
                 self.build_bin()
                 self.build_font()
