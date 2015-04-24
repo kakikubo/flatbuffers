@@ -36,10 +36,11 @@ class AssetBuilder():
         user_dir_default     = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', master_dir)
         self.master_manifest_dir = master_dir + "/manifests"
         self.master_xlsx_dir      = master_dir+'/master'
+        self.master_editor_dir      = master_dir+'/editor'
 
         top_dir_default      = user_dir_default if self.is_master else self.users_dir+"/"+target
         self.top_dir         = top_dir         or top_dir_default
-        self.user_dir        = user_dir        or user_dir_default
+        user_dir             = user_dir        or user_dir_default
         self.build_dir       = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder_build')
         self.deply_src_dir   = tempfile.mkdtemp(prefix = 'kms_asset_builder_deploy')
         self.remote_dir_asset = MASTER_LATEST_DIR + '/contents' if self.is_master else self.target + '/contents'
@@ -48,16 +49,14 @@ class AssetBuilder():
         info("target = %s", self.target)
         info("asset version = '%s'", self.asset_version)
         info("top-dir = %s", self.top_dir)
-        info("user-dir = %s", self.user_dir)
+        info("user-dir = %s", user_dir)
         info("build-dir = %s", self.build_dir)
 
-        self.local_asset_search_path = self.user_dir+'/contents'
-        self.user_xlsx_dir = self.user_dir+'/master'
+        self.local_asset_search_path = user_dir+'/contents'
+        self.user_xlsx_dir = user_dir+'/master'
+        self.user_editor_dir = user_dir+'/editor'
 
-        user_editor_data = self.user_dir+'/editor/editor_data.json'
-        self.editor_data = user_editor_data if os.path.exists(user_editor_data) else master_dir+'/editor/editor_data.json'
-
-        user_editor_schema = self.user_dir+'/editor_schema/editor_schema.json'
+        user_editor_schema = user_dir+'/editor_schema/editor_schema.json'
         self.editor_schema = user_editor_schema if os.path.exists(user_editor_schema) else master_dir+'/editor_schema/editor_schema.json'
 
         self.manifest_dir  = self.top_dir+'/manifests'
@@ -88,7 +87,7 @@ class AssetBuilder():
 
     # setup dest directories
     def setup_dir(self):
-        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.master_xlsx_dir, self.user_xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir, self.users_dir):
+        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.master_editor_dir, self.user_editor_dir, self.master_xlsx_dir, self.user_xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir, self.users_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -103,6 +102,16 @@ class AssetBuilder():
                     continue
                 xlsxes[basename] = xlsx_path
         return xlsxes.values()
+
+    # get editor data files
+    def _get_editor_files(self):
+        editor_dirs = (self.master_editor_dir, self.user_editor_dir)
+        editor_files = {}
+        for editor_dir in editor_dirs:
+            for editor_path in glob("%s/*.json" % editor_dir):
+                basename = os.path.basename(editor_path)
+                editor_files[basename] = editor_path
+        return editor_files.values()
 
     # check modification of user editted files
     def _check_modified(self, target, base):
@@ -150,15 +159,15 @@ class AssetBuilder():
 
     # merge editor's json data into the master json data
     def merge_editor_file(self):
-        for master_file, editor_file in ((self.build_dir+'/'+self.JSON_DATA_FILE, self.editor_data), (self.build_dir+'/'+self.JSON_SCHEMA_FILE, self.editor_schema)):
+        for master_file, editor_files in ((self.build_dir+'/'+self.JSON_DATA_FILE, self._get_editor_files()), (self.build_dir+'/'+self.JSON_SCHEMA_FILE, [self.editor_schema])):
             with open(master_file, 'r') as f:
                 json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
-            with open(editor_file, 'r') as f:
-                editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
-
-            for key in editor_json_data:
-                json_data[key] = editor_json_data[key]
+            for editor_file in editor_files:
+                with open(editor_file, 'r') as f:
+                    editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
+                for key in editor_json_data:
+                    json_data[key] = editor_json_data[key]
 
             with open(master_file, 'w') as f:
                 j = json.dumps(json_data, ensure_ascii = False, indent = 4)
@@ -287,7 +296,7 @@ class AssetBuilder():
     # do all processes
     def build_all(self, check_modified=True):
         # check modified
-        build_depends = self._get_xlsxes() + [self.editor_data, self.editor_schema]
+        build_depends = self._get_xlsxes() + self._get_editor_files() + [ self.editor_schema ]
         modified = False
         if check_modified:
             for src in build_depends:
