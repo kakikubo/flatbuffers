@@ -75,7 +75,7 @@ def parse_xls(xls_path, except_sheets=[]):
                     elif t.find('bool') >= 0:
                         v = bool(v)
                     else:
-                        v = re.sub('\\n', "\n", "%s" % v)
+                        v = re.sub('\\\\n', "\n", "%s" % v)
                     d[k] = v 
             except:
                 d['_error'] = "%s:%d:%d(%s) = %s: %s: %s" % (sheet.name, i, j, k, v, row, sys.exc_info())
