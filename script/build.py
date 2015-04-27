@@ -151,7 +151,7 @@ class AssetBuilder():
         dest_data   = dest_data   or self.build_dir+'/'+self.JSON_DATA_FILE
         info("build json: %s + %s" % (os.path.basename(dest_schema), os.path.basename(dest_data)))
 
-        cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data, '--target', self.target]
+        cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data]
         check_call(cmdline)
         return True
 
@@ -243,6 +243,7 @@ class AssetBuilder():
         project_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         version_file = self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
         rsync = ['rsync', '-crltvO']
+        #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
 
         dst_dir = self.cdn_dir+'/'+self.asset_version_dir if self.is_master else self.cdn_dir+'/'+self.target
         if not os.path.exists(dst_dir):

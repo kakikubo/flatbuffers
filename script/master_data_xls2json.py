@@ -109,7 +109,7 @@ def normalize_schema(schema, tables):
     normalized["_meta"] = meta
     return normalized
   
-def normalize_data(data, target):
+def normalize_data(data):
     normalized = OrderedDict()
     for table in data['table']:
         if table['type'].find('ignore') >= 0:
@@ -117,15 +117,8 @@ def normalize_data(data, target):
         filtered = []
         if table['type'].find('json') < 0:
             primary_key = table['primaryKey']
-            version_key = table['versionKey']
-      
             id_mapping = OrderedDict()
             for d in data[table['name']]:
-                if version_key in d:
-                    if d[version_key] != '' and d[version_key] != target:
-                        continue
-                    del d[version_key]  # delete versionKey
-      
                 # filter by primary key
                 if d[primary_key] is not None:
                     if d[primary_key] >= 0:
@@ -153,7 +146,6 @@ if __name__ == '__main__':
     parser.add_argument('input_xlsxes',    metavar = 'input.xlsx(es)',  nargs = "*", help = 'input Excel master data files')
     parser.add_argument('--schema-json',   metavar = 'schema.json', help = 'output schema json file. default:  master_schema.json')
     parser.add_argument('--data-json',     metavar = 'data.json',   help = 'output data json file. default:  master_data.json')
-    parser.add_argument('--target',        default = 'master',  help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
     parser.add_argument('--except-sheets', default = '',        help = 'except sheets (, separated list) default: ')
     args = parser.parse_args()
     schema_json_file = args.schema_json or 'master_schema.json'
@@ -176,7 +168,7 @@ if __name__ == '__main__':
 
     # write json
     schema = normalize_schema(schema, data['table'])
-    data = normalize_data(data, args.target)
+    data = normalize_data(data)
     for t in ((schema_json_file, schema), (data_json_file, data)):
         info("output: %s" % t[0])
         with codecs.open(t[0], "w") as fp:
