@@ -38,7 +38,7 @@ class AssetBuilder():
         user_dir                 = user_dir        or user_dir_default
         self.cdn_dir             = cdn_dir         or cdn_dir_default
         self.build_dir           = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder_build')
-        self.deply_src_dir       = tempfile.mkdtemp(prefix = 'kms_asset_builder_deploy')
+        self.deploy_src_dir       = tempfile.mkdtemp(prefix = 'kms_asset_builder_deploy')
         self.remote_dir_asset    = self.asset_version_dir+'/contents' if self.is_master else self.target + '/contents'
         self.auto_cleanup = not build_dir   # do not clean up when user specified
         
@@ -262,14 +262,14 @@ class AssetBuilder():
                 asset = assets.get(key)
                 path = asset.get('path')
                 if path == self.remote_dir_asset+"/"+key:
-                    (path, name)  = os.path.split(self.deply_src_dir+"/"+key)
+                    (path, name)  = os.path.split(self.deploy_src_dir+"/"+key)
                     if not os.path.exists(path):
                         os.makedirs(path)
-                    copy(self.local_asset_search_path + "/"+ key, self.deply_src_dir + "/"+key)
+                    copy(self.local_asset_search_path + "/"+ key, self.deploy_src_dir + "/"+key)
         else:
             dst_version_manifest = dst_dir+"/"+self.VERSION_MANIFEST_FILE
-            copytree(self.local_asset_search_path+"/files", self.deply_src_dir+"/files")
-            copytree(self.bin_dir, self.deply_src_dir+"/master")
+            copytree(self.local_asset_search_path+"/files", self.deploy_src_dir+"/files")
+            copytree(self.bin_dir, self.deploy_src_dir+"/master")
 
         usernames = []
         for f in os.listdir(self.users_dir) :
@@ -281,9 +281,9 @@ class AssetBuilder():
             json.dump(usernames, f, sort_keys=True, indent=2)
         os.chmod(list_file, 0664)
         check_call(rsync + [list_file, dst_listfile])
-        check_call("find " + self.deply_src_dir + " -type f -print | xargs chmod 664", shell=True)
-        check_call("find " + self.deply_src_dir + " -type d -print | xargs chmod 775", shell=True)
-        check_call(rsync + ['--delete', self.deply_src_dir+"/", dst_asset])
+        check_call("find " + self.deploy_src_dir + " -type f -print | xargs chmod 664", shell=True)
+        check_call("find " + self.deploy_src_dir + " -type d -print | xargs chmod 775", shell=True)
+        check_call(rsync + ['--delete', self.deploy_src_dir+"/", dst_asset])
         check_call(['chmod', '775', dst_dir+"/contents"])
         check_call(rsync + [version_file, dst_version_manifest])
         check_call(rsync + [project_file, dst_project_manifest])
@@ -321,7 +321,7 @@ class AssetBuilder():
     # clean up
     def cleanup(self):
         rmtree(self.build_dir)
-        rmtree(self.deply_src_dir)
+        rmtree(self.deploy_src_dir)
         return True
 
 if __name__ == '__main__':
