@@ -120,11 +120,10 @@ class AssetBuilder():
         return timestamps[0] > timestamps[1]
 
     # create manifest json from
-    def build_manifest(self, asset_version=None, src_local_asset_search_path=None, dest_project_manifest=None, dest_version_manifest=None):
+    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None):
         asset_version           = asset_version or self.asset_version
-        local_asset_search_path = src_local_asset_search_path or self.local_asset_search_path
-        dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        dest_project_manifest   = dest_project_manifest or self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
+        dest_version_manifest   = dest_version_manifest or self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
         url_asset               = self.DEV_CDN_URL+'/'
         
         if self.is_master:
@@ -136,11 +135,11 @@ class AssetBuilder():
             url_project_manifest  = self.DEV_CDN_URL+'/'+self.target+'/'+self.PROJECT_MANIFEST_FILE
             url_version_manifest  = self.DEV_CDN_URL+'/'+self.target+'/'+self.VERSION_MANIFEST_FILE
 
-        info("build manifest: %s -> %s + %s" % (local_asset_search_path, os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
+        info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
 
         cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
-                   self.remote_dir_asset, local_asset_search_path, "--ref", reference_manifest]
+                   self.remote_dir_asset, self.deploy_src_dir, "--ref", reference_manifest]
         check_call(cmdline)
         return True
 
@@ -219,8 +218,6 @@ class AssetBuilder():
     def install(self, build_dir=None):
         build_dir = build_dir or self.build_dir
         list = [
-            (build_dir+'/'+self.PROJECT_MANIFEST_FILE, self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE),
-            (build_dir+'/'+self.VERSION_MANIFEST_FILE, self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE),
             (build_dir+'/'+self.JSON_SCHEMA_FILE,      self.schema_dir+'/'+self.JSON_SCHEMA_FILE),
             (build_dir+'/'+self.JSON_DATA_FILE,        self.data_dir+'/'+self.JSON_DATA_FILE),
             (build_dir+'/'+self.FBS_FILE,              self.fbs_dir+'/'+self.FBS_FILE),
@@ -239,7 +236,35 @@ class AssetBuilder():
                 move(src, dest)
         return True
 
+    def prepare_to_deploy(self):
+        if self.is_master:
+            manifest = {}
+            with open(project_file, 'r') as f:
+                manifest = json.load(f)
+            assets = manifest.get('assets')
+            for key in assets:
+                asset = assets.get(key)
+                path = asset.get('path')
+                if path == self.remote_dir_asset+"/"+key:
+                    (path, name)  = os.path.split(self.deploy_src_dir+"/"+key)
+                    if not os.path.exists(path):
+                        os.makedirs(path)
+                    copy(self.local_asset_search_path + "/"+ key, self.deploy_src_dir + "/"+key)
+        else:
+            copytree(self.local_asset_search_path+"/files", self.deploy_src_dir+"/files")
+            copytree(self.bin_dir, self.deploy_src_dir+"/master")
+
     def deploy_dev(self):
+        usernames = []
+        for f in os.listdir(self.users_dir) :
+            if os.path.isdir(self.users_dir+"/"+f):
+                usernames +=[f]
+
+        list_file = self.build_dir + "/deploy_files.json"
+        with open(list_file, 'w') as f:
+            json.dump(usernames, f, sort_keys=True, indent=2)
+        os.chmod(list_file, 0664)
+
         project_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         version_file = self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
         rsync = ['rsync', '-crltvO']
@@ -254,32 +279,9 @@ class AssetBuilder():
 
         if self.is_master:
             dst_version_manifest = self.cdn_dir+'/'+self.VERSION_MANIFEST_FILE
-            manifest = {}
-            with open(project_file, 'r') as f:
-                manifest = json.load(f)
-            assets = manifest.get('assets')
-            for key in assets:
-                asset = assets.get(key)
-                path = asset.get('path')
-                if path == self.remote_dir_asset+"/"+key:
-                    (path, name)  = os.path.split(self.deploy_src_dir+"/"+key)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                    copy(self.local_asset_search_path + "/"+ key, self.deploy_src_dir + "/"+key)
         else:
             dst_version_manifest = dst_dir+"/"+self.VERSION_MANIFEST_FILE
-            copytree(self.local_asset_search_path+"/files", self.deploy_src_dir+"/files")
-            copytree(self.bin_dir, self.deploy_src_dir+"/master")
 
-        usernames = []
-        for f in os.listdir(self.users_dir) :
-            if os.path.isdir(self.users_dir+"/"+f):
-                usernames +=[f]
-
-        list_file = self.build_dir + "/deploy_files.json"
-        with open(list_file, 'w') as f:
-            json.dump(usernames, f, sort_keys=True, indent=2)
-        os.chmod(list_file, 0664)
         check_call(rsync + [list_file, dst_listfile])
         check_call("find " + self.deploy_src_dir + " -type f -print | xargs chmod 664", shell=True)
         check_call("find " + self.deploy_src_dir + " -type d -print | xargs chmod 775", shell=True)
@@ -310,8 +312,9 @@ class AssetBuilder():
                 self.build_fbs()
                 self.build_bin()
                 self.build_font()
+                self.install()
+            self.prepare_to_deploy()
             self.build_manifest()
-            self.install()
             self.deploy_dev()
         finally:
             if self.auto_cleanup:
