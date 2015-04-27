@@ -249,10 +249,10 @@ class AssetBuilder():
             os.makedirs(dst_dir)
         dst_asset = dst_dir+'/contents'
         dst_project_manifest  = dst_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dst_listfile = self.cdn_dir+"dev.asset_list.json"
+        dst_listfile = self.cdn_dir+"/dev.asset_list.json"
 
         if self.is_master:
-            dst_version_manifest = self.cdn_dir+self.VERSION_MANIFEST_FILE
+            dst_version_manifest = self.cdn_dir+'/'+self.VERSION_MANIFEST_FILE
             manifest = {}
             with open(project_file, 'r') as f:
                 manifest = json.load(f)
