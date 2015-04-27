@@ -21,22 +21,22 @@ from logging import info, warning
 DEV_URL = 'http://tmp-kiyoto-suzuki-ffl.gree-dev.net/cdn'
 DEV_HOST = 'ubuntu@10.1.1.24'
 DEV_CDN_ROOT = '/var/www/cdn/'
-DEV_SSH_KEY = '/Users/ffl.jenkins/.ssh/id_rsa.openstack'
+DEV_SSH_KEY = '/Users/kms.jenkins/.ssh/id_rsa.openstack'
 
 MASTER_LATEST_DIR = 'ver1'
 
 class AssetBuilder():
     def __init__(self, target=None, asset_version=None, top_dir=None, user_dir=None, build_dir=None):
-        self_dir = os.path.dirname(os.path.abspath(__file__))
-        self.target = target or 'master'
-        self.is_master = self.target == 'master'
-        self.asset_version   = asset_version   or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
-        master_dir      = os.path.normpath(self_dir+'/../../box/kms_master_asset')
-        self.users_dir = os.path.normpath(self_dir+'/../../box/users_generated')
-        user_dir_default     = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', master_dir)
+        self.target              = target or 'master'
+        self.is_master           = self.target == 'master'
+        self.asset_version       = asset_version   or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
+        self_dir                 = os.path.dirname(os.path.abspath(__file__))
+        master_dir               = os.path.normpath(self_dir+'/../../box/kms_master_asset')
+        self.users_dir           = os.path.normpath(self_dir+'/../../box/users_generated')
+        user_dir_default         = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', master_dir)
         self.master_manifest_dir = master_dir + "/manifests"
-        self.master_xlsx_dir      = master_dir+'/master'
-        self.master_editor_dir      = master_dir+'/editor'
+        self.master_xlsx_dir     = master_dir+'/master'
+        self.master_editor_dir   = master_dir+'/editor'
 
         top_dir_default      = user_dir_default if self.is_master else self.users_dir+"/"+target
         self.top_dir         = top_dir         or top_dir_default
