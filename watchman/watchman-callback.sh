@@ -13,6 +13,8 @@ branch=master # git branch for kms/asset
 target=`echo $WATCHMAN_ROOT | sed -e 's!.*/kms_\([^_]*\)_asset/.*!\1!'` # asset name
 [ "$target" = "$WATCHMAN_ROOT" ] && target=unknown
 message="$WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
+message_log_file=/tmp/watchman-callback-message.log
+cdn_url="http://kms-dev.dev.gree.jp/cdn/"
 
 # logging
 echo "\n\n\n\n\n---- $message"
@@ -62,7 +64,8 @@ echo $json | $jq '.'
 ret=$?
 if [ $ret -ne 0 ]; then
   echo "some error occurred in '$target' build process: $ret"
-  $tool_dir/script/sonya.sh "(devil) $ret: $message" $tool_dir/watchman/watchman-callback.log
+  $tool_dir/script/sonya.sh "(devil) $target ret = $ret: $message" $tool_dir/watchman/watchman-callback.log
+  exit $ret
 fi
 
 # update each user in master updated
@@ -77,9 +80,16 @@ if [ $target = "master" ]; then
     ret=$?
     if [ $ret -ne 0 ]; then
       echo "some error occurred in '$user_target' build process: $ret"
-      $tool_dir/script/sonya.sh "(devil) $ret: $message" $tool_dir/watchman/watchman-callback.log
+      $tool_dir/script/sonya.sh "(devil) $user_target ret = $ret: $message" $tool_dir/watchman/watchman-callback.log
+      exit $ret
     fi
   done
 fi
+
+# logging
+cdn_root_dir=$target
+[ "$target" = "master" ] && cdn_root_dir=ver1
+echo $json | $jq -r '.[]["name"]' > $message_log_file
+$tool_dir/script/sonya.sh ":) $target: $message" $message_log_file $cdn_url/$cdn_root_dir
 
 exit 0

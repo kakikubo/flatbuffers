@@ -76,6 +76,7 @@ def parse_xls(xls_path, except_sheets=[]):
             except:
                 d['_error'] = "%s:%d:%d(%s) = %s: %s: %s" % (sheet.name, i, j, k, v, row, sys.exc_info())
                 error(d['_error'])
+                pass
             sheet_data.append(d)
         data[sheet.name] = sheet_data
     return {'data': data, 'schema': schema}
@@ -89,8 +90,14 @@ def check_data(data):
             for d in data[table['name']]:
                 if d.has_key('_error'):
                     errors.append(d['_error'])
-    if not errors.empty():
-        raise Exception("\n".join(errors))
+    if errors:
+        print("\n---------------------------")
+        print("    MASTER DATA ERROR      ")
+        print("---------------------------")
+        for e in errors:
+            print(e)
+        print("----------------------------\n")
+        raise Exception("master data check error")
   
 def normalize_schema(schema, tables):
     normalized = OrderedDict()

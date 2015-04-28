@@ -17,6 +17,7 @@ if pgrep -fl $self; then
   exit 0
 fi
 
+exit_code=0
 if git status | grep 'Changes to be committed:' > /dev/null; then
   sleep $sleep # wait to sync complete
 
@@ -40,12 +41,12 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
 
   # git git push
   git pull --rebase origin $branch || exit $?
-  git push origin master || exit $?
-  [ -n "$version_tag" ] && git push origin $version_tag || exit $?
-  echo "automatic sync with git is done"
+  git push origin master || exit_code=$?
+  [ -n "$version_tag" ] && git push origin $version_tag || exit_code=$?
+  echo "automatic sync with git is done: $exit_code"
 
   # log
   `dirname $0`/../script/sonya.sh ":) `hostname`:$WATCHMAN_ROOT" $commit_log_file $gitlab_url/kms/asset/commit/$commit_id || exit $?
 fi
 
-exit 0
+exit $exit_code
