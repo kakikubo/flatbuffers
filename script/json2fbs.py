@@ -33,13 +33,13 @@ def printFbs(rootName, nameSpace, jsonData):
                     print "    " + name + ":[" + table_name + "]" + item_attributes + ";"
                 else:
                     print "    " + name + ":" + table_name + item_attributes + ";"
+            print "}\n"
         else:
             print 'table ' + table_name[0:1].upper() + table_name[1:] + " {"
             for item in jsonData[table_name]:
                 item_type, item_attributes = split_attributes(item["type"])
                 print "    " + item["name"] + ":" + item_type + item_attributes + ";"
             print "}\n"
-    print "}\n"
 
     # output root_type
     print 'root_type {0};'.format(rootName)
