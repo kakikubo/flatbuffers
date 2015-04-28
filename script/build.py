@@ -209,9 +209,6 @@ class AssetBuilder():
         src_json      = src_json      or self.build_dir+'/'+self.JSON_DATA_FILE
         src_gd_dir    = src_gd_dir    or self.gd_dir
         dest_font_dir = dest_font_dir or self.build_dir
-        if not os.path.exists(dest_font_dir):
-            os.makedirs(dest_font_dir)
-
         cmdline = [self.json2font_bin, src_json, src_gd_dir, dest_font_dir]
         check_call(cmdline)
         return True
@@ -233,6 +230,8 @@ class AssetBuilder():
         for src, dest in list:
             if os.path.exists(src):
                 info("install: %s -> %s" % (os.path.basename(src), os.path.dirname(dest)))
+		if not os.path.exists(os.path.dirname(dest)):
+		    os.makedirs(os.path.dirname(dest))
                 if os.path.exists(dest):
                     os.remove(dest)
                 move(src, dest)
