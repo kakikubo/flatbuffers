@@ -62,7 +62,8 @@ class AssetBuilder():
         self.fbs_dir       = self.top_dir+'/master_derivatives'
         self.bin_dir       = self.top_dir+'/contents/master'
         self.header_dir    = self.top_dir+'/master_header'
-        self.gd_dir        = self.top_dir+'/glyph_designer/'
+        #self.gd_dir        = self.top_dir+'/glyph_designer/'
+        self.gd_dir        = master_dir+'/glyph_designer/'
         self.font_dir      = self.top_dir+'/contents/files/font'
 
         self.manifest_bin  = self_dir+'/manifest_generate.py'
