@@ -232,6 +232,8 @@ class AssetBuilder():
                 info("install: %s -> %s" % (os.path.basename(src), os.path.dirname(dest)))
 		if not os.path.exists(os.path.dirname(dest)):
 		    os.makedirs(os.path.dirname(dest))
+		if call(['diff', '-q', src, dest], stdout = open(os.devnull, 'w')) == 0:
+		    continue
                 if os.path.exists(dest):
                     os.remove(dest)
                 move(src, dest)
