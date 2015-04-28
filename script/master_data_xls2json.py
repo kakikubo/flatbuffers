@@ -88,7 +88,7 @@ def check_data(data):
         if table['type'].find('json') < 0:
             for d in data[table['name']]:
                 if d.has_key('_error'):
-                    errors.push(d['_error'])
+                    errors.append(d['_error'])
     if not errors.empty():
         raise Exception("\n".join(errors))
   
