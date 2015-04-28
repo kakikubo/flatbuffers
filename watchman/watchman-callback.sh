@@ -32,14 +32,6 @@ echo $json | $jq '.'
 
   # build asset
   $tool_dir/script/build.py build --target $target || exit $?
-  if [ $target = "master" ]; then
-    for user_target in `ls ${tool_dir}/../box/users_generated`
-    do
-      if [ -d ${tool_dir}/../box/users_generated/${user_target} ]; then
-        $tool_dir/script/build.py build --target $user_target || exit $?
-      fi
-    done
-  fi
 
   # git commit + push
   if [ $target = "master" ]; then
@@ -69,8 +61,25 @@ echo $json | $jq '.'
 )
 ret=$?
 if [ $ret -ne 0 ]; then
-  echo "some error occurred in build process: $ret"
+  echo "some error occurred in '$target' build process: $ret"
   $tool_dir/script/sonya.sh "(devil) $ret: $message" $tool_dir/watchman/watchman-callback.log
+fi
+
+# update each user in master updated
+if [ $target = "master" ]; then
+  for user_target in `ls ${tool_dir}/../box/users_generated`; do
+    # sub shell
+    (
+      if [ -d ${tool_dir}/../box/users_generated/${user_target} ]; then
+        $tool_dir/script/build.py build --target $user_target || exit $?
+      fi
+    )
+    ret=$?
+    if [ $ret -ne 0 ]; then
+      echo "some error occurred in '$user_target' build process: $ret"
+      $tool_dir/script/sonya.sh "(devil) $ret: $message" $tool_dir/watchman/watchman-callback.log
+    fi
+  done
 fi
 
 exit 0
