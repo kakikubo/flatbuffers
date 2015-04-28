@@ -23,10 +23,6 @@ from xlrd.biffh import (
 )
 # error_text_from_code[value] 
 
-import ipdb
-import pprint
-pp = pprint.PrettyPrinter(indent = 4)
-
 def parse_xls(xls_path, except_sheets=[]):
     data = OrderedDict()
     schema = OrderedDict()

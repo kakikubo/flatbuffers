@@ -16,8 +16,6 @@ from shutil import move, rmtree, copy, copytree
 from glob import glob
 from logging import info, warning
 
-#import ipdb
-
 class AssetBuilder():
     def __init__(self, target=None, asset_version=None, top_dir=None, user_dir=None, cdn_dir=None, build_dir=None):
         self.target              = target or 'master'
