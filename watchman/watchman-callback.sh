@@ -69,7 +69,8 @@ echo $json | $jq '.'
 )
 ret=$?
 if [ $ret -ne 0 ]; then
-  $tool_dir/script/sonya.sh "(devil) $message" $tool_dir/watchman/watchman-callback.log
+  echo "some error occurred in build process: $ret"
+  $tool_dir/script/sonya.sh "(devil) $ret: $message" $tool_dir/watchman/watchman-callback.log
 fi
 
 exit 0

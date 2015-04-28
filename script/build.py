@@ -237,6 +237,7 @@ class AssetBuilder():
         return True
 
     def prepare_to_deploy(self):
+        project_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         if self.is_master:
             manifest = {}
             with open(project_file, 'r') as f:
