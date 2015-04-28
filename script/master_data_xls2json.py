@@ -79,6 +79,18 @@ def parse_xls(xls_path, except_sheets=[]):
             sheet_data.append(d)
         data[sheet.name] = sheet_data
     return {'data': data, 'schema': schema}
+
+def check_data(data):
+    errors = []
+    for table in data['table']:
+        if table['type'].find('ignore') >= 0:
+            continue
+        if table['type'].find('json') < 0:
+            for d in data[table['name']]:
+                if d.has_key('_error'):
+                    errors.push(d['_error'])
+    if not errors.empty():
+        raise Exception("\n".join(errors))
   
 def normalize_schema(schema, tables):
     normalized = OrderedDict()
@@ -161,6 +173,9 @@ if __name__ == '__main__':
         schema.update(xls['schema'])
     for t in data['table']:
         info("table: %s" % t['name'])
+
+    # check error cells
+    check_data(data)
 
     # write json
     schema = normalize_schema(schema, data['table'])
