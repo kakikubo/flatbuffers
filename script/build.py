@@ -211,6 +211,9 @@ class AssetBuilder():
         src_json      = src_json      or self.build_dir+'/'+self.JSON_DATA_FILE
         src_gd_dir    = src_gd_dir    or self.gd_dir
         dest_font_dir = dest_font_dir or self.build_dir
+        if not os.path.exists(dest_font_dir):
+            os.makedirs(dest_font_dir)
+
         cmdline = [self.json2font_bin, src_json, src_gd_dir, dest_font_dir]
         check_call(cmdline)
         return True
