@@ -43,8 +43,9 @@ https://confluence.gree-office.net/pages/viewpage.action?pageId=158727563
 自動生成対象にはおおまかにいって以下のものがあります
 - manifest.json -> Cocos-2d-x AssetMangerEx 用のダウンロードファイルリスト contents/files 以下の更新があったことをクライアントに通知する
 - master_data.bin + master_header/*.h -> マスタデータを flatbuffers 化したもの。Excel から生成する
+- rsync を使って box のアセットを cdn 用のディレクトリにコピーする
 
-### master-data-xls2json.py
+### master_data_xls2json.py
 <kms_x_asset>/master/master_data.xlsx を読み込んで、<kms_x_asset>/master_derivatives/master_(schema|data).json を生成します
 
 ### json2fbs.py
@@ -53,7 +54,7 @@ master-data-xls2json.py で生成した JSON を読み込んで、FlatBuffers �
 ### flatc
 .fbs と .json を読み込んで、.bin と .h を生成します
 
-### manifest-generate.py
+### manifest_generate.py
 contents/files 上のファイルから Cocos-2d-x AssetManagerEx 用の project.manifest と version.manifest を生成します
 
 ### box-update.py
@@ -64,8 +65,17 @@ Box Web Hook から呼び出されます。
 ### spine-atlas-update.sh
 武器や表情などのテクスチャ置き換えで対応するデータのテクスチャアトラスを TexutrePacker を使って生成します
 
+### json2font.py
+Glyph Desinger というツールを使って、表示に必要なビットマップフォントを生成します。
+- フォント化対象の文字種はマスタデータの特定のシートおよび列を font にて指定します
+- 固定でフォントに含めるものについては fontChars シートに記述してあります
+- ビットマップフォントの設定は asset の glyph_designer 以下から取得します
+  - ファイル名とフォント名を一致させる必要があります
+  - フォント種別を任意で追加することができます
+
 ### sonya.sh
 ソーニャちゃんを経由して Chatwork 'KMSビルド' にログを流します。
+タイトルとメッセージに使うログファイル名、リファレンスのリンク用 URL を指定できます
 
 ## watchman
 
@@ -88,6 +98,9 @@ watchman での監視設定をセットアップします。
   - watchman/watchman-xxx.json.template から watchman/watchman-xxx.json を生成します（パスの置換をします）
 - ログは log/watchman-callback.log に出力されます
 
+### watchman-setup-all.sh
+watchman-setup.sh をすべての ~/box/kms_*_asset に対して呼び出します
+
 ### watchman-callback.sh
 watchman での監視対象に変更があった場合に呼ばれるスクリプトです
 
@@ -103,6 +116,11 @@ watchman/watchman-setup.sh でパスを置換して使用します
 pgrep -f watchman で検索して、殺してください
 
 再起動は watchman-setup.sh を実行すれば OK です
+
+## watchman のサービス化
+デフォルトでは ~/Librarh/LaunchAgent/ 以下に com.github.facebook.watchman.plist が入っています。
+Mac Pro 環境では、ログアウトしてしまうと動いてくれないという現象が見られるため（きちんと調査していません）、
+回避策として /Library/LaunchAgent 以下に移動し、KeepAlive を <Crashed> 時のみではなく、常に True に設定しています。
 
 # 古いもの
 
