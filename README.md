@@ -9,18 +9,18 @@ Asset パイプライン用のスクリプトなどをおいています
 
 ```
 master
- each user                ffl.jenkins (Jenkins PC)                                      git (Jenkins PC)
+ each user                kms.jenkins (Jenkins Mac Pro)                                  git (Gree GHE)
  +-------------------+    +--------------------------------------------------------+    +-----------+
- | Box Sync          | -> | Box Sync         -> watchman -> build.py -> git commit | -> | gitlab    |
+ | Box Sync          | -> | Box Sync         -> watchman -> build.py -> git commit | -> | Github    |
  | kms_master_asset  |    | kms_master_asset                            git push   |    | kms/asset |
  +-------------------+    +--------------------------------------------------------+    +-----------+
 
 working
- each user                ffl.jenkins (Jenkins PC)                                      git (Jenkins PC)
- +-------------------+    +-------------------------------------------------------------------------+
- | Box Sync          | -> | Box Sync         -> watchman -> build.py -> Box Sync                    |
- | kms_xxx.yyy_asset |    | kms_xxx.yyy_asset                           kms_xxx.yyy_asset_generated |
- +-------------------+    +-------------------------------------------------------------------------+
+ each user                kms.jenkins (Jenkins Mac Pro)
+ +-------------------+    +-------------------------------------------------------------------------------------------------------------------+
+ | Box Sync          | -> | Box Sync         -> watchman -> build.py -> Box Sync                    -> /var/www/cdn/xxx.yyy                   |
+ | kms_xxx.yyy_asset |    | kms_xxx.yyy_asset                           kms_xxx.yyy_asset_generated    http://kms-dev.dev.gree.jp/cdn/xxx.yyy |
+ +-------------------+    +-------------------------------------------------------------------------------------------------------------------+
 ```
 
 Jenkins マシンでは ~/.tool を ~/Box Sync/tool にシンボリックリンクしています
