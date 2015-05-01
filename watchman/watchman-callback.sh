@@ -1,6 +1,6 @@
 #!/bin/sh
 
-jq=/usr/local/bin/jq
+export PATH=$PATH:/usr/local/bin
 export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python2.7
 
 tool_dir=`pwd | sed -e 's/Box Sync/box/'`
@@ -19,12 +19,12 @@ cdn_url="http://kms-dev.dev.gree.jp/cdn/"
 # logging
 echo "\n\n\n\n\n---- $message"
 read json
-echo $json | $jq '.'
+echo $json | jq '.'
 
 # sub shell
 (
   # update spine
-  files=`echo $json | $jq -r '.[]["name"]'`
+  files=`echo $json | jq -r '.[]["name"]'`
   for file in $files; do
     if echo $file | grep 'spine/face/[^/]*/.*.png\|spine/weapon/.*.png'; then
       $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
@@ -89,7 +89,7 @@ fi
 # logging
 cdn_root_dir=$target
 [ "$target" = "master" ] && cdn_root_dir=ver1
-echo $json | $jq -r '.[]["name"]' > $message_log_file
+echo $json | jq -r '.[]["name"]' > $message_log_file
 $tool_dir/script/sonya.sh ":) $target: $message" $message_log_file $cdn_url/$cdn_root_dir
 
 exit 0
