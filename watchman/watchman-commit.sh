@@ -8,7 +8,7 @@ sleep=$1
 [ -n "$sleep" ] || sleep=5
 
 commit_log_file=/tmp/watchman-commit-message.log
-gitlab_url=http://g-pc-4114.intra.gree-office.net:3000
+gitlab_url=http://git.gree-dev.net
 version_manifest=manifests/dev/version.manifest
 version_tag=
 
