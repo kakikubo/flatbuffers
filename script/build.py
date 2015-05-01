@@ -78,8 +78,8 @@ class AssetBuilder():
         self.FBS_FILE                = 'master_data.fbs'
         self.BIN_FILE                = 'master_data.bin'
         self.HEADER_FILE             = 'master_data_generated.h'
-        self.FBS_ROOT_TYPE           = 'MasterDataFBS'
-        self.FBS_NAME_SPACE          = 'kms.fbs'
+        self.FBS_ROOT_NAME           = 'MasterDataFBS'
+        self.FBS_NAMESPACE           = 'kms.fbs'
         self.DEV_CDN_URL             = 'http://kms-dev.dev.gree.jp/cdn'
 
     # setup dest directories
@@ -172,17 +172,16 @@ class AssetBuilder():
                 f.write(j.encode("utf-8"))
 
     # create fbs from json
-    def build_fbs(self, src_json=None, dest_fbs=None, root_type=None, name_space=None):
-        src_json   = src_json   or self.build_dir+'/'+self.JSON_SCHEMA_FILE
-        dest_fbs   = dest_fbs   or self.build_dir+'/'+self.FBS_FILE
-        root_type  = root_type  or self.FBS_ROOT_TYPE
-        name_space = name_space or self.FBS_NAME_SPACE
+    def build_fbs(self, src_json=None, dest_fbs=None, root_name=None, namespace=None):
+        src_json   = src_json  or self.build_dir+'/'+self.JSON_SCHEMA_FILE
+        dest_fbs   = dest_fbs  or self.build_dir+'/'+self.FBS_FILE
+        root_name  = root_name or self.FBS_ROOT_NAME
+        namespace  = namespace or self.FBS_NAMESPACE
         info("build fbs: %s" % os.path.basename(dest_fbs))
 
-        cmdline = [self.json2fbs_bin, src_json, root_type, name_space]
+        cmdline = [self.json2fbs_bin, src_json, dest_fbs, '--root-name', root_name, '--namespace', namespace]
         debug(' '.join(cmdline))
-        with open(dest_fbs, 'w') as fp:
-            print >> fp, check_output(cmdline)
+        check_call(cmdline)
         return True
 
     # create bin+header from json+fbs

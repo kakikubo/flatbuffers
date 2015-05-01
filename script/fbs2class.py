@@ -4,8 +4,11 @@
 from __future__ import print_function
 import sys
 import re
+import argparse
+import logging
 import pprint
 
+from logging import info, warning, error
 from collections import OrderedDict
 
 def fbs2class(fbs, dst):
@@ -169,5 +172,15 @@ def generate_classes(dst):
 # main function
 #
 if __name__ == '__main__':
-    fbs2class(sys.argv[1], sys.argv[2])
+    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
+
+    parser = argparse.ArgumentParser(description = 'convert fbs schema to C++ classes')
+    parser.add_argument('input_fbs',     metavar = 'input.fbs',  help = 'input FlatBuffers schema file')
+    parser.add_argument('output_class',  metavar = 'output.h',   help = 'output class file (C++ header)')
+    args = parser.parse_args()
+
+    info("input  = %s" % args.input_fbs)
+    info("output = %s" % args.output_class)
+    fbs2class(args.input_fbs, args.output_class)
+    exit(0)
 
