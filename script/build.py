@@ -138,7 +138,7 @@ class AssetBuilder():
 
         cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
-                   self.remote_dir_asset, self.local_asset_search_path, "--ref", reference_manifest]
+                   self.remote_dir_asset, self.deploy_src_dir, "--ref", reference_manifest]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -244,23 +244,10 @@ class AssetBuilder():
         return True
 
     def prepare_to_deploy(self):
-        project_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         if self.is_master:
-            manifest = {}
-            with open(project_file, 'r') as f:
-                manifest = json.load(f)
-            assets = manifest.get('assets')
-            for key in assets:
-                asset = assets.get(key)
-                path = asset.get('path')
-                if path == self.remote_dir_asset+"/"+key:
-                    (path, name)  = os.path.split(self.deploy_src_dir+"/"+key)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                    src  = self.local_asset_search_path+"/"+key
-                    dest = self.deploy_src_dir+"/"+key
-                    debug("copy '%s' -> '%s'" % (src, dest))
-                    copy(src, dest)
+            for src, dest in ((self.local_asset_search_path+"/files", self.deploy_src_dir+"/files"), (self.local_asset_search_path+"/master", self.deploy_src_dir+"/master")):
+                debug("copytree '%s' -> '%s'" % (src, dest))
+                copytree(src, dest)
         else:
             for src, dest in ((self.local_asset_search_path+"/files", self.deploy_src_dir+"/files"), (self.bin_dir, self.deploy_src_dir+"/master")):
                 debug("copytree '%s' -> '%s'" % (src, dest))
@@ -279,6 +266,23 @@ class AssetBuilder():
 
         project_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         version_file = self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
+
+        with open(project_file, 'r') as f:
+            manifest = json.load(f)
+        assets = manifest.get('assets')
+        keep_files = []
+        for key in assets:
+            asset = assets.get(key)
+            path = asset.get('path')
+            if path == self.remote_dir_asset+"/"+key:
+                keep_files.append(path)
+                print ("should keep " + path)
+        for root, dirs, files in os.walk(self.deploy_src_dir):
+            for file in files:
+                key = root.replace(self.deploy_src_dir, self.remote_dir_asset) + os.sep + file
+                if not key in keep_files:
+                    os.remove(root + '/' + file)
+
         rsync = ['rsync', '-crltvvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
 
