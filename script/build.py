@@ -276,7 +276,6 @@ class AssetBuilder():
             path = asset.get('path')
             if path == self.remote_dir_asset+"/"+key:
                 keep_files.append(path)
-                print ("should keep " + path)
         for root, dirs, files in os.walk(self.deploy_src_dir):
             for file in files:
                 key = root.replace(self.deploy_src_dir, self.remote_dir_asset) + os.sep + file
