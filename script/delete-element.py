@@ -9,6 +9,7 @@ import json
 import argparse
 import datetime
 from collections import OrderedDict
+import time
 
 CURRENT_CATEGORY_DEPTH = 0
 CURRENT_CATEGORY = "NONE"
@@ -16,6 +17,26 @@ RELAED_TARGET = []
 
 SLOT_NAME = ""
 BONE_NAME = ""
+
+def searchInListDataRecursiveByKeyAndValue(listData, key, value):
+    for data in listData:
+        if isinstance(data, dict):
+            return searchInDictDataRecursiveByKeyAndValue(data, key, value)
+
+
+def searchInDictDataRecursiveByKeyAndValue(dictData, key, value):
+    if dictData.has_key(key):
+        if dictData[key] == value:
+            return True
+    dictKeys = dictData.keys()
+    for dictKey in dictKeys:
+        child = dictData[dictKey]
+        if isinstance(child, dict):
+            return searchInDictDataRecursiveByKeyAndValue(child, key, value)
+        elif isinstance(child, list):
+            return searchInListDataRecursiveByKeyAndValue(child, key, value)
+    return False
+
 
 def deleteListByFieldAndName(listData, field, name):
     for data in listData:
@@ -56,6 +77,18 @@ def deleteAnimationByBoneName(dictData, boneName):
     if dictData.has_key("animations"):
         animationDict = dictData["animations"]
         deleteDictRecursiveByName(animationDict, boneName)
+
+def deleteAnimationBySlotName(dictData, slotName):
+    if dictData.has_key("animations"):
+        animationDict = dictData["animations"]
+        animationKeys = animationDict.keys()
+        for animationKey in animationKeys:
+            animation = animationDict[animationKey]
+            animKeys = animation.keys()
+            for animKey in animKeys:
+                anim = animation[animKey]
+                if searchInListDataRecursiveByKeyAndValue(anim, "slot", slotName):
+                    del animation[animKey]
 
 def exportWearPattern(name, dirName):
     srcPath = os.path.abspath(dirName)
@@ -117,6 +150,22 @@ def exportHairPattern(name, dirName):
     deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[2], "-f", name, "-s", "C_hd_hair_tail", "C_hd_hair_b", "-b", "hair_tail"]))
     return hairNames
 
+def exportWeaponPattern(name, dirName):
+    srcPath = os.path.abspath(dirName)
+    dstPath = os.path.abspath(dirName)
+    weaponNames = [name + "_1", name + "_2", name + "_3", name + "_4", name + "_5"]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", nargs="*")
+    parser.add_argument("-b", nargs="*")
+    parser.add_argument("-i", required=True)
+    parser.add_argument("-o", required=True)
+    parser.add_argument("-f", required=True)
+    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[0], "-f", name, "-s", "R_weapon_2", "R_weapon_3", "R_weapon_4", "R_weapon_5", "-b"]))
+    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[1], "-f", name, "-s", "R_weapon_1", "R_weapon_3", "R_weapon_4", "R_weapon_5", "-b"]))
+    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[2], "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_4", "R_weapon_5", "-b"]))
+    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[3], "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_3", "R_weapon_5", "-b"]))
+    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[4], "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_3", "R_weapon_4", "-b"]))
+    return weaponNames
 
 # ---
 # default help message
@@ -150,9 +199,11 @@ def deleteElementBySlotsName(args):
         for boneName in boneList:
             deleteAnimationByBoneName(jsonData, boneName)
         for slotName in slotList:
+            deleteAnimationBySlotName(jsonData, slotName)
+        for slotName in slotList:
             deleteSlotBySlotName(jsonData, slotName)
         for skinName in skinList:
-            deleteSkinBySlotName(jsonData, slotName)
+            deleteSkinBySlotName(jsonData, skinName)
 
     with open(dstJson, 'w') as f:
         f.write(json.dumps(jsonData, indent=2, sort_keys=False))
@@ -166,6 +217,8 @@ def autoExport(name, dirName):
             accessoryNames = exportAccessoryPattern(wingName, dirName)
             for accessoryName in accessoryNames:
                 hairNames = exportHairPattern(accessoryName, dirName)
+                for hairName in hairNames:
+                    weaponNames = exportWeaponPattern(hairName, dirName)
 
 # ---
 # main function
