@@ -14,7 +14,7 @@ echo "watch root dir: $root_dir"
 
 base=`basename "$root_dir"`
 # setup dirs
-dirs="../generated/${base} editor master contents/files contents/master manifests/dev"
+dirs="editor master contents/files contents/master manifests/dev"
 for dir in $dirs; do
   echo "setup $root_dir/$dir"
   mkdir -p $root_dir/$dir || exit $?

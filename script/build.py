@@ -8,15 +8,13 @@ import re
 import codecs
 import tempfile
 import argparse
-import logging
 import json
+import logging
 from time import strftime
 from subprocess import check_call, check_output, call
 from shutil import move, rmtree, copy, copytree
 from glob import glob
-from logging import info, warning
-
-#import ipdb
+from logging import info, warning, debug
 
 class AssetBuilder():
     def __init__(self, target=None, asset_version=None, top_dir=None, user_dir=None, cdn_dir=None, build_dir=None):
@@ -38,7 +36,7 @@ class AssetBuilder():
         user_dir                 = user_dir        or user_dir_default
         self.cdn_dir             = cdn_dir         or cdn_dir_default
         self.build_dir           = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder_build')
-        self.deploy_src_dir       = tempfile.mkdtemp(prefix = 'kms_asset_builder_deploy')
+        self.deploy_src_dir      = tempfile.mkdtemp(prefix = 'kms_asset_builder_deploy')
         self.remote_dir_asset    = self.asset_version_dir+'/contents' if self.is_master else self.target + '/contents'
         self.auto_cleanup = not build_dir   # do not clean up when user specified
         
@@ -62,7 +60,8 @@ class AssetBuilder():
         self.fbs_dir       = self.top_dir+'/master_derivatives'
         self.bin_dir       = self.top_dir+'/contents/master'
         self.header_dir    = self.top_dir+'/master_header'
-        self.gd_dir        = self.top_dir+'/glyph_designer/'
+        #self.gd_dir        = self.top_dir+'/glyph_designer/'
+        self.gd_dir        = master_dir+'/glyph_designer/'
         self.font_dir      = self.top_dir+'/contents/files/font'
 
         self.manifest_bin  = self_dir+'/manifest_generate.py'
@@ -79,8 +78,8 @@ class AssetBuilder():
         self.FBS_FILE                = 'master_data.fbs'
         self.BIN_FILE                = 'master_data.bin'
         self.HEADER_FILE             = 'master_data_generated.h'
-        self.FBS_ROOT_TYPE           = 'MasterDataFBS'
-        self.FBS_NAME_SPACE          = 'kms.fbs'
+        self.FBS_ROOT_NAME           = 'MasterDataFBS'
+        self.FBS_NAMESPACE           = 'kms.fbs'
         self.DEV_CDN_URL             = 'http://kms-dev.dev.gree.jp/cdn'
 
     # setup dest directories
@@ -140,6 +139,7 @@ class AssetBuilder():
         cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
                    self.remote_dir_asset, self.deploy_src_dir, "--ref", reference_manifest]
+        debug(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -151,6 +151,7 @@ class AssetBuilder():
         info("build json: %s + %s" % (os.path.basename(dest_schema), os.path.basename(dest_data)))
 
         cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data]
+        debug(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -170,18 +171,17 @@ class AssetBuilder():
                 j = json.dumps(json_data, ensure_ascii = False, indent = 4)
                 f.write(j.encode("utf-8"))
 
-
     # create fbs from json
-    def build_fbs(self, src_json=None, dest_fbs=None, root_type=None, name_space=None):
-        src_json   = src_json   or self.build_dir+'/'+self.JSON_SCHEMA_FILE
-        dest_fbs   = dest_fbs   or self.build_dir+'/'+self.FBS_FILE
-        root_type  = root_type  or self.FBS_ROOT_TYPE
-        name_space = name_space or self.FBS_NAME_SPACE
+    def build_fbs(self, src_json=None, dest_fbs=None, root_name=None, namespace=None):
+        src_json   = src_json  or self.build_dir+'/'+self.JSON_SCHEMA_FILE
+        dest_fbs   = dest_fbs  or self.build_dir+'/'+self.FBS_FILE
+        root_name  = root_name or self.FBS_ROOT_NAME
+        namespace  = namespace or self.FBS_NAMESPACE
         info("build fbs: %s" % os.path.basename(dest_fbs))
 
-        cmdline = [self.json2fbs_bin, src_json, root_type, name_space]
-        with open(dest_fbs, 'w') as fp:
-            print >> fp, check_output(cmdline)
+        cmdline = [self.json2fbs_bin, src_json, dest_fbs, '--root-name', root_name, '--namespace', namespace]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
         return True
 
     # create bin+header from json+fbs
@@ -196,6 +196,7 @@ class AssetBuilder():
             raise Exception("%s and %s must be same dir" % (dest_bin, dest_header))
 
         cmdline = [self.flatc_bin, '-c', '-b', '-o', dest_dir, src_fbs, src_json]
+        debug(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -211,6 +212,7 @@ class AssetBuilder():
         src_gd_dir    = src_gd_dir    or self.gd_dir
         dest_font_dir = dest_font_dir or self.build_dir
         cmdline = [self.json2font_bin, src_json, src_gd_dir, dest_font_dir]
+        debug(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -231,29 +233,25 @@ class AssetBuilder():
         for src, dest in list:
             if os.path.exists(src):
                 info("install: %s -> %s" % (os.path.basename(src), os.path.dirname(dest)))
+                if not os.path.exists(os.path.dirname(dest)):
+                    os.makedirs(os.path.dirname(dest))
+                if call(['diff', '-q', src, dest], stdout = open(os.devnull, 'w')) == 0:
+                    continue
                 if os.path.exists(dest):
                     os.remove(dest)
+                debug("move '%s' -> '%s'" % (src, dest))
                 move(src, dest)
         return True
 
     def prepare_to_deploy(self):
-        project_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         if self.is_master:
-            manifest = {}
-            with open(project_file, 'r') as f:
-                manifest = json.load(f)
-            assets = manifest.get('assets')
-            for key in assets:
-                asset = assets.get(key)
-                path = asset.get('path')
-                if path == self.remote_dir_asset+"/"+key:
-                    (path, name)  = os.path.split(self.deploy_src_dir+"/"+key)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                    copy(self.local_asset_search_path + "/"+ key, self.deploy_src_dir + "/"+key)
+            for src, dest in ((self.local_asset_search_path+"/files", self.deploy_src_dir+"/files"), (self.local_asset_search_path+"/master", self.deploy_src_dir+"/master")):
+                debug("copytree '%s' -> '%s'" % (src, dest))
+                copytree(src, dest)
         else:
-            copytree(self.local_asset_search_path+"/files", self.deploy_src_dir+"/files")
-            copytree(self.bin_dir, self.deploy_src_dir+"/master")
+            for src, dest in ((self.local_asset_search_path+"/files", self.deploy_src_dir+"/files"), (self.bin_dir, self.deploy_src_dir+"/master")):
+                debug("copytree '%s' -> '%s'" % (src, dest))
+                copytree(src, dest)
 
     def deploy_dev(self):
         usernames = []
@@ -268,7 +266,23 @@ class AssetBuilder():
 
         project_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
         version_file = self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
-        rsync = ['rsync', '-crltvO']
+
+        with open(project_file, 'r') as f:
+            manifest = json.load(f)
+        assets = manifest.get('assets')
+        keep_files = []
+        for key in assets:
+            asset = assets.get(key)
+            path = asset.get('path')
+            if path == self.remote_dir_asset+"/"+key:
+                keep_files.append(path)
+        for root, dirs, files in os.walk(self.deploy_src_dir):
+            for file in files:
+                key = root.replace(self.deploy_src_dir, self.remote_dir_asset) + os.sep + file
+                if not key in keep_files:
+                    os.remove(root + '/' + file)
+
+        rsync = ['rsync', '-crltvvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
 
         dst_dir = self.cdn_dir+'/'+self.asset_version_dir if self.is_master else self.cdn_dir+'/'+self.target
@@ -330,8 +344,6 @@ class AssetBuilder():
 
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
-    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description = 'build asset and master data', 
@@ -369,7 +381,9 @@ examples:
     parser.add_argument('--top-dir',       help = 'asset top directory. default: same as script top')
     parser.add_argument('--user-dir',      help = 'user working directory top. default: same as script top')
     parser.add_argument('--build-dir',     help = 'build directory. default: temp dir')
+    parser.add_argument('--log-level',     help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
     asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, top_dir = args.top_dir, user_dir = args.user_dir, build_dir = args.build_dir)
     if args.command in ('build', 'build-all'):

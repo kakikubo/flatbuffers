@@ -1,6 +1,6 @@
 #!/bin/sh
 
-jq=/usr/local/bin/jq
+export PATH=$PATH:/usr/local/bin
 export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python2.7
 
 tool_dir=`pwd | sed -e 's/Box Sync/box/'`
@@ -13,16 +13,18 @@ branch=master # git branch for kms/asset
 target=`echo $WATCHMAN_ROOT | sed -e 's!.*/kms_\([^_]*\)_asset/.*!\1!'` # asset name
 [ "$target" = "$WATCHMAN_ROOT" ] && target=unknown
 message="$WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
+message_log_file=/tmp/watchman-callback-message.log
+cdn_url="http://kms-dev.dev.gree.jp/cdn/"
 
 # logging
 echo "\n\n\n\n\n---- $message"
 read json
-echo $json | $jq '.'
+echo $json | jq '.'
 
 # sub shell
 (
   # update spine
-  files=`echo $json | $jq -r '.[]["name"]'`
+  files=`echo $json | jq -r '.[]["name"]'`
   for file in $files; do
     if echo $file | grep 'spine/face/[^/]*/.*.png\|spine/weapon/.*.png'; then
       $tool_dir/script/spine-atlas-update.sh $top_dir || exit $?
@@ -32,14 +34,6 @@ echo $json | $jq '.'
 
   # build asset
   $tool_dir/script/build.py build --target $target || exit $?
-  if [ $target = "master" ]; then
-    for user_target in `ls ${tool_dir}/../box/users_generated`
-    do
-      if [ -d ${tool_dir}/../box/users_generated/${user_target} ]; then
-        $tool_dir/script/build.py build --target $user_target || exit $?
-      fi
-    done
-  fi
 
   # git commit + push
   if [ $target = "master" ]; then
@@ -69,8 +63,33 @@ echo $json | $jq '.'
 )
 ret=$?
 if [ $ret -ne 0 ]; then
-  echo "some error occurred in build process: $ret"
-  $tool_dir/script/sonya.sh "(devil) $ret: $message" $tool_dir/watchman/watchman-callback.log
+  echo "some error occurred in '$target' build process: $ret"
+  $tool_dir/script/sonya.sh "(devil) $target ret = $ret: $message" $tool_dir/watchman/watchman-callback.log
+  exit $ret
 fi
+
+# update each user in master updated
+if [ $target = "master" ]; then
+  for user_target in `ls ${tool_dir}/../box/users_generated`; do
+    # sub shell
+    (
+      if [ -d ${tool_dir}/../box/users_generated/${user_target} ]; then
+        $tool_dir/script/build.py build --target $user_target || exit $?
+      fi
+    )
+    ret=$?
+    if [ $ret -ne 0 ]; then
+      echo "some error occurred in '$user_target' build process: $ret"
+      $tool_dir/script/sonya.sh "(devil) $user_target ret = $ret: $message" $tool_dir/watchman/watchman-callback.log
+      exit $ret
+    fi
+  done
+fi
+
+# logging
+cdn_root_dir=$target
+[ "$target" = "master" ] && cdn_root_dir=ver1
+echo $json | jq -r '.[]["name"]' > $message_log_file
+$tool_dir/script/sonya.sh ":) $target: $message" $message_log_file $cdn_url/$cdn_root_dir
 
 exit 0
