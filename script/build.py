@@ -151,8 +151,8 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
-    # cerate json from xlsx
-    def build_json(self, src_xlsxes=None, dest_schema=None, dest_data=None):
+    # cerate master data json from xlsx
+    def build_master_json(self, src_xlsxes=None, dest_schema=None, dest_data=None):
         src_xlsxes  = src_xlsxes  or self._get_xlsxes()
         dest_schema = dest_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         dest_data   = dest_data   or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
