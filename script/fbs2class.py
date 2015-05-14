@@ -90,6 +90,8 @@ def generate_classes(dst, namespace=None):
 
             if is_vector:
                 s += "  std::vector<" + item_type + "> _" + item_name + ";\n"
+            elif item_type == 'string':
+                s += "  std::string _" + item_name + ";\n"
             else:
                 s += "  " + item_type + " _" + item_name + ";\n"
 
@@ -102,7 +104,7 @@ def generate_classes(dst, namespace=None):
             if is_vector:
                 s += "  std::vector<" + item_type + "> " + item_name + "() const { return _" + item_name + ";}\n"
             elif item_type == 'string':
-                s += "  const " + item_type + "& " + item_name + "() const { return _" + item_name + "; }\n"
+                s += "  const std::string& " + item_name + "() const { return _" + item_name + "; }\n"
             else:
                 s += "  " + item_type + " " + item_name + "() const { return _" + item_name + "; }\n"
         s += "\n"
@@ -114,6 +116,8 @@ def generate_classes(dst, namespace=None):
 
             if is_vector:
                 s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::vector<" + item_type + "> value) { _" + item_name + " = value;}\n"
+            elif item_type == 'string':
+                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::string& value) { _" + item_name + " = value;}\n"
             elif is_default_type:
                 s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(" + item_type + " value) { _" + item_name + " = value;}\n"
 
