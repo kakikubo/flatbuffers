@@ -50,41 +50,49 @@ class AssetBuilder():
         self.local_asset_search_path = user_dir+'/contents'
         self.user_xlsx_dir           = user_dir+'/master'
         self.user_editor_dir         = user_dir+'/editor'
+        self.user_schema_dir         = user_dir+'/user'
 
         user_editor_schema = user_dir+'/editor_schema/editor_schema.json'
         self.editor_schema = user_editor_schema if os.path.exists(user_editor_schema) else master_dir+'/editor_schema/editor_schema.json'
 
-        self.manifest_dir  = self.top_dir+'/manifests'
-        self.schema_dir    = self.top_dir+'/master_derivatives'
-        self.data_dir      = self.top_dir+'/master_derivatives'
-        self.fbs_dir       = self.top_dir+'/master_derivatives'
-        self.bin_dir       = self.top_dir+'/contents/master'
-        self.header_dir    = self.top_dir+'/master_header'
-        #self.gd_dir        = self.top_dir+'/glyph_designer/'
-        self.gd_dir        = master_dir+'/glyph_designer/'
-        self.font_dir      = self.top_dir+'/contents/files/font'
+        self.manifest_dir      = self.top_dir+'/manifests'
+        self.master_schema_dir = self.top_dir+'/master_derivatives'
+        self.master_data_dir   = self.top_dir+'/master_derivatives'
+        self.master_fbs_dir    = self.top_dir+'/master_derivatives'
+        self.master_bin_dir    = self.top_dir+'/contents/master'
+        self.master_header_dir = self.top_dir+'/master_header'
+        self.user_header_dir   = self.top_dir+'/user_header'
+        #self.gd_dir            = self.top_dir+'/glyph_designer/'
+        self.gd_dir            = master_dir+'/glyph_designer/'
+        self.font_dir          = self.top_dir+'/contents/files/font'
 
         self.manifest_bin  = self_dir+'/manifest_generate.py'
         self.xls2json_bin  = self_dir+'/master_data_xls2json.py'
         self.json2fbs_bin  = self_dir+'/json2fbs.py'
         self.flatc_bin     = self_dir+'/flatc'
+        self.fbs2class_bin = self_dir+'/fbs2class.py'
         self.json2font_bin = self_dir+'/json2font.py'
         
         self.PROJECT_MANIFEST_FILE   = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE   = 'dev.version.manifest'
         self.REFERENCE_MANIFEST_FILE = 'dev.reference.manifest'
-        self.JSON_SCHEMA_FILE        = 'master_schema.json'
-        self.JSON_DATA_FILE          = 'master_data.json'
-        self.FBS_FILE                = 'master_data.fbs'
-        self.BIN_FILE                = 'master_data.bin'
-        self.HEADER_FILE             = 'master_data_generated.h'
-        self.FBS_ROOT_NAME           = 'MasterDataFBS'
-        self.FBS_NAMESPACE           = 'kms.fbs'
+        self.MASTER_JSON_SCHEMA_FILE = 'master_schema.json'
+        self.MASTER_JSON_DATA_FILE   = 'master_data.json'
+        self.MASTER_FBS_FILE         = 'master_data.fbs'
+        self.MASTER_BIN_FILE         = 'master_data.bin'
+        self.MASTER_HEADER_FILE      = 'master_data_generated.h'
+        self.MASTER_FBS_ROOT_NAME    = 'MasterDataFBS'
+        self.MASTER_FBS_NAMESPACE    = 'kms.masterdata'
+        self.USER_FBS_FILE           = 'user_data.fbs'
+        self.USER_CLASS_FILE         = 'user_data.h'
+        self.USER_HEADER_FILE        = 'user_data_generated.h'
+        self.USER_FBS_ROOT_NAME      = 'UserDataFBS'
+        self.USER_FBS_NAMESPACE      = 'kms.userdata'
         self.DEV_CDN_URL             = 'http://kms-dev.dev.gree.jp/cdn'
 
     # setup dest directories
     def setup_dir(self):
-        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.master_editor_dir, self.user_editor_dir, self.master_xlsx_dir, self.user_xlsx_dir, self.schema_dir, self.data_dir, self.fbs_dir, self.bin_dir, self.header_dir, self.users_dir):
+        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.master_editor_dir, self.user_editor_dir, self.master_xlsx_dir, self.user_xlsx_dir, self.master_schema_dir, self.master_data_dir, self.master_fbs_dir, self.master_bin_dir, self.master_header_dir, self.user_header_dir, self.users_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -146,9 +154,9 @@ class AssetBuilder():
     # cerate json from xlsx
     def build_json(self, src_xlsxes=None, dest_schema=None, dest_data=None):
         src_xlsxes  = src_xlsxes  or self._get_xlsxes()
-        dest_schema = dest_schema or self.build_dir+'/'+self.JSON_SCHEMA_FILE
-        dest_data   = dest_data   or self.build_dir+'/'+self.JSON_DATA_FILE
-        info("build json: %s + %s" % (os.path.basename(dest_schema), os.path.basename(dest_data)))
+        dest_schema = dest_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        dest_data   = dest_data   or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        info("build master json: %s + %s" % (os.path.basename(dest_schema), os.path.basename(dest_data)))
 
         cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data]
         debug(' '.join(cmdline))
@@ -157,7 +165,7 @@ class AssetBuilder():
 
     # merge editor's json data into the master json data
     def merge_editor_file(self):
-        for master_file, editor_files in ((self.build_dir+'/'+self.JSON_DATA_FILE, self._get_editor_files()), (self.build_dir+'/'+self.JSON_SCHEMA_FILE, [self.editor_schema])):
+        for master_file, editor_files in ((self.build_dir+'/'+self.MASTER_JSON_DATA_FILE, self._get_editor_files()), (self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, [self.editor_schema])):
             with open(master_file, 'r') as f:
                 json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
@@ -172,12 +180,12 @@ class AssetBuilder():
                 f.write(j.encode("utf-8"))
 
     # create fbs from json
-    def build_fbs(self, src_json=None, dest_fbs=None, root_name=None, namespace=None):
-        src_json   = src_json  or self.build_dir+'/'+self.JSON_SCHEMA_FILE
-        dest_fbs   = dest_fbs  or self.build_dir+'/'+self.FBS_FILE
-        root_name  = root_name or self.FBS_ROOT_NAME
-        namespace  = namespace or self.FBS_NAMESPACE
-        info("build fbs: %s" % os.path.basename(dest_fbs))
+    def build_master_fbs(self, src_json=None, dest_fbs=None, root_name=None, namespace=None):
+        src_json   = src_json  or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        dest_fbs   = dest_fbs  or self.build_dir+'/'+self.MASTER_FBS_FILE
+        root_name  = root_name or self.MASTER_FBS_ROOT_NAME
+        namespace  = namespace or self.MASTER_FBS_NAMESPACE
+        info("build master fbs: %s" % os.path.basename(dest_fbs))
 
         cmdline = [self.json2fbs_bin, src_json, dest_fbs, '--root-name', root_name, '--namespace', namespace]
         debug(' '.join(cmdline))
@@ -185,17 +193,41 @@ class AssetBuilder():
         return True
 
     # create bin+header from json+fbs
-    def build_bin(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None):
-        src_json    = src_json    or self.build_dir+'/'+self.JSON_DATA_FILE
-        src_fbs     = src_fbs     or self.build_dir+'/'+self.FBS_FILE
-        dest_bin    = dest_bin    or self.build_dir+'/'+self.BIN_FILE
-        dest_header = dest_header or self.build_dir+'/'+self.HEADER_FILE
+    def build_master_bin(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None):
+        src_json    = src_json    or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        src_fbs     = src_fbs     or self.build_dir+'/'+self.MASTER_FBS_FILE
+        dest_bin    = dest_bin    or self.build_dir+'/'+self.MASTER_BIN_FILE
+        dest_header = dest_header or self.build_dir+'/'+self.MASTER_HEADER_FILE
         dest_dir    = os.path.dirname(dest_bin)
-        info("build bin: %s + %s" % (os.path.basename(dest_bin), os.path.basename(dest_header)))
+        info("build master bin: %s + %s" % (os.path.basename(dest_bin), os.path.basename(dest_header)))
         if os.path.dirname(dest_bin) != os.path.dirname(dest_header):
             raise Exception("%s and %s must be same dir" % (dest_bin, dest_header))
 
         cmdline = [self.flatc_bin, '-c', '-b', '-o', dest_dir, src_fbs, src_json]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    # create class header from fbs
+    def build_user_class(self, src_fbs=None, dest_class=None, namespace=None):
+        src_fbs    = src_fbs    or self.user_schema_dir+'/'+self.USER_FBS_FILE
+        dest_class = dest_class or self.build_dir+'/'+self.USER_CLASS_FILE
+        namespace  = namespace  or self.USER_FBS_NAMESPACE
+        info("build user class: %s" % os.path.basename(dest_class))
+
+        cmdline = [self.fbs2class_bin, src_fbs, dest_class, '--namespace', namespace]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    # create bin+header from json+fbs
+    def build_user_header(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None):
+        src_fbs     = src_fbs     or self.user_schema_dir+'/'+self.USER_FBS_FILE
+        dest_header = dest_header or self.build_dir+'/'+self.USER_HEADER_FILE
+        dest_dir    = os.path.dirname(dest_header)
+        info("build user header: %s" % os.path.basename(dest_header))
+
+        cmdline = [self.flatc_bin, '-c', '-o', dest_dir, src_fbs]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -208,7 +240,7 @@ class AssetBuilder():
             return False
 
         # build font by GDCL
-        src_json      = src_json      or self.build_dir+'/'+self.JSON_DATA_FILE
+        src_json      = src_json      or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         src_gd_dir    = src_gd_dir    or self.gd_dir
         dest_font_dir = dest_font_dir or self.build_dir
         cmdline = [self.json2font_bin, src_json, src_gd_dir, dest_font_dir]
@@ -220,11 +252,13 @@ class AssetBuilder():
     def install(self, build_dir=None):
         build_dir = build_dir or self.build_dir
         list = [
-            (build_dir+'/'+self.JSON_SCHEMA_FILE,      self.schema_dir+'/'+self.JSON_SCHEMA_FILE),
-            (build_dir+'/'+self.JSON_DATA_FILE,        self.data_dir+'/'+self.JSON_DATA_FILE),
-            (build_dir+'/'+self.FBS_FILE,              self.fbs_dir+'/'+self.FBS_FILE),
-            (build_dir+'/'+self.BIN_FILE,              self.bin_dir+'/'+self.BIN_FILE),
-            (build_dir+'/'+self.HEADER_FILE,           self.header_dir+'/'+self.HEADER_FILE)
+            (build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir+'/'+self.MASTER_JSON_SCHEMA_FILE),
+            (build_dir+'/'+self.MASTER_JSON_DATA_FILE,   self.master_data_dir+'/'+self.MASTER_JSON_DATA_FILE),
+            (build_dir+'/'+self.MASTER_FBS_FILE,         self.master_fbs_dir+'/'+self.MASTER_FBS_FILE),
+            (build_dir+'/'+self.MASTER_BIN_FILE,         self.master_bin_dir+'/'+self.MASTER_BIN_FILE),
+            (build_dir+'/'+self.MASTER_HEADER_FILE,      self.master_header_dir+'/'+self.MASTER_HEADER_FILE),
+            (build_dir+'/'+self.USER_CLASS_FILE,         self.user_header_dir+'/'+self.USER_CLASS_FILE),
+            (build_dir+'/'+self.USER_HEADER_FILE,        self.user_header_dir+'/'+self.USER_HEADER_FILE)
         ]
         for font_path in glob("%s/*.fnt" % build_dir):
             png_path = re.sub('.fnt$', '.png', font_path)
@@ -235,7 +269,7 @@ class AssetBuilder():
                 info("install: %s -> %s" % (os.path.basename(src), os.path.dirname(dest)))
                 if not os.path.exists(os.path.dirname(dest)):
                     os.makedirs(os.path.dirname(dest))
-                if call(['diff', '-q', src, dest], stdout = open(os.devnull, 'w')) == 0:
+                if call(['cmp', '--quiet', src, dest]) == 0:
                     continue
                 if os.path.exists(dest):
                     os.remove(dest)
@@ -249,7 +283,7 @@ class AssetBuilder():
                 debug("copytree '%s' -> '%s'" % (src, dest))
                 copytree(src, dest)
         else:
-            for src, dest in ((self.local_asset_search_path+"/files", self.deploy_src_dir+"/files"), (self.bin_dir, self.deploy_src_dir+"/master")):
+            for src, dest in ((self.local_asset_search_path+"/files", self.deploy_src_dir+"/files"), (self.master_bin_dir, self.deploy_src_dir+"/master")):
                 debug("copytree '%s' -> '%s'" % (src, dest))
                 copytree(src, dest)
 
@@ -312,7 +346,7 @@ class AssetBuilder():
         modified = False
         if check_modified:
             for src in build_depends:
-                if self._check_modified(src, self.bin_dir+'/'+self.BIN_FILE):
+                if self._check_modified(src, self.master_bin_dir+'/'+self.MASTER_BIN_FILE):
                     modified = True
                     break
             if not modified:
@@ -322,10 +356,10 @@ class AssetBuilder():
         try:
             self.setup_dir()
             if not check_modified or modified:
-                self.build_json()
+                self.build_master_json()
                 self.merge_editor_file()
-                self.build_fbs()
-                self.build_bin()
+                self.build_master_fbs()
+                self.build_master_bin()
                 self.build_font()
                 self.install()
             self.prepare_to_deploy()
@@ -353,8 +387,10 @@ commands:
   build-all          same as 'build'
   build-manifest     generate project.manifest + version.manifest from contents/**
   build-json         generate master_data.json + master_schema.json from master_data.xlsx
-  build-fbs          generate master_data.fbs from master_data.json
-  build-bin          generate master_data.bin + master_header/*.h from master_data.json + master_data.fbs
+  build-master-fbs   generate master_data.fbs from master_data.json
+  build-master-bin   generate master_data.bin + master_header/*.h from master_data.json + master_data.fbs
+  build-user-class   generate user_header/*.h from user_data.fbs
+  build-user-header  generate user_header/*_generated.h from user_data.fbs
   build-font         generate bitmap font from master_data.json
   deploy-dev         deploy asset files to cdn directory
   install            install files from build dir
@@ -374,7 +410,7 @@ examples:
     $ ./build.py install --build-dir /tmp/asset_builder
     $ ./build.py cleanup --build-dir /tmp/asset_builder
         """)
-    parser.add_argument('command',     help = 'build command (build|build-manifest|build-json|build-fbs|build-bin|install|deploy-dev|cleanup)')
+    parser.add_argument('command',         help = 'build command (build|build-manifest|build-master-json|build-master-fbs|build-master-bin|build-user-class|build-user-header|install|deploy-dev|cleanup)')
     parser.add_argument('--target', default = 'master', help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
     parser.add_argument('--force',  default = False, action = 'store_true', help = 'skip check timestamp. always build')
     parser.add_argument('--asset-version', help = 'asset version. default: <target>.<unix-timestamp>')
@@ -390,12 +426,16 @@ examples:
         asset_builder.build_all(not args.force)
     elif args.command == 'build-manifest':
         asset_builder.build_manifest()
-    elif args.command == 'build-json':
-        asset_builder.build_json()
-    elif args.command == 'build-fbs':
-        asset_builder.build_fbs()
-    elif args.command == 'build-bin':
-        asset_builder.build_bin()
+    elif args.command == 'build-master-json':
+        asset_builder.build_master_json()
+    elif args.command == 'build-master-fbs':
+        asset_builder.build_master_fbs()
+    elif args.command == 'build-master-bin':
+        asset_builder.build_master_bin()
+    elif args.command == 'build-user-class':
+        asset_builder.build_user_class()
+    elif args.command == 'build-user-header':
+        asset_builder.build_user_header()
     elif args.command == 'build-font':
         asset_builder.build_font()
     elif args.command == 'install':
