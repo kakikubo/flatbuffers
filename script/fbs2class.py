@@ -395,15 +395,15 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             for item_name in table:
                 item = table[item_name]
                 is_vector = item["is_vector"]
+                s += '    if (target == "' + item_name + '") {\n'
                 if is_vector:
-                    s += '    pk.pack_array((int)_' + item_name + '.size());\n'
-                    s += '    for (auto& __' + item_name + ' : _' + item_name + ') {\n'
-                    s += '      __' + item_name + '.toMsgpack(pk);\n'
-                    s += '    }\n'
+                    s += '      pk.pack_array((int)_' + item_name + '.size());\n'
+                    s += '      for (auto& __' + item_name + ' : _' + item_name + ') {\n'
+                    s += '        __' + item_name + '.toMsgpack(pk);\n'
+                    s += '      }\n'
                 else:
-                    s += '    if (target == "' + item_name + '") {\n'
                     s += '      _' + item_name + '.toMsgpack(pk);\n'
-                    s += '    }\n'
+                s += '    }\n'
             s += "  }\n"
             s += "  void deserializeMsgpack(msgpack::object& obj, const std::string& target) {\n"
             for item_name in table:
@@ -411,15 +411,15 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 is_vector = item["is_vector"]
                 item_type = item["item_type"]
                 is_default_type = not item_type in fbs_data
+                s += '    if (target == "' + item_name + '") {\n'
                 if is_vector:
-                    s += '    for (msgpack::object* p(obj.via.array.ptr), * const pend(obj.via.array.ptr + obj.via.array.size); p < pend; ++p) {\n'
-                    s += '      ' + item_type + ' __' + item_name + ';\n'
-                    s += '      _' + item_name + '.push_back(__' + item_name + '.fromMsgpack(*p));\n'
-                    s += '    }\n'
+                    s += '      for (msgpack::object* p(obj.via.array.ptr), * const pend(obj.via.array.ptr + obj.via.array.size); p < pend; ++p) {\n'
+                    s += '        ' + item_type + ' __' + item_name + ';\n'
+                    s += '        _' + item_name + '.push_back(__' + item_name + '.fromMsgpack(*p));\n'
+                    s += '      }\n'
                 else:
-                    s += '    if (target == "' + item_name + '") {\n'
                     s += '      _' + item_name + '.fromMsgpack(obj);\n'
-                    s += '    }\n'
+                s += '    }\n'
             s += "  }\n"
 
         if with_fbs:
