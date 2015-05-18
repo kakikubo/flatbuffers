@@ -10,7 +10,7 @@ import logging
 from logging import info, warning, error
 from collections import OrderedDict
 
-def fbs2class(fbs, dst, namespace, with_json, with_fbs):
+def fbs2class(fbs, dst, namespace, with_json, with_msgpack, with_fbs):
     with open(fbs, 'r') as f:
         global state, fbs_data
         state = "default"
@@ -20,7 +20,7 @@ def fbs2class(fbs, dst, namespace, with_json, with_fbs):
                 parse_default(line)
             elif state == "table":
                 parse_table(line)
-    generate_classes(dst, namespace, with_json, with_fbs)
+    generate_classes(dst, namespace, with_json, with_msgpack, with_fbs)
 
 def parse_default(line):
     global state
@@ -71,7 +71,20 @@ def parse_table(line):
     table_name = next(reversed(fbs_data))
     fbs_data[table_name][name] = item
 
-def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
+def snake_case(src):
+    dest = ''
+    prev = None
+    for c in src:
+        if c.lower() == c:
+            dest += c
+        elif len(dest) > 0 and prev and prev.upper() != prev:
+            dest += '_' + c.lower()
+        else:
+            dest += c.lower()
+        prev = c
+    return dest
+
+def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, with_fbs=False):
     global fbs_data
     global fbs_root_type
     global fbs_namespace
@@ -81,6 +94,8 @@ def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
     s += '#include <sstream>\n'
     s += '#include <jansson.h>\n'
     s += '#include <openssl/md5.h>\n'
+    if with_msgpack:
+        s += '#include <msgpack.hpp>\n'
     if with_fbs:
         s += '#include "user_data_generated.h"\n'
     s += "\n"
@@ -143,7 +158,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
             is_default_type = not item_type in fbs_data
 
             if is_vector:
-                s += "  std::vector<" + item_type + "> " + item_name + "() { return _" + item_name + ";}\n"
+                s += "  std::vector<" + item_type + "> " + item_name + "() { return _" + item_name + "; }\n"
             elif item_type == 'string':
                 s += "  std::string " + item_name + "() { return _" + item_name + "; }\n"
             elif is_default_type:
@@ -170,12 +185,12 @@ def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
             is_default_type = not item_type in fbs_data
 
             if is_vector:
-                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::vector<" + item_type + "> value) { _" + item_name + " = value;}\n"
+                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::vector<" + item_type + "> value) { _" + item_name + " = value; }\n"
             elif item_type == 'string':
-                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::string value) { _" + item_name + " = value;}\n"
-                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(const char* value) { _" + item_name + " = value;}\n"
+                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::string value) { _" + item_name + " = value; }\n"
+                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(const char* value) { _" + item_name + " = value; }\n"
             elif is_default_type:
-                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(" + item_type + " value) { _" + item_name + " = value;}\n"
+                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(" + item_type + " value) { _" + item_name + " = value; }\n"
 
         if has_vector:
             s += "  // setter with vector search\n"
@@ -242,6 +257,13 @@ def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
                 s += "    return _" + range_key + " == b." + range_key + "();\n"
             s += "  }\n"
 
+        s += "\n  // notify changed via EventDispatcher\n"
+        s += "  void notifyChanged() {\n"
+        s += '    auto e = cocos2d::EventCustom("' + snake_case(table_name) + '_changed");\n'
+        s += "    e.setUserData(this);\n"
+        s += "    cocos2d::Director::getInstance()->getEventDispatcher()->dispatchEvent(&e);\n"
+        s += "  }\n"
+
         if with_json:
             s += "\n  // getter via json\n"
             s += "  json_t* toJson() {\n"
@@ -288,7 +310,6 @@ def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
                 item = table[item_name]
                 is_vector = item["is_vector"]
                 item_type = item["item_type"]
-                is_default_type = table_name in fbs_data
                 if is_vector:
                     s += "    json_array_foreach(" + 'json_object_get(json, "' + item_name + '")' + ", i, v) {\n"
                     if item_type in ('string'):
@@ -316,6 +337,91 @@ def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
             s += "    return *this;\n"
             s += "  }\n"
 
+        if with_msgpack:
+            s += "\n  // setter via msgpack\n"
+            s += "  void toMsgpack(msgpack::packer<msgpack::sbuffer>& pk) {\n"
+            s += "    pk.pack_map(%d);\n" % len(table)
+            for item_name in table:
+                item = table[item_name]
+                is_vector = item["is_vector"]
+                item_type = item["item_type"]
+                is_default_type = not item_type in fbs_data
+                s += '    pk.pack(std::string("' + item_name + '"));\n'
+                if is_vector:
+                    s += '    pk.pack_array((int)_' + item_name + '.size());\n'
+                    s += '    for (auto& __' + item_name + ' : _' + item_name + ') {\n'
+                    if is_default_type:
+                        s += '      pk.pack(_' + item_name + ');\n'
+                    else:
+                        s += '      __' + item_name + '.toMsgpack(pk);\n'
+                    s += '    }\n'
+                elif is_default_type:
+                    s += '    pk.pack(_' + item_name + ');\n'
+                else:
+                    s += '    _' + item_name + '.toMsgpack(pk);\n'
+            s += "  }\n"
+
+            s += "\n  // getter via msgpack\n"
+            s += "  " + table_name + "& fromMsgpack(msgpack::object& obj) {\n"
+            s += "    std::map<std::string, msgpack::object> __map = obj.as<std::map<std::string, msgpack::object>>();\n"
+            for item_name in table:
+                item = table[item_name]
+                is_vector = item["is_vector"]
+                item_type = item["item_type"]
+                is_default_type = not item_type in fbs_data
+                if is_vector:
+                    s += '    auto __' + item_name + ' = __map.find("' + item_name + '")->second.as<msgpack::object>();\n';
+                    s += '    for (msgpack::object* p(__' + item_name + '.via.array.ptr), * const pend(__' + item_name + '.via.array.ptr + __' + item_name + '.via.array.size); p < pend; ++p) {\n'
+                    if item_type == 'string':
+                        s += '      _' + item_name + '.push_back(p->as<std::string>());\n'
+                    elif is_default_type:
+                        s += '      _' + item_name + '.push_back(p->as<' + item_type + '>());\n'
+                    else:
+                        s += '      ' + item_type + ' __' + item_name + ';\n'
+                        s += '      _' + item_name + '.push_back(__' + item_name + '.fromMsgpack(*p));\n'
+                    s += '    }\n'
+                elif item_type == 'string':
+                    s += '    _' + item_name + ' =  __map.find("' + item_name + '")->second.as<std::string>();\n'
+                elif is_default_type:
+                    s += '    _' + item_name + ' =  __map.find("' + item_name + '")->second.as<' + item_type + '>();\n'
+                else:
+                    s += '    _' + item_name + ' = _' + item_name + '.fromMsgpack(__map.find("' + item_name + '")->second);\n'
+            s += "    return *this;\n"
+            s += "  }\n"
+
+        if with_msgpack and fbs_root_type == table_name:
+            s += "\n  // top level of msgpack IO\n"
+            s += "  void serializeMsgpack(msgpack::packer<msgpack::sbuffer>& pk, const std::string& target) {\n"
+            for item_name in table:
+                item = table[item_name]
+                is_vector = item["is_vector"]
+                if is_vector:
+                    s += '    pk.pack_array((int)_' + item_name + '.size());\n'
+                    s += '    for (auto& __' + item_name + ' : _' + item_name + ') {\n'
+                    s += '      __' + item_name + '.toMsgpack(pk);\n'
+                    s += '    }\n'
+                else:
+                    s += '    if (target == "' + item_name + '") {\n'
+                    s += '      _' + item_name + '.toMsgpack(pk);\n'
+                    s += '    }\n'
+            s += "  }\n"
+            s += "  void deserializeMsgpack(msgpack::object& obj, const std::string& target) {\n"
+            for item_name in table:
+                item = table[item_name]
+                is_vector = item["is_vector"]
+                item_type = item["item_type"]
+                is_default_type = not item_type in fbs_data
+                if is_vector:
+                    s += '    for (msgpack::object* p(obj.via.array.ptr), * const pend(obj.via.array.ptr + obj.via.array.size); p < pend; ++p) {\n'
+                    s += '      ' + item_type + ' __' + item_name + ';\n'
+                    s += '      _' + item_name + '.push_back(__' + item_name + '.fromMsgpack(*p));\n'
+                    s += '    }\n'
+                else:
+                    s += '    if (target == "' + item_name + '") {\n'
+                    s += '      _' + item_name + '.fromMsgpack(obj);\n'
+                    s += '    }\n'
+            s += "  }\n"
+
         if with_fbs:
             s += "\n  // for FlatBuffers\n"
             # FIXME treat fbs::
@@ -324,7 +430,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
                 item = table[item_name]
                 is_vector = item["is_vector"]
                 item_type = item["item_type"]
-                is_default_type  = table_name in fbs_data
+                is_default_type = not item_type in fbs_data
                 if is_vector:
                     s += "    // vector of " + item_name + "\n";
                     s += "    std::vector<" + item_type + "> v_" + item_name + ";\n"
@@ -397,15 +503,17 @@ if __name__ == '__main__':
     parser.add_argument('input_fbs',     metavar = 'input.fbs',  help = 'input FlatBuffers schema file')
     parser.add_argument('output_class',  metavar = 'output.h',   help = 'output class file (C++ header)')
     parser.add_argument('--namespace',   help = 'name space override')
-    parser.add_argument('--json', action = 'store_true', default = True,  help = 'generate json IO code')
-    parser.add_argument('--fbs',  action = 'store_true', default = False, help = 'generate flatbuffers IO code')
+    parser.add_argument('--json',    action = 'store_true', default = True,  help = 'generate json IO code')
+    parser.add_argument('--msgpack', action = 'store_true', default = True,  help = 'generate msgpack IO code')
+    parser.add_argument('--fbs',     action = 'store_true', default = False, help = 'generate flatbuffers IO code')
     args = parser.parse_args()
 
     info("input  = %s" % args.input_fbs)
     info("output = %s" % args.output_class)
     info("namespace = %s" % args.namespace)
     info("with json = %s" % args.json)
+    info("with msgpack = %s" % args.msgpack)
     info("with fbs = %s" % args.fbs)
-    fbs2class(args.input_fbs, args.output_class, args.namespace, args.json, args.fbs)
+    fbs2class(args.input_fbs, args.output_class, args.namespace, args.json, args.msgpack, args.fbs)
     exit(0)
 
