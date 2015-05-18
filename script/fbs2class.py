@@ -290,7 +290,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_fbs=False):
                 item_type = item["item_type"]
                 is_default_type = table_name in fbs_data
                 if is_vector:
-                    s += "    json_array_foreach(json, i, v) {\n"
+                    s += "    json_array_foreach(" + 'json_object_get(json, "' + item_name + '")' + ", i, v) {\n"
                     if item_type in ('string'):
                         s += "      _" + item_name + ".push_back(json_string_value(v));\n"
                     elif item_type in ('int', 'long'):
