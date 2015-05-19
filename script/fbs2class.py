@@ -351,7 +351,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     s += '    pk.pack_array((int)_' + item_name + '.size());\n'
                     s += '    for (auto& __' + item_name + ' : _' + item_name + ') {\n'
                     if is_default_type:
-                        s += '      pk.pack(_' + item_name + ');\n'
+                        s += '      pk.pack(__' + item_name + ');\n'
                     else:
                         s += '      __' + item_name + '.toMsgpack(pk);\n'
                     s += '    }\n'
