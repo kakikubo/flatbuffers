@@ -213,8 +213,10 @@ class AssetBuilder():
         src_fbs    = src_fbs    or self.user_schema_dir+'/'+self.USER_FBS_FILE
         dest_class = dest_class or self.build_dir+'/'+self.USER_CLASS_FILE
         namespace  = namespace  or self.USER_FBS_NAMESPACE
-        info("build user class: %s" % os.path.basename(dest_class))
+        if not os.path.exists(src_fbs):
+            return False
 
+        info("build user class: %s" % os.path.basename(dest_class))
         cmdline = [self.fbs2class_bin, src_fbs, dest_class, '--namespace', namespace]
         debug(' '.join(cmdline))
         check_call(cmdline)
@@ -361,6 +363,7 @@ class AssetBuilder():
                 self.build_master_fbs()
                 self.build_master_bin()
                 self.build_font()
+                self.build_user_class()
                 self.install()
             self.prepare_to_deploy()
             self.build_manifest()
