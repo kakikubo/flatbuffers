@@ -100,6 +100,10 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
         s += '#include "user_data_generated.h"\n'
     s += "\n"
 
+    s += '#pragma clang diagnostic ignored "-Wc++11-extensions"\n'
+    s += '#pragma clang diagnostic ignored "-Wunused-variable"\n'
+    s += "\n"
+
     namespace = namespace or fbs_namespace
     for ns in namespace.split('.'):
         s += "namespace " + ns + " {\n"
@@ -143,22 +147,34 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             item_type = item["item_type"]
 
             if is_vector:
-                s += "  std::vector<" + item_type + "> _" + item_name + ";\n"
+                if item_type == 'string':
+                    s += "  std::vector<std::string> _" + item_name + ";\n"
+                else:
+                    s += "  std::vector<" + item_type + "> _" + item_name + ";\n"
             elif item_type == 'string':
                 s += "  std::string _" + item_name + ";\n"
             else:
                 s += "  " + item_type + " _" + item_name + ";\n"
+        s += "\n"
+        s += "  time_t __timestamp = 0;  // timestamp of sync or flush (internal use)\n"
 
         s += "\n public:\n"
-        s += "  // getter\n"
+        s += "  // constructer\n"
+        s += "  " + table_name + "() {}\n"
+
+        s += "\n  // getter\n"
         for item_name in table:
             item = table[item_name]
             is_vector = item["is_vector"]
             item_type = item["item_type"]
             is_default_type = not item_type in fbs_data
-
             if is_vector:
-                s += "  std::vector<" + item_type + "> " + item_name + "() { return _" + item_name + "; }\n"
+                if item_type == 'string':
+                    s += "  std::vector<std::string> " + item_name + "() { return _" + item_name + "; }\n"
+                elif is_default_type:
+                    s += "  std::vector<" + item_type + "> " + item_name + "() const { return _" + item_name + "; }\n"
+                else:
+                    s += "  std::vector<" + item_type + "> " + item_name + "() { return _" + item_name + "; }\n"
             elif item_type == 'string':
                 s += "  std::string " + item_name + "() { return _" + item_name + "; }\n"
             elif is_default_type:
@@ -166,43 +182,22 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             else:
                 s += "  " + item_type + "& " + item_name + "() { return _" + item_name + "; }\n"
 
-        if has_vector:
-            s += "  // getter with vector search\n"
-            for item_name in table:
-                item = table[item_name]
-                is_vector = item["is_vector"]
-                item_type = item["item_type"]
-                if is_vector:
-                    s += "  " + item_type + " " + item_name + "(" + item_type + " needle) const { \n"
-                    s += "    return *(std::find_if(_" + item_name + ".begin(), _" + item_name + ".end(), [needle](" + item_type + " self) { return self == needle; }));\n"
-                    s += "  }\n"
-
         s += "\n  // setter\n"
         for item_name in table:
             item = table[item_name]
             is_vector = item["is_vector"]
             item_type = item["item_type"]
             is_default_type = not item_type in fbs_data
-
             if is_vector:
-                s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::vector<" + item_type + "> value) { _" + item_name + " = value; }\n"
+                if item_type == 'string':
+                    s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::vector<std::string> value) { _" + item_name + " = value; }\n"
+                else:
+                    s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::vector<" + item_type + "> value) { _" + item_name + " = value; }\n"
             elif item_type == 'string':
                 s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(std::string value) { _" + item_name + " = value; }\n"
                 s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(const char* value) { _" + item_name + " = value; }\n"
-            elif is_default_type:
+            else:
                 s += "  void set" + item_name[0:1].upper() + item_name[1:]+ "(" + item_type + " value) { _" + item_name + " = value; }\n"
-
-        if has_vector:
-            s += "  // setter with vector search\n"
-            for item_name in table:
-                item = table[item_name]
-                is_vector = item["is_vector"]
-                item_type = item["item_type"]
-                if is_vector:
-                    s += "  void " + item_name + "(" + item_type + " needle) { \n"
-                    s += "    auto it = std::find_if(_" + item_name + ".begin(), _" + item_name + ".end(), [needle](" + item_type + " self) { return self == needle; });\n"
-                    s += "    *it = needle;\n"
-                    s += "  }\n"
 
         s += "\n  // general accessor\n"
         s += "  std::vector<std::string> keys() {\n"
@@ -230,39 +225,48 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             s += "  }\n"
 
         s += "\n  // copy operator\n"
-        s += "  " + table_name + "& operator=(" + table_name + "& src" + table_name + ") {\n"
+        s += "  " + table_name + "& operator=(" + table_name + "& src) {\n"
         for item_name in table:
             item = table[item_name]
             is_vector = item["is_vector"]
             item_type = item["item_type"]
-            src_item_name = "src" + table_name + "." + item_name + "()"
             if is_vector:
                 s += "    _" + item_name + ".clear();\n"
-                s += "    for (auto& __" + item_name + " : " + src_item_name + ") {\n"
-                s += "      _" + item_name + ".push_back(__" + item_name + ");\n"
+                s += "    for (int i = 0; i < src." + item_name + "().size(); i++) {\n"
+                s += "      _" + item_name + ".push_back(src." + item_name + "()[i]);\n"
                 s += "    }\n\n"
             else:
-                s += "    _" + item_name + " = " + src_item_name + ";\n"
+                s += "    _" + item_name + " = src." + item_name + "();\n"
         s += "    return *this;\n"
         s += "  }\n"
 
-        if hash_key or range_key:
-            s += "\n  // comparison operator\n"
-            s += "  bool operator==(" + table_name + " b) {\n"
-            if hash_key and range_key:
-                s += "    return _" + hash_key + " == b." + hash_key + "() && _" + range_key + " == b." + range_key + "();\n"
-            elif hash_key:
-                s += "    return _" + hash_key + " == b." + hash_key + "();\n"
-            elif range_key:
-                s += "    return _" + range_key + " == b." + range_key + "();\n"
-            s += "  }\n"
+        s += "\n  // comparison operator\n"
+        s += "  bool operator==(" + table_name + "& b) {\n"
+        for item_name in table:
+            item = table[item_name]
+            is_vector = item["is_vector"]
+            item_type = item["item_type"]
+            if is_vector:
+                s += "    if (_" + item_name + ".size() != b." + item_name + "().size()) return false;\n";
+                s += "    for (int i = 0; i < _" + item_name + ".size(); i++) {\n"
+                s += "      if (_" + item_name + "[i] != b." + item_name + "()[i]) return false;\n"
+                s += "    }\n"
+            else:
+                s += "    if (_" + item_name + " != b." + item_name + "()) return false;\n"
+        s += "    return true;\n"
+        s += "  }\n"
+        s += "  bool operator!=(" + table_name + "& b) {\n"
+        s += "    return !(*this == b);\n"
+        s += "  }\n"
 
         s += "\n  // notify changed via EventDispatcher\n"
+        s += "#if 0\n"
         s += "  void notifyChanged() {\n"
         s += '    auto e = cocos2d::EventCustom("' + snake_case(table_name) + '_changed");\n'
         s += "    e.setUserData(this);\n"
         s += "    cocos2d::Director::getInstance()->getEventDispatcher()->dispatchEvent(&e);\n"
         s += "  }\n"
+        s += "#endif\n"
 
         if with_json:
             s += "\n  // getter via json\n"
@@ -275,17 +279,17 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 is_default_type = not item_type in fbs_data
                 if is_vector:
                     s += "    auto a_" + item_name + " = json_array();\n"
-                    s += "    for (auto& __" + item_name + " : _" + item_name + ") {\n"
+                    s += "    for (int i = 0; i < _" + item_name + ".size(); i++) {\n"
                     if item_type == 'string':
-                        s += "      json_array_append(a_" + item_name + ", json_string(__" + item_name + ".c_str()));\n"
+                        s += "      json_array_append(a_" + item_name + ", json_string(_" + item_name + "[i].c_str()));\n"
                     elif item_type in ('int', 'long'):
-                        s += "      json_array_append(a_" + item_name + ", json_integer(__" + item_name + "));\n"
+                        s += "      json_array_append(a_" + item_name + ", json_integer(_" + item_name + "[i]));\n"
                     elif item_type in ('float', 'double'):
-                        s += "      json_array_append(a_" + item_name + ", json_real(__" + item_name + "));\n"
+                        s += "      json_array_append(a_" + item_name + ", json_real(_" + item_name + "[i]));\n"
                     elif item_type in ('bool'):
-                        s += "      json_array_append(a_" + item_name + ", json_boolean(__" + item_name + "));\n"
+                        s += "      json_array_append(a_" + item_name + ", json_boolean(_" + item_name + "[i]));\n"
                     else:
-                        s += "      json_array_append(a_" + item_name + ", __" + item_name + ".toJson());\n"
+                        s += "      json_array_append(a_" + item_name + ", _" + item_name + "[i].toJson());\n"
                     s += "    }\n"
                     s += '    json_object_set(json, "' + item_name + '", a_' + item_name + ');\n'
                 elif item_type == 'string':
@@ -311,7 +315,8 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 is_vector = item["is_vector"]
                 item_type = item["item_type"]
                 if is_vector:
-                    s += "    json_array_foreach(" + 'json_object_get(json, "' + item_name + '")' + ", i, v) {\n"
+                    s += "    _" + item_name + ".clear();\n"
+                    s += '    json_array_foreach(json_object_get(json, "' + item_name + '")' + ", i, v) {\n"
                     if item_type in ('string'):
                         s += "      _" + item_name + ".push_back(json_string_value(v));\n"
                     elif item_type in ('int', 'long'):
@@ -321,8 +326,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     elif item_type in ('bool'):
                         s += "      _" + item_name + ".push_back(json_boolean_value(v));\n"
                     else:
-                        s += "      " + item_type + " __v;\n"      
-                        s += "      _" + item_name + ".push_back(__v.fromJson(v));\n"
+                        s += "      _" + item_name + ".push_back(" + item_type + "(v));\n"
                     s += "    }\n"
                 elif item_type in ('string'):
                     s += "    _" + item_name + ' = json_string_value(json_object_get(json, "' + item_name + '"));\n'
@@ -335,6 +339,10 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 else:
                     s += "    _" + item_name + '.fromJson(json_object_get(json, "' + item_name + '"));\n'
             s += "    return *this;\n"
+            s += "  }\n"
+            s += "  // construct with json\n"
+            s += "  " + table_name + "(json_t* json) {\n"
+            s += "    fromJson(json);\n"
             s += "  }\n"
 
         if with_msgpack:
@@ -349,11 +357,13 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 s += '    pk.pack(std::string("' + item_name + '"));\n'
                 if is_vector:
                     s += '    pk.pack_array((int)_' + item_name + '.size());\n'
-                    s += '    for (auto& __' + item_name + ' : _' + item_name + ') {\n'
-                    if is_default_type:
-                        s += '      pk.pack(__' + item_name + ');\n'
+                    s += '    for (int i = 0; i < _' + item_name + '.size(); i++) {\n'
+                    if item_type == 'bool':
+                        s += '      pk.pack(_' + item_name + '[i] ? true : false);\n'
+                    elif is_default_type:
+                        s += '      pk.pack(_' + item_name + '[i]);\n'
                     else:
-                        s += '      __' + item_name + '.toMsgpack(pk);\n'
+                        s += '      _' + item_name + '[i].toMsgpack(pk);\n'
                     s += '    }\n'
                 elif is_default_type:
                     s += '    pk.pack(_' + item_name + ');\n'
@@ -363,13 +373,14 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
 
             s += "\n  // getter via msgpack\n"
             s += "  " + table_name + "& fromMsgpack(msgpack::object& obj) {\n"
-            s += "    std::map<std::string, msgpack::object> __map = obj.as<std::map<std::string, msgpack::object>>();\n"
+            s += "    std::map<std::string, msgpack::object> __map = obj.as<std::map<std::string, msgpack::object> >();\n"
             for item_name in table:
                 item = table[item_name]
                 is_vector = item["is_vector"]
                 item_type = item["item_type"]
                 is_default_type = not item_type in fbs_data
                 if is_vector:
+                    s += "    _" + item_name + ".clear();\n"
                     s += '    auto __' + item_name + ' = __map.find("' + item_name + '")->second.as<msgpack::object>();\n';
                     s += '    for (msgpack::object* p(__' + item_name + '.via.array.ptr), * const pend(__' + item_name + '.via.array.ptr + __' + item_name + '.via.array.size); p < pend; ++p) {\n'
                     if item_type == 'string':
@@ -377,16 +388,19 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     elif is_default_type:
                         s += '      _' + item_name + '.push_back(p->as<' + item_type + '>());\n'
                     else:
-                        s += '      ' + item_type + ' __' + item_name + ';\n'
-                        s += '      _' + item_name + '.push_back(__' + item_name + '.fromMsgpack(*p));\n'
+                        s += '      _' + item_name + '.push_back(' + item_type + '(*p));\n'
                     s += '    }\n'
                 elif item_type == 'string':
                     s += '    _' + item_name + ' =  __map.find("' + item_name + '")->second.as<std::string>();\n'
                 elif is_default_type:
                     s += '    _' + item_name + ' =  __map.find("' + item_name + '")->second.as<' + item_type + '>();\n'
                 else:
-                    s += '    _' + item_name + ' = _' + item_name + '.fromMsgpack(__map.find("' + item_name + '")->second);\n'
+                    s += '    _' + item_name + '.fromMsgpack(__map.find("' + item_name + '")->second);\n'
             s += "    return *this;\n"
+            s += "  }\n"
+            s += "  // construct with msgpack\n"
+            s += "  " + table_name + "(msgpack::object &obj) {\n"
+            s += "    fromMsgpack(obj);\n"
             s += "  }\n"
 
         if with_msgpack and fbs_root_type == table_name:
@@ -395,11 +409,12 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             for item_name in table:
                 item = table[item_name]
                 is_vector = item["is_vector"]
+                item_type = item["item_type"]
                 s += '    if (target == "' + item_name + '") {\n'
                 if is_vector:
                     s += '      pk.pack_array((int)_' + item_name + '.size());\n'
-                    s += '      for (auto& __' + item_name + ' : _' + item_name + ') {\n'
-                    s += '        __' + item_name + '.toMsgpack(pk);\n'
+                    s += '      for (int i = 0; i < (int)_' + item_name + '.size(); i++) {\n'
+                    s += '        _' + item_name + '[i].toMsgpack(pk);\n'
                     s += '      }\n'
                 else:
                     s += '      _' + item_name + '.toMsgpack(pk);\n'
@@ -434,13 +449,13 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 if is_vector:
                     s += "    // vector of " + item_name + "\n";
                     s += "    std::vector<" + item_type + "> v_" + item_name + ";\n"
-                    s += "    for (auto& __" + item_name + " : _" + item_name + ") {\n"
+                    s += "    for (int i = 0; i < (int)_" + item_name + ".size(); i++) {\n"
                     if item_type == 'string':
-                        s += "      v_" + item_name + ".push_back(fbb->CreateString(__" + item_name + "));\n"
+                        s += "      v_" + item_name + ".push_back(fbb->CreateString(_" + item_name + "[i]));\n"
                     elif is_default_type:
-                        s += "      v_" + item_name + ".push_back(__" + item_name + ");\n"
+                        s += "      v_" + item_name + ".push_back(_" + item_name + "[i]);\n"
                     else:
-                        s += "      v_" + item_name + ".push_back(__" + item_name + ".to_flatbuffers(fbb));\n"
+                        s += "      v_" + item_name + ".push_back(_" + item_name + "[i].to_flatbuffers(fbb));\n"
                     s += "    }\n"
                     s += "    auto fb_" + item_name + " = fbb->CreateVector(v_" + item_name + ");\n"
                 elif item_type == 'string':
@@ -462,12 +477,19 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     s += ",\n"
             s += "  }\n"
 
-        if with_json or with_fbs:
-            s += "\n  // calcurate MD5 checksum\n"
-            s += "  std::string checksum() {\n"
+        s += "\n  // calcurate MD5 checksum\n"
+        s += "  std::string checksum() {\n"
+        if with_msgpack:
+            s += "    msgpack::sbuffer sbuf;\n"
+            s += "    msgpack::packer<msgpack::sbuffer> pk(&sbuf);\n"
+            s += "    toMsgpack(pk);\n"
+            s += "    return " + "::".join(namespace.split('.')) + "::calcChecksum(reinterpret_cast<const unsigned char*>(sbuf.data()), sbuf.size());\n"
+        elif with_json:
             s += "    std::string data = json_dumps(toJson(), JSON_COMPACT | JSON_ENCODE_ANY);\n"
             s += "    return " + "::".join(namespace.split('.')) + "::calcChecksum(reinterpret_cast<const unsigned char*>(data.c_str()), data.length());\n"
-            s += "  }\n"
+        else:
+            s += '    std::string data("no available format");\n'
+        s += "  }\n"
         s += "};\n\n" # end of class
 
     if with_fbs:
