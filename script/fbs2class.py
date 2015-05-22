@@ -403,6 +403,45 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             s += "    fromMsgpack(obj);\n"
             s += "  }\n"
 
+        if with_json and fbs_root_type == table_name:
+            s += "\n  // top level of JSON IO\n"
+            s += "  json_t* serializeJson(const std::string& target) {\n"
+            for item_name in table:
+                item = table[item_name]
+                is_vector = item["is_vector"]
+                item_type = item["item_type"]
+                s += '    if (target == "' + item_name + '") {\n'
+                if is_vector:
+                    s += '      auto a_' + item_name + ' = json_array();\n'
+                    s += '      for (int i = 0; i < (int)_' + item_name + '.size(); i++) {\n'
+                    s += '        json_array_append(a_' + item_name + ', _' + item_name + '[i].toJson());\n'
+                    s += '      }\n'
+                    s += '      return a_' + item_name +';\n'
+                else:
+                    s += '      return _' + item_name + '.toJson();\n'
+                s += '    }\n'
+            s += "    return json_null();\n"
+            s += "  }\n"
+            s += "  void deserializeJson(json_t* json, const std::string& target) {\n"
+            if has_vector:
+                s += "    int i;\n"
+                s += "    json_t* v;\n"
+            for item_name in table:
+                item = table[item_name]
+                is_vector = item["is_vector"]
+                item_type = item["item_type"]
+                s += '    if (target == "' + item_name + '") {\n'
+                if is_vector:
+                    s += "      _" + item_name + ".clear();\n"
+                    s += '      json_array_foreach(json_object_get(json, "' + item_name + '")' + ", i, v) {\n"
+                    s += '        _' + item_name + '.push_back(' + item_type + '(v));\n'
+                    s += '      }\n'
+                else:
+                    s += '      _' + item_name + '.fromJson(json);\n'
+                s += '      return;\n'
+                s += '    }\n'
+            s += "  }\n"
+
         if with_msgpack and fbs_root_type == table_name:
             s += "\n  // top level of msgpack IO\n"
             s += "  void serializeMsgpack(msgpack::packer<msgpack::sbuffer>& pk, const std::string& target) {\n"
@@ -418,6 +457,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     s += '      }\n'
                 else:
                     s += '      _' + item_name + '.toMsgpack(pk);\n'
+                s += '      return;\n'
                 s += '    }\n'
             s += "  }\n"
             s += "  void deserializeMsgpack(msgpack::object& obj, const std::string& target) {\n"
@@ -425,15 +465,14 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 item = table[item_name]
                 is_vector = item["is_vector"]
                 item_type = item["item_type"]
-                is_default_type = not item_type in fbs_data
                 s += '    if (target == "' + item_name + '") {\n'
                 if is_vector:
                     s += '      for (msgpack::object* p(obj.via.array.ptr), * const pend(obj.via.array.ptr + obj.via.array.size); p < pend; ++p) {\n'
-                    s += '        ' + item_type + ' __' + item_name + ';\n'
-                    s += '        _' + item_name + '.push_back(__' + item_name + '.fromMsgpack(*p));\n'
+                    s += '        _' + item_name + '.push_back(' + item_type + '(*p));\n'
                     s += '      }\n'
                 else:
                     s += '      _' + item_name + '.fromMsgpack(obj);\n'
+                s += '      return;\n'
                 s += '    }\n'
             s += "  }\n"
 
