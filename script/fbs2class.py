@@ -356,7 +356,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 s += '    if (target == "' + item_name + '") {\n'
                 if item["is_vector"]:
                     s += "      _" + item_name + ".clear();\n"
-                    s += '      json_array_foreach(json_object_get(json, "' + item_name + '")' + ", i, v) {\n"
+                    s += "      json_array_foreach(json, i, v) {\n"
                     s += "        auto __" + item_name + " = std::make_shared<" + item["item_type"] + ">();\n"
                     s += "        __" + item_name + "->fromJson(v);\n"
                     s += "        _" + item_name + ".push_back(__" + item_name + ");\n"
