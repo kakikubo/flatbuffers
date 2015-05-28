@@ -245,7 +245,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             s += "    if (!_" + range_key + ") _" + range_key + " = v++;\n" 
             s += "    return v;\n"
             s += "  }\n"
-        s += "  int normalizeKey(long hashKey, int rangeKey) {\n"
+        s += "  int completeKey(long hashKey, int rangeKey) {\n"
         for item_name, item in table.iteritems():
             if item["is_hash_key"]:
                 s += "    setHashKey(hashKey);\n"
@@ -254,10 +254,10 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             elif not item["is_default_type"] and "range_key" in table_property[item["item_type"]]:
                 if item["is_vector"]:
                     s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
-                    s += "      rangeKey = (*it)->normalizeKey(hashKey, rangeKey);\n"
+                    s += "      rangeKey = (*it)->completeKey(hashKey, rangeKey);\n"
                     s += "    }\n"
                 else:
-                    s += "    rangeKey = _" + item_name + "->normalizeKey(hashKey, rangeKey);\n"
+                    s += "    rangeKey = _" + item_name + "->completeKey(hashKey, rangeKey);\n"
         s += "    return rangeKey;\n"
         s += "  }\n"
 
