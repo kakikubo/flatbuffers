@@ -127,20 +127,18 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
     s += "  return hex.str();\n"
     s += "}\n"
 
-    s += "\n// main class definitions\n"
+    # pre-process
+    table_property = {}
     for table_name in fbs_data:
         table = fbs_data[table_name]
-
-        hash_key   = None
-        range_key  = None
-        has_vector = False
+        table_property[table_name] = {}
         for item_name, item in table.iteritems():
             if item["is_vector"]:
-                has_vector = True
+                table_property[table_name]["has_vector"] = True
             if item["is_hash_key"]:
-                hash_key  = item_name
+                table_property[table_name]["hash_key"] = item_name
             if item["is_range_key"]:
-                range_key = item_name
+                table_property[table_name]["range_key"] = item_name
 
             item["is_default_type"] = not item["item_type"] in fbs_data
             if item["item_type"] == "string":
@@ -149,6 +147,12 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 item["cpp_type"] = item["item_type"]
             else:
                 item["cpp_type"] = "std::shared_ptr<" + item["item_type"] + ">"
+
+    # main generating
+    s += "\n// main class definitions\n"
+    for table_name in fbs_data:
+        table = fbs_data[table_name]
+        prop  = table_property[table_name]
 
         s += "class " + table_name + " {\n protected:\n"
         for item_name, item in table.iteritems():
@@ -183,36 +187,79 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
 
         s += "\n  // general accessor\n"
         if fbs_root_type == table_name:
-          s += "  std::vector<std::string> keys() {\n"
-          s += "    std::vector<std::string> _keys;\n"
-          for item_name in table:
-              s += '    _keys.push_back("' + item_name + '");\n'
-          s += "    return _keys;\n"
-          s += "  }\n"
+            s += "  std::vector<std::string> keys() {\n"
+            s += "    std::vector<std::string> _keys;\n"
+            for item_name in table:
+                s += '    _keys.push_back("' + item_name + '");\n'
+            s += "    return _keys;\n"
+            s += "  }\n"
+            s += "  std::vector<std::string> tables() {\n"
+            s += "    std::vector<std::string> _tables;\n"
+            for item_name, item in table.iteritems():
+                s += '    _tables.push_back("' + item["item_type"] + '");\n'
+            s += "    return _tables;\n"
+            s += "  }\n"
+            s += "  const char* getTableName(const std::string& target) {\n"
+            for item_name, item in table.iteritems():
+                s += '    if (target == "' + item_name + '") return "' + item["item_type"] + '";\n'
+            s += '    return "";\n'
+            s += "  }\n"
+            s += "  std::vector<int> collectRangeKey(const std::string& target) {\n"
+            s += '    std::vector<int> rangeKeys;\n'
+            for item_name, item in table.iteritems():
+                if not "range_key" in table_property[item["item_type"]]:
+                    continue
+                s += '    if (target == "' + item_name + '") {\n'
+                if item["is_vector"]:
+                    s += "      for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
+                    s += "        rangeKeys.push_back((*it)->rangeKeyValue());\n"
+                    s += "      }\n"
+                else:
+                    s += '      rangeKeys.push_back(_' + item_name + '->rangeKeyValue());\n'
+                s += '      return rangeKeys;\n'
+                s += '    }\n'
+            s += '    return rangeKeys;\n'
+            s += '  }\n'
 
-        if hash_key:
+        if "hash_key" in prop:
+            hash_key = prop["hash_key"]
             s += "  const char* hashKey() const {\n"
             s += '    return "' + hash_key + '";\n'
             s += "  }\n"
             s += "  const " + table[hash_key]["cpp_type"] + " hashKeyValue() const {\n"
             s += "    return _" + hash_key + ";\n"
             s += "  }\n"
-        if range_key:
+            s += "  long setHashKey(long v) {\n"
+            s += "    if (!_" + hash_key + ") _" + hash_key + " = v;\n" 
+            s += "    return v;\n"
+            s += "  }\n"
+        if "range_key" in prop:
+            range_key = prop["range_key"]
             s += "  const char* rangeKey() const {\n"
             s += '    return "' + range_key + '";\n'
             s += "  }\n"
             s += "  const " + table[range_key]["cpp_type"] + " rangeKeyValue() const {\n"
             s += "    return _" + range_key + ";\n"
             s += "  }\n"
-
-        s += "\n  // notify changed via EventDispatcher\n"
-        s += "#if 0\n"
-        s += "  void notifyChanged() {\n"
-        s += '    auto e = cocos2d::EventCustom("' + snake_case(table_name) + '_changed");\n'
-        s += "    e.setUserData(this);\n"
-        s += "    cocos2d::Director::getInstance()->getEventDispatcher()->dispatchEvent(&e);\n"
+            s += "  int setRangeKey(int v) {\n"
+            s += "    if (!_" + range_key + ") _" + range_key + " = v++;\n" 
+            s += "    return v;\n"
+            s += "  }\n"
+        s += "  int normalizeKey(long hashKey, int rangeKey) {\n"
+        for item_name, item in table.iteritems():
+            if item["is_hash_key"]:
+                s += "    setHashKey(hashKey);\n"
+            elif item["is_range_key"]:
+                s += "    rangeKey = setRangeKey(rangeKey);\n"
+            elif not item["is_default_type"] and "range_key" in table_property[item["item_type"]]:
+                if item["is_vector"]:
+                    s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
+                    s += "      rangeKey = (*it)->normalizeKey(hashKey, rangeKey);\n"
+                    s += "    }\n"
+                else:
+                    s += "    rangeKey = _" + item_name + "->normalizeKey(hashKey, rangeKey);\n"
+        s += "    return rangeKey;\n"
         s += "  }\n"
-        s += "#endif\n"
 
         if with_json:
             s += "\n  // getter via json\n"
@@ -234,51 +281,54 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     else:
                         s += "      json_array_append(a_" + item_name + ", (*it)->toJson());\n"
                     s += "    }\n"
-                    s += '    json_object_set(json, "' + item_name + '", a_' + item_name + ');\n'
+                    s += '    json_object_set_new(json, "' + item_name + '", a_' + item_name + ');\n'
                 elif item_type == 'string':
-                    s += '    json_object_set(json, "' + item_name + '", json_string(_' + item_name + '.c_str()));\n'
+                    s += '    json_object_set_new(json, "' + item_name + '", json_string(_' + item_name + '.c_str()));\n'
                 elif item_type in ('int', 'long'):
-                    s += '    json_object_set(json, "' + item_name + '", json_integer(_' + item_name + '));\n'
+                    s += '    json_object_set_new(json, "' + item_name + '", json_integer(_' + item_name + '));\n'
                 elif item_type in ('float', 'double'):
-                    s += '    json_object_set(json, "' + item_name + '", json_real(_' + item_name + '));\n'
+                    s += '    json_object_set_new(json, "' + item_name + '", json_real(_' + item_name + '));\n'
                 elif item_type in ('bool'):
-                    s += '    json_object_set(json, "' + item_name + '", json_boolean(_' + item_name + '));\n'
+                    s += '    json_object_set_new(json, "' + item_name + '", json_boolean(_' + item_name + '));\n'
                 else:
-                    s += '    json_object_set(json, "' + item_name + '", _' + item_name + '->toJson());\n'
+                    s += '    json_object_set_new(json, "' + item_name + '", _' + item_name + '->toJson());\n'
             s += "    return json;\n";
             s += "  }\n"
 
             s += "\n  // setter via json\n"
             s += "  void fromJson(json_t* json) {\n"
-            if has_vector:
+            if "has_vector" in prop:
                 s += "    int i;\n"
                 s += "    json_t* v;\n"
             for item_name, item in table.iteritems():
                 item_type = item["item_type"]
+                s += 'auto __' + item_name + ' = json_object_get(json, "' + item_name + '");\n'
+                s += 'if (__' + item_name + ') {\n'
                 if item["is_vector"]:
-                    s += "    _" + item_name + ".clear();\n"
-                    s += '    json_array_foreach(json_object_get(json, "' + item_name + '")' + ", i, v) {\n"
+                    s += "      _" + item_name + ".clear();\n"
+                    s += '      json_array_foreach(__' + item_name + ', i, v) {\n'
                     if item_type in ('string'):
-                        s += "      _" + item_name + ".push_back(json_string_value(v));\n"
+                        s += "        _" + item_name + ".push_back(json_string_value(v));\n"
                     elif item_type in ('int', 'long'):
-                        s += "      _" + item_name + ".push_back(json_integer_value(v));\n"
+                        s += "        _" + item_name + ".push_back(json_integer_value(v));\n"
                     elif item_type in ('float', 'double'):
-                        s += "      _" + item_name + ".push_back(json_real_value(v));\n"
+                        s += "        _" + item_name + ".push_back(json_real_value(v));\n"
                     elif item_type in ('bool'):
-                        s += "      _" + item_name + ".push_back(json_boolean_value(v));\n"
+                        s += "        _" + item_name + ".push_back(json_boolean_value(v));\n"
                     else:
-                        s += "      _" + item_name + ".push_back(" + item["cpp_type"] + "(new " + item["item_type"] + "(v)));\n"
+                        s += "        _" + item_name + ".push_back(" + item["cpp_type"] + "(new " + item["item_type"] + "(v)));\n"
                     s += "    }\n"
                 elif item_type in ('string'):
-                    s += "    _" + item_name + ' = json_string_value(json_object_get(json, "' + item_name + '"));\n'
+                    s += "      _" + item_name + ' = json_string_value(__' + item_name + ');\n'
                 elif item_type in ('int', 'long'):
-                    s += "    _" + item_name + ' = json_integer_value(json_object_get(json, "' + item_name + '"));\n'
+                    s += "      _" + item_name + ' = json_integer_value(__' + item_name + ');\n'
                 elif item_type in ('float', 'double'):
-                    s += "    _" + item_name + ' = json_real_value(json_object_get(json, "' + item_name + '"));\n'
+                    s += "      _" + item_name + ' = json_real_value(__' + item_name + ');\n'
                 elif item_type in ('bool'):
-                    s += "    _" + item_name + ' = json_boolean_value(json_object_get(json, "' + item_name + '"));\n'
+                    s += "      _" + item_name + ' = json_boolean_value(__' + item_name + ');\n'
                 else:
-                    s += "    _" + item_name + '->fromJson(json_object_get(json, "' + item_name + '"));\n'
+                    s += "      _" + item_name + '->fromJson(__' + item_name + ');\n'
+                s += '}\n'
             s += "  }\n"
             s += "  // construct with json\n"
             s += "  " + table_name + "(json_t* json) {\n"
@@ -334,7 +384,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
 
         if with_json and fbs_root_type == table_name:
             s += "\n  // top level of JSON IO\n"
-            s += "  json_t* serializeJson(std::string& target) {\n"
+            s += "  json_t* serializeJson(const std::string& target) {\n"
             for item_name, item in table.iteritems():
                 s += '    if (target == "' + item_name + '") {\n'
                 if item["is_vector"]:
@@ -348,8 +398,8 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 s += '    }\n'
             s += "    return json_null();\n"
             s += "  }\n"
-            s += "  void deserializeJson(json_t* json, std::string& target) {\n"
-            if has_vector:
+            s += "  void deserializeJson(json_t* json, const std::string& target) {\n"
+            if "has_vector" in prop:
                 s += "    int i;\n"
                 s += "    json_t* v;\n"
             for item_name, item in table.iteritems():
@@ -369,7 +419,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
 
         if with_msgpack and fbs_root_type == table_name:
             s += "\n  // top level of msgpack IO\n"
-            s += "  void serializeMsgpack(msgpack::packer<msgpack::sbuffer>& pk, std::string& target) {\n"
+            s += "  void serializeMsgpack(msgpack::packer<msgpack::sbuffer>& pk, const std::string& target) {\n"
             for item_name, item in table.iteritems():
                 s += '    if (target == "' + item_name + '") {\n'
                 if item["is_vector"]:
@@ -382,7 +432,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 s += '      return;\n'
                 s += '    }\n'
             s += "  }\n"
-            s += "  void deserializeMsgpack(msgpack::object& obj, std::string& target) {\n"
+            s += "  void deserializeMsgpack(msgpack::object& obj, const std::string& target) {\n"
             for item_name, item in table.iteritems():
                 s += '    if (target == "' + item_name + '") {\n'
                 if item["is_vector"]:
@@ -444,7 +494,9 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
         else:
             s += '    std::string data("no available format");\n'
         s += "  }\n"
-        s += "};\n\n" # end of class
+
+        # end of class
+        s += "};\n\n" 
 
     if with_fbs:
         s += "std::vector<char> serializeFbs() {\n"
