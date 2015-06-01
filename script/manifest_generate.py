@@ -29,7 +29,7 @@ def createAssetList(remote_dir, local_search_path):
                     if fname.endswith("_stringtable.txt"):
                         continue
                     else:
-                        raise Exception, path+" is 0 size"
+                        raise Exception, "%s is empty file" % path
 
                 assetPath = path[len(local_search_path):]
                 asset = {}
