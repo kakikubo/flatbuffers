@@ -89,6 +89,9 @@ def deleteAnimationBySlotName(dictData, slotName):
                 anim = animation[animKey]
                 if searchInListDataRecursiveByKeyAndValue(anim, "slot", slotName):
                     del animation[animKey]
+                if isinstance(anim, dict):
+                    if anim.has_key(slotName):
+                        del anim[slotName]
 
 def exportWearPattern(name, dirName):
     srcPath = os.path.abspath(dirName)
@@ -167,6 +170,19 @@ def exportWeaponPattern(name, dirName):
     deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[4], "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_3", "R_weapon_4", "-b"]))
     return weaponNames
 
+def exportWithoutWeapon(name, dirName):
+    srcPath = os.path.abspath(dirName)
+    dstPath = os.path.abspath(dirName)
+    weaponName = name + "_base"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", nargs="*")
+    parser.add_argument("-b", nargs="*")
+    parser.add_argument("-i", required=True)
+    parser.add_argument("-o", required=True)
+    parser.add_argument("-f", required=True)
+    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponName, "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_3", "R_weapon_4", "R_weapon_5", "-b"]))
+    return weaponName
+
 # ---
 # default help message
 #
@@ -206,10 +222,12 @@ def deleteElementBySlotsName(args):
             deleteSkinBySlotName(jsonData, skinName)
 
     with open(dstJson, 'w') as f:
-        f.write(json.dumps(jsonData, indent=2, sort_keys=False))
+        #f.write(json.dumps(jsonData, indent=2, sort_keys=False))
+        f.write(json.dumps(jsonData))
     shutil.copy(srcAtlas, dstAtlas)
 
 def autoExport(name, dirName):
+    """
     wearNames = exportWearPattern(name, dirName)
     for wearName in wearNames:
         wingNames = exportWingPattern(wearName, dirName)
@@ -219,6 +237,11 @@ def autoExport(name, dirName):
                 hairNames = exportHairPattern(accessoryName, dirName)
                 for hairName in hairNames:
                     weaponNames = exportWeaponPattern(hairName, dirName)
+    """
+    baseName = exportWithoutWeapon(name, dirName)
+    accessoryNames = exportAccessoryPattern(baseName, dirName)
+    for accessoryName in accessoryNames:
+        exportHairPattern(accessoryName, dirName)
 
 # ---
 # main function
