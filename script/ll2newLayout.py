@@ -14,12 +14,15 @@ from collections import OrderedDict
 def ll2newLayout(master_asset_root, dst_filename):
     ground = []
     wall = []
+    bg = []
     with open(master_asset_root + "/master_derivatives/master_data.json", 'r') as f:
         master = json.loads(f.read(), object_pairs_hook=OrderedDict)
         for item in master["layoutDeprecated"]:
             #print(item["name"] + "\t" + item["type"] + "\t" + "@(" + str(item["x"]) + "," + str(item["z"]) + ")")
             name = item["name"]
             is_ground = item["type"] == "ground"
+            is_bg = item["type"] == "bg"
+            is_wall = item["type"] == "wall"
 
             origin_x = item["x"]
             origin_y = item["y"]
@@ -48,12 +51,15 @@ def ll2newLayout(master_asset_root, dst_filename):
 
                         if is_ground:
                             ground.append(i)
-                        else:
+                        elif is_wall:
                             wall.append(i)
+                        elif is_bg:
+                            bg.append(i)
     result = {}
     result["openWorld"] = {}
     result["openWorld"]["ground"] = ground
     result["openWorld"]["wall"] = wall
+    result["openWorld"]["bg"] = bg
     with open(dst_filename, 'w') as f:
         j = json.dumps(result, ensure_ascii = False, indent = 4)
         f.write(j.encode("utf-8"))
