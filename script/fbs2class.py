@@ -363,19 +363,22 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             s += "  void fromMsgpack(msgpack::object& obj) {\n"
             s += "    std::map<std::string, msgpack::object> __map = obj.as<std::map<std::string, msgpack::object> >();\n"
             for item_name, item in table.iteritems():
+                s += '    auto __v_' + item_name + ' = __map.find("' + item_name + '");\n'
+                s += '    if (__v_' + item_name + ' != __map.end()) {\n'
                 if item["is_vector"]:
-                    s += "    _" + item_name + ".clear();\n"
-                    s += '    auto __' + item_name + ' = __map.find("' + item_name + '")->second.as<msgpack::object>();\n';
-                    s += '    for (msgpack::object* p(__' + item_name + '.via.array.ptr), * const pend(__' + item_name + '.via.array.ptr + __' + item_name + '.via.array.size); p < pend; ++p) {\n'
+                    s += "      _" + item_name + ".clear();\n"
+                    s += '      auto __' + item_name + ' = __v_' + item_name + '->second.as<msgpack::object>();\n';
+                    s += '      for (msgpack::object* p(__' + item_name + '.via.array.ptr), * const pend(__' + item_name + '.via.array.ptr + __' + item_name + '.via.array.size); p < pend; ++p) {\n'
                     if item["is_default_type"]:
-                        s += '      _' + item_name + '.push_back(p->as<' + item["cpp_type"] + '>());\n'
+                        s += '        _' + item_name + '.push_back(p->as<' + item["cpp_type"] + '>());\n'
                     else:
-                        s += '      _' + item_name + '.push_back(' + item["cpp_type"] + '(new ' + item["item_type"] + '(*p)));\n'
-                    s += '    }\n'
+                        s += '        _' + item_name + '.push_back(' + item["cpp_type"] + '(new ' + item["item_type"] + '(*p)));\n'
+                    s += '      }\n'
                 elif item["is_default_type"]:
-                    s += '    _' + item_name + ' =  __map.find("' + item_name + '")->second.as<' + item["cpp_type"] + ' >();\n'
+                    s += '      _' + item_name + ' =  __v_' + item_name + '->second.as<' + item["cpp_type"] + ' >();\n'
                 else:
-                    s += '    _' + item_name + '->fromMsgpack(__map.find("' + item_name + '")->second);\n'
+                    s += '      _' + item_name + '->fromMsgpack(__v_' + item_name + '->second);\n'
+                s += '    }\n'
             s += "  }\n"
             s += "  // construct with json\n"
             s += "  " + table_name + "(msgpack::object& obj) {\n"
