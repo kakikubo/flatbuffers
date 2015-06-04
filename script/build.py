@@ -38,16 +38,18 @@ class AssetBuilder():
         cdn_dir_default          = '/var/www/cdn'
         self.cdn_dir             = cdn_dir   or cdn_dir_default
         self.build_dir           = build_dir or tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
-        self.main_dir            = build_dir+'/main'
-        self.master_dir          = build_dir+'/master'
+        self.main_dir            = self.build_dir+'/main'
+        self.master_dir          = self.build_dir+'/master'
         self.remote_dir_asset    = self.asset_version_dir+'/contents' if self.is_master else self.target + '/contents'
-        self.auto_cleanup        = not build_dir   # do not clean up when user specified
+        self.auto_cleanup        = not self.build_dir   # do not clean up when user specified
 
         if not os.path.exists(self.build_dir):
             os.makedirs(self.build_dir)
         # isolate from modefation via box
         self.prepare_dir(main_dir, self.main_dir)
-        if main_dir != master_dir:
+        if main_dir == master_dir:
+            self.master_dir = self.main_dir
+        else:
             self.prepare_dir(master_dir, self.master_dir)
         
         info("target = %s", self.target)
@@ -303,16 +305,14 @@ class AssetBuilder():
         return True
 
     def deploy_dev(self):
-        list_file = self.build_dir + "/deploy_files.json"
-        with open(list_file, 'w+') as f:
-            try:
-                usernames = json.load(f)
-            except:
-                usernames = []
-            usernames = usernames or []
+        list_file = self.cdn_dir+"/dev.asset_list.json"
+        with open(list_file, 'a+') as f:
+            f.seek(0)
+            usernames = json.load(f)
             if not self.target in usernames:
                 usernames.append(self.target)
             info("available users = "+", ".join(usernames))
+            f.truncate(0)
             json.dump(usernames, f, sort_keys=True, indent=2)
         os.chmod(list_file, 0664)
 
@@ -347,7 +347,6 @@ class AssetBuilder():
         else:
             dest_version_manifest = dest_dir+"/"+self.VERSION_MANIFEST_FILE
 
-        check_call(rsync + [list_file, self.cdn_dir+"/dev.asset_list.json"])
         check_call("find " + self.main_dir+'/contents' + " -type f -print | xargs chmod 664", shell=True)
         check_call("find " + self.main_dir+'/contents' + " -type d -print | xargs chmod 775", shell=True)
         check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
