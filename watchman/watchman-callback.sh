@@ -14,6 +14,7 @@ echo $json | jq '.'
 
 # launch jenkins job
 json_file=/tmp/watchman-callback.$$.json
-echo "{\"parameter\": [{\"name\": \"OPT_TARGET\", \"value\": \"$target\"}, {\"name\": \"OPT_FILES\", \"value\": \"`cat $json | jq -r '.[]["name"]'`\"}]}" > $json_file
-curl $jenkins_url -X POST --data-urlencode json=@$json_file
+names=`echo $json | jq -r '.[]["name"]'`
+echo "{\"parameter\": [{\"name\": \"OPT_TARGET\", \"value\": \"$target\"}, {\"name\": \"OPT_FILES\", \"value\": \"$names\"}]}" > $json_file
+curl $jenkins_url -X POST --form json=@$json_file
 exit $?

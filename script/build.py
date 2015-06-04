@@ -25,15 +25,21 @@ class AssetBuilder():
         self.asset_version_dir   = 'ver1' if self.is_master else target
 
         self_dir = os.path.dirname(os.path.abspath(__file__))
-        for main_dir_default in (os.path.normpath(os.curdir+'/kms_'+target+'_asset'), os.path.normpath(self_dir+'/../../box/kms_'+target+'_asset'), os.path.normpath('~/Box Sync/kms_'+target+'_asset')):
+        for main_dir_default in (\
+            os.path.normpath(os.curdir+'/kms_'+target+'_asset'), \
+            os.path.normpath(self_dir+'/../../box/kms_'+target+'_asset'), \
+            os.path.normpath(os.path.expanduser('~/Box Sync/kms_'+target+'_asset'))):
             if os.path.exists(main_dir_default):
                 break
-        main_dir = main_dir or main_dir_default
+        self.org_main_dir = main_dir or main_dir_default
 
-        for master_dir_default in (os.path.normpath(os.curdir+'/kms_master_asset'), os.path.normpath(self_dir+'/../../box/kms_master_asset'), os.path.normpath('~/Box Sync/kms_master_asset')):
+        for master_dir_default in (\
+            os.path.normpath(os.curdir+'/kms_master_asset'), \
+            os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
+            os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))):
             if os.path.exists(master_dir_default):
                 break
-        master_dir = master_dir or master_dir_default
+        self.org_master_dir = master_dir or master_dir_default
 
         cdn_dir_default          = '/var/www/cdn'
         self.cdn_dir             = cdn_dir   or cdn_dir_default
@@ -46,16 +52,16 @@ class AssetBuilder():
         if not os.path.exists(self.build_dir):
             os.makedirs(self.build_dir)
         # isolate from modefation via box
-        self.prepare_dir(main_dir, self.main_dir)
-        if main_dir == master_dir:
+        self.prepare_dir(self.org_main_dir, self.main_dir)
+        if self.org_main_dir == self.org_master_dir:
             self.master_dir = self.main_dir
         else:
-            self.prepare_dir(master_dir, self.master_dir)
+            self.prepare_dir(self.org_master_dir, self.master_dir)
         
         info("target = %s", self.target)
         info("asset version = '%s'", self.asset_version)
-        info("main-dir = %s", main_dir)
-        info("master-dir = %s", master_dir)
+        info("main-dir = %s", self.org_main_dir)
+        info("master-dir = %s", self.org_master_dir)
         info("cdn-dir = %s", self.cdn_dir)
         info("build-dir = %s", self.build_dir)
         info("remote-dir-asset = %s", self.remote_dir_asset)
@@ -118,7 +124,20 @@ class AssetBuilder():
 
     # setup dest directories
     def setup_dir(self):
-        for path in (self.build_dir, self.main_files_dir, self.manifest_dir, self.master_editor_dir, self.main_editor_dir, self.master_xlsx_dir, self.main_xlsx_dir, self.master_schema_dir, self.master_data_dir, self.master_fbs_dir, self.master_bin_dir, self.master_header_dir, self.main_header_dir):
+        for path in (\
+            self.build_dir, \
+            self.main_files_dir, \
+            self.manifest_dir, \
+            self.master_editor_dir, \
+            self.main_editor_dir, \
+            self.master_xlsx_dir, \
+            self.main_xlsx_dir, \
+            self.master_schema_dir, \
+            self.master_data_dir, \
+            self.master_fbs_dir, \
+            self.master_bin_dir, \
+            self.master_header_dir, \
+            self.main_header_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -309,7 +328,7 @@ class AssetBuilder():
         with open(list_file, 'a+') as f:
             f.seek(0)
             usernames = json.load(f)
-            if not self.target in usernames:
+            if not self.target in usernames and self.target != 'master':
                 usernames.append(self.target)
             info("available users = "+", ".join(usernames))
             f.truncate(0)
