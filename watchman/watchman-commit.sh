@@ -5,7 +5,7 @@ jq=/usr/local/bin/jq
 self=`basename $0`
 branch=master
 sleep=$1
-[ -n "$sleep" ] || sleep=5
+[ -n "$sleep" ] || sleep=0
 
 commit_log_file=/tmp/watchman-commit-message.log
 gitlab_url=http://git.gree-dev.net
