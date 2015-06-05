@@ -22,9 +22,9 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   sleep $sleep # wait to sync complete
 
   # commit git
-  echo "git commit and push (committed by $self `hostname`:$WATCHMAN_ROOT)"
+  echo "git commit and push (committed by $self `whoami`@`hostname`)"
   git status --short | grep -e '^[MAD]' > $commit_log_file
-  echo "committed by $self `hostname`:$WATCHMAN_ROOT" >> $commit_log_file
+  echo "committed by $self `whoami`@`hostname`" >> $commit_log_file
   git commit --file $commit_log_file || exit $?
   commit_id=`git log -1 | head -1 | cut -c 8-`
 
@@ -46,7 +46,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   echo "automatic sync with git is done: $exit_code"
 
   # log
-  `dirname $0`/../script/sonya.sh ":) `hostname`:$WATCHMAN_ROOT" $commit_log_file $gitlab_url/kms/asset/commit/$commit_id || exit $?
+  `dirname $0`/../script/sonya.sh ":) `whoami`@`hostname`" $gitlab_url/kms/asset/commit/$commit_id $commit_log_file || exit $?
 fi
 
 # git push return by 1 when master branch is updated

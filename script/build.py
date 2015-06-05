@@ -323,8 +323,10 @@ class AssetBuilder():
         for font_path in glob("%s/*.fnt" % build_dir):
             font_path = re.sub('^'+build_dir+'/', '', font_path)
             png_path  = re.sub('.fnt$', '.png', font_path)
-            list.append((font_path, self.font_dir, self.org_font_dir))
-            list.append((png_path,  self.font_dir, self.org_font_dir))
+            #list.append((font_path, self.font_dir, self.org_font_dir))
+            #list.append((png_path,  self.font_dir, self.org_font_dir))
+            list.append((font_path, self.font_dir, self.font_dir))
+            list.append((png_path,  self.font_dir, self.font_dir))
         for filename, dest1, dest2 in list:
             if os.path.exists(build_dir+'/'+filename):
                 info("install: %s -> %s + %s" % (filename, dest1, dest2))
@@ -333,11 +335,11 @@ class AssetBuilder():
                     dest = dest_dir + '/' + filename
                     if not os.path.exists(dest_dir):
                         os.makedirs(dest_dir)
-                    if call(['cmp', '--quiet', filename, dest]) == 0:
+                    if call(['cmp', '--quiet', src, dest]) == 0:
                         continue
                     if os.path.exists(dest):
                         os.remove(dest)
-                    debug("copy '%s' -> '%s'" % (filename, dest))
+                    debug("copy '%s' -> '%s'" % (src, dest))
                     copy(src, dest)
         return True
 
