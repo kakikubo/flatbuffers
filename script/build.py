@@ -188,15 +188,17 @@ class AssetBuilder():
     # create manifest json from
     def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None):
         asset_version           = asset_version or self.asset_version
-        dest_project_manifest   = dest_project_manifest or self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dest_version_manifest   = dest_version_manifest or self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
+        dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
         url_asset               = self.DEV_CDN_URL+'/'
         
-        reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
-        url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
         if self.is_master:
+            reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
+            url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
             url_version_manifest  = self.DEV_CDN_URL+'/'+self.VERSION_MANIFEST_FILE
         else:
+            reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
+            url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
             url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
 
         info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
@@ -312,7 +314,9 @@ class AssetBuilder():
     def install(self, build_dir=None):
         build_dir = build_dir or self.build_dir
         list = [
-            (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_manifest_dir),
+            (self.PROJECT_MANIFEST_FILE,   self.manifest_dir, self.org_manifest_dir),
+            (self.VERSION_MANIFEST_FILE,   self.manifest_dir, self.org_manifest_dir),
+            (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
             (self.MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
             (self.MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
             (self.MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
@@ -364,8 +368,8 @@ class AssetBuilder():
             json.dump(usernames, f, sort_keys=True, indent=2)
         os.chmod(list_file, 0664)
 
-        project_file = self.manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-        version_file = self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
+        project_file = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        version_file = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
 
         with open(project_file, 'r') as f:
             manifest = json.load(f)
@@ -405,6 +409,7 @@ class AssetBuilder():
     # do all processes
     def build_all(self, check_modified=True):
         # check modified
+        """
         build_depends = self._get_xlsxes() + self._get_editor_files() + [ self.editor_schema, self.main_schema_dir+'/'+self.USER_FBS_FILE ]
         modified = False
         if check_modified:
@@ -415,6 +420,8 @@ class AssetBuilder():
                     break
             if not modified:
                 info("source files of auto generated data are not modified")
+        """
+        modified = True
 
         # main process
         try:
