@@ -325,6 +325,15 @@ class AssetBuilder():
                 move(src, dest)
         return True
 
+    def deploy_git_repo(self):
+        if not self.is_master or not self.git_dir:
+            return
+
+        info("deploy to git repo: %s -> %s" % (self.main_dir, self.git_dir))
+        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--delete', self.main_dir+'/', self.git_dir]
+        info(' '.join(cmdline))
+        check_call(cmdline)
+
     def deploy_dev_cdn(self):
         list_file = self.cdn_dir+"/dev.asset_list.json"
         with open(list_file, 'a+') as f:
@@ -356,7 +365,7 @@ class AssetBuilder():
 
         rsync = ['rsync', '-crltvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
-        rsync.extend(['--exclude', '.DS_Store'])
+        rsync.extend(['--exclude', '.DS_Store', '--exclude', '.git'])
 
         dest_dir = self.cdn_dir+'/'+self.asset_version_dir
         if not os.path.exists(dest_dir):
@@ -374,15 +383,6 @@ class AssetBuilder():
         check_call(['chmod', '775', dest_dir+"/contents"])
         check_call(rsync + [version_file, dest_version_manifest])
         check_call(rsync + [project_file, dest_dir+'/'+self.PROJECT_MANIFEST_FILE])
-
-    def deploy_git_repo(self):
-        if not self.is_master or not self.git_dir:
-            return
-
-        info("deploy to git repo: %s -> %s" % (self.main_dir, self.git_dir))
-        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--delete', self.main_dir+'/', self.git_dir]
-        debug(' '.join(cmdline))
-        check_call(cmdline)
 
     # do all processes
     def build_all(self, check_modified=True):
@@ -409,9 +409,9 @@ class AssetBuilder():
                 self.build_font()
                 self.build_user_class()
                 self.install()
+            self.deploy_git_repo()
             self.build_manifest()
             self.deploy_dev_cdn()
-            self.deploy_git_repo()
         finally:
             if self.auto_cleanup:
                 self.cleanup()

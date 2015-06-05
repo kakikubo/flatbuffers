@@ -2,14 +2,13 @@
 
 tool_dir=`pwd | sed -e 's/Box Sync/box/'`
 asset_list_json=/var/www/cdn/dev.asset_list.json
+git_dir=/Users/kms.jenkins/kms/asset
 
 target=$1
-git_dir=$2
 [ -n "$target" ]   || exit 1
-[ -n "$git_dir" ]  || git_dir=`pwd`
 
 # build asset
-$tool_dir/script/build.py build --target $target || exit $?
+$tool_dir/script/build.py build --target $target --git-dir $git_dir || exit $?
 
 if [ $target = "master" ]; then
   # update each user in master updated
