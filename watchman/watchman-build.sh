@@ -5,7 +5,7 @@ asset_list_json=/var/www/cdn/dev.asset_list.json
 git_dir=/Users/kms.jenkins/kms/asset
 
 target=$1
-[ -n "$target" ]   || exit 1
+[ -n "$target" ] || exit 1
 
 # build asset
 $tool_dir/script/build.py build --target $target --git-dir $git_dir || exit $?

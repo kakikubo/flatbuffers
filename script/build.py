@@ -48,7 +48,7 @@ class AssetBuilder():
         self.main_dir            = self.build_dir+'/main'
         self.master_dir          = self.build_dir+'/master'
         self.remote_dir_asset    = self.asset_version_dir+'/contents' if self.is_master else self.target + '/contents'
-        self.auto_cleanup        = not self.build_dir   # do not clean up when user specified
+        self.auto_cleanup        = not build_dir   # do not clean up when user specified
 
         if not os.path.exists(self.build_dir):
             os.makedirs(self.build_dir)
@@ -61,8 +61,8 @@ class AssetBuilder():
         
         info("target = %s", self.target)
         info("asset version = '%s'", self.asset_version)
-        info("main-dir = %s", main_dir)
-        info("master-dir = %s", master_dir)
+        info("main-dir = %s", self.org_main_dir)
+        info("master-dir = %s", self.org_master_dir)
         info("build-dir = %s", self.build_dir)
         info("cdn-dir = %s", self.cdn_dir)
         info("git-dir = %s", self.git_dir)
@@ -74,8 +74,19 @@ class AssetBuilder():
         self.master_fbs_dir           = self.main_dir+'/master_derivatives'
         self.master_bin_dir           = self.main_dir+'/contents/master'
         self.master_header_dir        = self.main_dir+'/master_header'
-        self.main_header_dir          = self.main_dir+'/user_header'
+        self.user_class_dir           = self.main_dir+'/user_header'
+        self.user_header_dir          = self.main_dir+'/user_header'
         self.font_dir                 = self.main_dir+'/contents/files/font'
+
+        self.org_manifest_dir         = self.org_main_dir+'/manifests'
+        self.org_master_schema_dir    = self.org_main_dir+'/master_derivatives'
+        self.org_master_data_dir      = self.org_main_dir+'/master_derivatives'
+        self.org_master_fbs_dir       = self.org_main_dir+'/master_derivatives'
+        self.org_master_bin_dir       = self.org_main_dir+'/contents/master'
+        self.org_master_header_dir    = self.org_main_dir+'/master_header'
+        self.org_user_class_dir       = self.org_main_dir+'/user_header'
+        self.org_user_header_dir      = self.org_main_dir+'/user_header'
+        self.org_font_dir             = self.org_main_dir+'/contents/files/font'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -139,7 +150,8 @@ class AssetBuilder():
             self.master_fbs_dir, \
             self.master_bin_dir, \
             self.master_header_dir, \
-            self.main_header_dir):
+            self.user_header_dir, \
+            self.user_class_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -300,29 +312,33 @@ class AssetBuilder():
     def install(self, build_dir=None):
         build_dir = build_dir or self.build_dir
         list = [
-            (build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir+'/'+self.MASTER_JSON_SCHEMA_FILE),
-            (build_dir+'/'+self.MASTER_JSON_DATA_FILE,   self.master_data_dir+'/'+self.MASTER_JSON_DATA_FILE),
-            (build_dir+'/'+self.MASTER_FBS_FILE,         self.master_fbs_dir+'/'+self.MASTER_FBS_FILE),
-            (build_dir+'/'+self.MASTER_BIN_FILE,         self.master_bin_dir+'/'+self.MASTER_BIN_FILE),
-            (build_dir+'/'+self.MASTER_HEADER_FILE,      self.master_header_dir+'/'+self.MASTER_HEADER_FILE),
-            (build_dir+'/'+self.USER_CLASS_FILE,         self.main_header_dir+'/'+self.USER_CLASS_FILE),
-            (build_dir+'/'+self.USER_HEADER_FILE,        self.main_header_dir+'/'+self.USER_HEADER_FILE)
+            (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_manifest_dir),
+            (self.MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
+            (self.MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
+            (self.MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
+            (self.MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
+            (self.USER_CLASS_FILE,         self.user_class_dir, self.org_user_class_dir),
+            (self.USER_HEADER_FILE,        self.user_header_dir, self.org_user_class_dir),
         ]
         for font_path in glob("%s/*.fnt" % build_dir):
-            png_path = re.sub('.fnt$', '.png', font_path)
-            list.append((font_path, self.font_dir+'/'+os.path.basename(font_path)))
-            list.append((png_path,  self.font_dir+'/'+os.path.basename(png_path)))
-        for src, dest in list:
-            if os.path.exists(src):
-                info("install: %s -> %s" % (os.path.basename(src), os.path.dirname(dest)))
-                if not os.path.exists(os.path.dirname(dest)):
-                    os.makedirs(os.path.dirname(dest))
-                if call(['cmp', '--quiet', src, dest]) == 0:
-                    continue
-                if os.path.exists(dest):
-                    os.remove(dest)
-                debug("move '%s' -> '%s'" % (src, dest))
-                move(src, dest)
+            font_path = re.sub('^'+build_dir+'/', '', font_path)
+            png_path  = re.sub('.fnt$', '.png', font_path)
+            list.append((font_path, self.font_dir, self.org_font_dir))
+            list.append((png_path,  self.font_dir, self.org_font_dir))
+        for filename, dest1, dest2 in list:
+            if os.path.exists(build_dir+'/'+filename):
+                info("install: %s -> %s + %s" % (filename, dest1, dest2))
+                for dest_dir in (dest1, dest2):
+                    src  = build_dir + '/' + filename
+                    dest = dest_dir + '/' + filename
+                    if not os.path.exists(dest_dir):
+                        os.makedirs(dest_dir)
+                    if call(['cmp', '--quiet', filename, dest]) == 0:
+                        continue
+                    if os.path.exists(dest):
+                        os.remove(dest)
+                    debug("copy '%s' -> '%s'" % (filename, dest))
+                    copy(src, dest)
         return True
 
     def deploy_git_repo(self):
@@ -330,7 +346,7 @@ class AssetBuilder():
             return
 
         info("deploy to git repo: %s -> %s" % (self.main_dir, self.git_dir))
-        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--delete', self.main_dir+'/', self.git_dir]
+        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
         info(' '.join(cmdline))
         check_call(cmdline)
 
@@ -365,7 +381,7 @@ class AssetBuilder():
 
         rsync = ['rsync', '-crltvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
-        rsync.extend(['--exclude', '.DS_Store', '--exclude', '.git'])
+        rsync.extend(['--exclude', '.DS_Store'])
 
         dest_dir = self.cdn_dir+'/'+self.asset_version_dir
         if not os.path.exists(dest_dir):
