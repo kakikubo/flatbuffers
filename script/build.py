@@ -17,7 +17,7 @@ from glob import glob
 from logging import info, warning, debug
 
 class AssetBuilder():
-    def __init__(self, target=None, asset_version=None, main_dir=None, master_dir=None, cdn_dir=None, build_dir=None):
+    def __init__(self, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, cdn_dir=None, git_dir=None):
         self.target              = target or 'master'
         self.is_master           = self.target == 'master'
 
@@ -43,6 +43,7 @@ class AssetBuilder():
 
         cdn_dir_default          = '/var/www/cdn'
         self.cdn_dir             = cdn_dir   or cdn_dir_default
+        self.git_dir             = git_dir
         self.build_dir           = build_dir or tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
         self.main_dir            = self.build_dir+'/main'
         self.master_dir          = self.build_dir+'/master'
@@ -60,10 +61,11 @@ class AssetBuilder():
         
         info("target = %s", self.target)
         info("asset version = '%s'", self.asset_version)
-        info("main-dir = %s", self.org_main_dir)
-        info("master-dir = %s", self.org_master_dir)
-        info("cdn-dir = %s", self.cdn_dir)
+        info("main-dir = %s", main_dir)
+        info("master-dir = %s", master_dir)
         info("build-dir = %s", self.build_dir)
+        info("cdn-dir = %s", self.cdn_dir)
+        info("git-dir = %s", self.git_dir)
         info("remote-dir-asset = %s", self.remote_dir_asset)
 
         self.manifest_dir             = self.main_dir+'/manifests'
@@ -323,7 +325,7 @@ class AssetBuilder():
                 move(src, dest)
         return True
 
-    def deploy_dev(self):
+    def deploy_dev_cdn(self):
         list_file = self.cdn_dir+"/dev.asset_list.json"
         with open(list_file, 'a+') as f:
             f.seek(0)
@@ -373,6 +375,15 @@ class AssetBuilder():
         check_call(rsync + [version_file, dest_version_manifest])
         check_call(rsync + [project_file, dest_dir+'/'+self.PROJECT_MANIFEST_FILE])
 
+    def deploy_git_repo(self):
+        if not self.is_master or not self.git_dir:
+            return
+
+        info("deploy to git repo: %s -> %s" % (self.main_dir, self.git_dir))
+        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--delete', self.main_dir+'/', self.git_dir]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+
     # do all processes
     def build_all(self, check_modified=True):
         # check modified
@@ -399,7 +410,8 @@ class AssetBuilder():
                 self.build_user_class()
                 self.install()
             self.build_manifest()
-            self.deploy_dev()
+            self.deploy_dev_cdn()
+            self.deploy_git_repo()
         finally:
             if self.auto_cleanup:
                 self.cleanup()
@@ -454,12 +466,13 @@ examples:
     parser.add_argument('--master-dir',    help = 'master asset directory. default: same as script top')
     parser.add_argument('--main-dir',      help = 'asset generated directory. default: same as script top')
     parser.add_argument('--build-dir',     help = 'build directory. default: temp dir')
-    parser.add_argument('--cdn-dir',       help = 'cdn directory. default: /var/www/cdn')
+    parser.add_argument('--cdn-dir',       help = 'cdn directory to deploy. default: /var/www/cdn')
+    parser.add_argument('--git-dir',       help = 'git directory to deploy. default: (not to deploy)')
     parser.add_argument('--log-level',     help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
-    asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, cdn_dir = args.cdn_dir)
+    asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
     if args.command in ('build', 'build-all'):
         asset_builder.build_all(not args.force)
     elif args.command == 'build-manifest':
