@@ -17,54 +17,92 @@ from glob import glob
 from logging import info, warning, debug
 
 class AssetBuilder():
-    def __init__(self, target=None, asset_version=None, top_dir=None, user_dir=None, cdn_dir=None, build_dir=None):
+    def __init__(self, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, cdn_dir=None, git_dir=None):
         self.target              = target or 'master'
         self.is_master           = self.target == 'master'
-        self.asset_version       = asset_version or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
-        self.asset_version_dir   = 'ver1'   # FIXME
-        self_dir                 = os.path.dirname(os.path.abspath(__file__))
-        master_dir               = os.path.normpath(self_dir+'/../../box/kms_master_asset')
-        self.users_dir           = os.path.normpath(self_dir+'/../../box/users_generated')
-        user_dir_default         = re.sub('kms_[^_]+_asset', 'kms_'+target+'_asset', master_dir)
-        cdn_dir_default          = '/var/www/cdn'
-        self.master_manifest_dir = master_dir+"/manifests"
-        self.master_xlsx_dir     = master_dir+'/master'
-        self.master_editor_dir   = master_dir+'/editor'
 
-        top_dir_default          = user_dir_default if self.is_master else self.users_dir+"/"+target
-        self.top_dir             = top_dir         or top_dir_default
-        user_dir                 = user_dir        or user_dir_default
-        self.cdn_dir             = cdn_dir         or cdn_dir_default
-        self.build_dir           = build_dir       or tempfile.mkdtemp(prefix = 'kms_asset_builder_build')
-        self.deploy_src_dir      = tempfile.mkdtemp(prefix = 'kms_asset_builder_deploy')
+        self.asset_version       = asset_version or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
+        self.asset_version_dir   = 'ver1' if self.is_master else target
+
+        self_dir = os.path.dirname(os.path.abspath(__file__))
+        for main_dir_default in (\
+            os.path.normpath(os.curdir+'/kms_'+target+'_asset'), \
+            os.path.normpath(self_dir+'/../../box/kms_'+target+'_asset'), \
+            os.path.normpath(os.path.expanduser('~/Box Sync/kms_'+target+'_asset'))):
+            if os.path.exists(main_dir_default):
+                break
+        self.org_main_dir = main_dir or main_dir_default
+
+        for master_dir_default in (\
+            os.path.normpath(os.curdir+'/kms_master_asset'), \
+            os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
+            os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))):
+            if os.path.exists(master_dir_default):
+                break
+        self.org_master_dir = master_dir or master_dir_default
+
+        cdn_dir_default          = '/var/www/cdn'
+        self.cdn_dir             = cdn_dir   or cdn_dir_default
+        self.git_dir             = git_dir
+        self.build_dir           = build_dir or tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
+        self.main_dir            = self.build_dir+'/main'
+        self.master_dir          = self.build_dir+'/master'
         self.remote_dir_asset    = self.asset_version_dir+'/contents' if self.is_master else self.target + '/contents'
-        self.auto_cleanup = not build_dir   # do not clean up when user specified
+        self.auto_cleanup        = not build_dir   # do not clean up when user specified
+
+        if not os.path.exists(self.build_dir):
+            os.makedirs(self.build_dir)
+        # isolate from modefation via box
+        self.prepare_dir(self.org_main_dir, self.main_dir)
+        if self.org_main_dir == self.org_master_dir:
+            self.master_dir = self.main_dir
+        else:
+            self.prepare_dir(self.org_master_dir, self.master_dir)
         
         info("target = %s", self.target)
         info("asset version = '%s'", self.asset_version)
-        info("top-dir = %s", self.top_dir)
-        info("user-dir = %s", user_dir)
-        info("cdn-dir = %s", self.cdn_dir)
+        info("main-dir = %s", self.org_main_dir)
+        info("master-dir = %s", self.org_master_dir)
         info("build-dir = %s", self.build_dir)
+        info("cdn-dir = %s", self.cdn_dir)
+        info("git-dir = %s", self.git_dir)
+        info("remote-dir-asset = %s", self.remote_dir_asset)
 
-        self.local_asset_search_path = user_dir+'/contents'
-        self.user_xlsx_dir           = user_dir+'/master'
-        self.user_editor_dir         = user_dir+'/editor'
-        self.user_schema_dir         = user_dir+'/user'
+        self.manifest_dir             = self.main_dir+'/manifests'
+        self.master_schema_dir        = self.main_dir+'/master_derivatives'
+        self.master_data_dir          = self.main_dir+'/master_derivatives'
+        self.master_fbs_dir           = self.main_dir+'/master_derivatives'
+        self.master_bin_dir           = self.main_dir+'/contents/master'
+        self.master_header_dir        = self.main_dir+'/master_header'
+        self.user_class_dir           = self.main_dir+'/user_header'
+        self.user_header_dir          = self.main_dir+'/user_header'
+        self.font_dir                 = self.main_dir+'/contents/files/font'
 
-        user_editor_schema = user_dir+'/editor_schema/editor_schema.json'
-        self.editor_schema = user_editor_schema if os.path.exists(user_editor_schema) else master_dir+'/editor_schema/editor_schema.json'
+        self.org_manifest_dir         = self.org_main_dir+'/manifests'
+        self.org_master_schema_dir    = self.org_main_dir+'/master_derivatives'
+        self.org_master_data_dir      = self.org_main_dir+'/master_derivatives'
+        self.org_master_fbs_dir       = self.org_main_dir+'/master_derivatives'
+        self.org_master_bin_dir       = self.org_main_dir+'/contents/master'
+        self.org_master_header_dir    = self.org_main_dir+'/master_header'
+        self.org_user_class_dir       = self.org_main_dir+'/user_header'
+        self.org_user_header_dir      = self.org_main_dir+'/user_header'
+        self.org_font_dir             = self.org_main_dir+'/contents/files/font'
 
-        self.manifest_dir      = self.top_dir+'/manifests'
-        self.master_schema_dir = self.top_dir+'/master_derivatives'
-        self.master_data_dir   = self.top_dir+'/master_derivatives'
-        self.master_fbs_dir    = self.top_dir+'/master_derivatives'
-        self.master_bin_dir    = self.top_dir+'/contents/master'
-        self.master_header_dir = self.top_dir+'/master_header'
-        self.user_header_dir   = self.top_dir+'/user_header'
-        #self.gd_dir            = self.top_dir+'/glyph_designer/'
-        self.gd_dir            = master_dir+'/glyph_designer/'
-        self.font_dir          = self.top_dir+'/contents/files/font'
+        self.main_xlsx_dir            = self.main_dir+'/master'
+        self.main_editor_dir          = self.main_dir+'/editor'
+        self.main_editor_schema_dir   = self.main_dir+'/editor_schema'
+        self.main_schema_dir          = self.main_dir+'/user'
+        self.main_files_dir           = self.main_dir+'/files'
+        #self.main_gd_dir              = self.main_dir+'/glyph_designer/'
+
+        self.master_manifest_dir      = self.master_dir+"/manifests"
+        self.master_xlsx_dir          = self.master_dir+'/master'
+        self.master_editor_dir        = self.master_dir+'/editor'
+        self.master_editor_schema_dir = self.master_dir+'/editor_schema'
+        self.master_gd_dir            = self.master_dir+'/glyph_designer'
+
+        main_editor_schema = self.main_editor_schema_dir+'/editor_schema.json'
+        self.editor_schema = main_editor_schema if os.path.exists(main_editor_schema) else self.master_editor_schema_dir+'/editor_schema.json'
 
         self.manifest_bin  = self_dir+'/manifest_generate.py'
         self.xls2json_bin  = self_dir+'/master_data_xls2json.py'
@@ -88,17 +126,38 @@ class AssetBuilder():
         self.USER_HEADER_FILE        = 'user_data_generated.h'
         self.USER_FBS_ROOT_NAME      = 'UserDataFBS'
         self.USER_FBS_NAMESPACE      = 'kms.userdata'
-        self.DEV_CDN_URL             = 'http://kms-dev.dev.gree.jp/cdn'
+        self.DEV_CDN_URL             = 'http://kms-dev.dev.gree.jp/cdn' # FIXME
+
+    # prepare and isolate source data via box
+    def prepare_dir(self, src, dest):
+        if  os.path.exists(dest):
+            rmtree(dest)
+        info("copytree '%s' -> '%s'" % (src, dest))
+        copytree(src, dest)
 
     # setup dest directories
     def setup_dir(self):
-        for path in (self.build_dir, self.local_asset_search_path, self.manifest_dir, self.master_editor_dir, self.user_editor_dir, self.master_xlsx_dir, self.user_xlsx_dir, self.master_schema_dir, self.master_data_dir, self.master_fbs_dir, self.master_bin_dir, self.master_header_dir, self.user_header_dir, self.users_dir):
+        for path in (\
+            self.build_dir, \
+            self.main_files_dir, \
+            self.manifest_dir, \
+            self.master_editor_dir, \
+            self.main_editor_dir, \
+            self.master_xlsx_dir, \
+            self.main_xlsx_dir, \
+            self.master_schema_dir, \
+            self.master_data_dir, \
+            self.master_fbs_dir, \
+            self.master_bin_dir, \
+            self.master_header_dir, \
+            self.user_header_dir, \
+            self.user_class_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
 
     # get xlsx master data files
     def _get_xlsxes(self):
-        xlsx_dirs = (self.master_xlsx_dir, self.user_xlsx_dir)
+        xlsx_dirs = (self.master_xlsx_dir, self.main_xlsx_dir)
         xlsxes = {}
         for xlsx_dir in xlsx_dirs:
             for xlsx_path in glob("%s/*.xlsx" % xlsx_dir):
@@ -110,7 +169,7 @@ class AssetBuilder():
 
     # get editor data files
     def _get_editor_files(self):
-        editor_dirs = (self.master_editor_dir, self.user_editor_dir)
+        editor_dirs = (self.master_editor_dir, self.main_editor_dir)
         editor_files = {}
         for editor_dir in editor_dirs:
             for editor_path in glob("%s/*.json" % editor_dir):
@@ -133,20 +192,18 @@ class AssetBuilder():
         dest_version_manifest   = dest_version_manifest or self.manifest_dir+'/'+self.VERSION_MANIFEST_FILE
         url_asset               = self.DEV_CDN_URL+'/'
         
+        reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
+        url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
         if self.is_master:
-            reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
-            url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
             url_version_manifest  = self.DEV_CDN_URL+'/'+self.VERSION_MANIFEST_FILE
         else:
-            reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-            url_project_manifest  = self.DEV_CDN_URL+'/'+self.target+'/'+self.PROJECT_MANIFEST_FILE
-            url_version_manifest  = self.DEV_CDN_URL+'/'+self.target+'/'+self.VERSION_MANIFEST_FILE
+            url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
 
         info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
 
         cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
-                   self.remote_dir_asset, self.deploy_src_dir, "--ref", reference_manifest]
+                   self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -165,6 +222,7 @@ class AssetBuilder():
 
     # merge editor's json data into the master json data
     def merge_editor_file(self):
+
         for master_file, editor_files in ((self.build_dir+'/'+self.MASTER_JSON_DATA_FILE, self._get_editor_files()), (self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, [self.editor_schema])):
             with open(master_file, 'r') as f:
                 json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
@@ -198,19 +256,19 @@ class AssetBuilder():
         src_fbs     = src_fbs     or self.build_dir+'/'+self.MASTER_FBS_FILE
         dest_bin    = dest_bin    or self.build_dir+'/'+self.MASTER_BIN_FILE
         dest_header = dest_header or self.build_dir+'/'+self.MASTER_HEADER_FILE
-        dest_dir    = os.path.dirname(dest_bin)
+        main_dir    = os.path.dirname(dest_bin)
         info("build master bin: %s + %s" % (os.path.basename(dest_bin), os.path.basename(dest_header)))
         if os.path.dirname(dest_bin) != os.path.dirname(dest_header):
             raise Exception("%s and %s must be same dir" % (dest_bin, dest_header))
 
-        cmdline = [self.flatc_bin, '-c', '-b', '-o', dest_dir, src_fbs, src_json]
+        cmdline = [self.flatc_bin, '-c', '-b', '-o', main_dir, src_fbs, src_json]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
 
     # create class header from fbs
     def build_user_class(self, src_fbs=None, dest_class=None, namespace=None):
-        src_fbs    = src_fbs    or self.user_schema_dir+'/'+self.USER_FBS_FILE
+        src_fbs    = src_fbs    or self.main_schema_dir+'/'+self.USER_FBS_FILE
         dest_class = dest_class or self.build_dir+'/'+self.USER_CLASS_FILE
         namespace  = namespace  or self.USER_FBS_NAMESPACE
         if not os.path.exists(src_fbs):
@@ -224,12 +282,12 @@ class AssetBuilder():
 
     # create bin+header from json+fbs
     def build_user_header(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None):
-        src_fbs     = src_fbs     or self.user_schema_dir+'/'+self.USER_FBS_FILE
+        src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
         dest_header = dest_header or self.build_dir+'/'+self.USER_HEADER_FILE
-        dest_dir    = os.path.dirname(dest_header)
+        main_dir    = os.path.dirname(dest_header)
         info("build user header: %s" % os.path.basename(dest_header))
 
-        cmdline = [self.flatc_bin, '-c', '-o', dest_dir, src_fbs]
+        cmdline = [self.flatc_bin, '-c', '-o', main_dir, src_fbs]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -243,7 +301,7 @@ class AssetBuilder():
 
         # build font by GDCL
         src_json      = src_json      or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
-        src_gd_dir    = src_gd_dir    or self.gd_dir
+        src_gd_dir    = src_gd_dir    or self.master_gd_dir
         dest_font_dir = dest_font_dir or self.build_dir
         cmdline = [self.json2font_bin, src_json, src_gd_dir, dest_font_dir]
         debug(' '.join(cmdline))
@@ -254,49 +312,55 @@ class AssetBuilder():
     def install(self, build_dir=None):
         build_dir = build_dir or self.build_dir
         list = [
-            (build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir+'/'+self.MASTER_JSON_SCHEMA_FILE),
-            (build_dir+'/'+self.MASTER_JSON_DATA_FILE,   self.master_data_dir+'/'+self.MASTER_JSON_DATA_FILE),
-            (build_dir+'/'+self.MASTER_FBS_FILE,         self.master_fbs_dir+'/'+self.MASTER_FBS_FILE),
-            (build_dir+'/'+self.MASTER_BIN_FILE,         self.master_bin_dir+'/'+self.MASTER_BIN_FILE),
-            (build_dir+'/'+self.MASTER_HEADER_FILE,      self.master_header_dir+'/'+self.MASTER_HEADER_FILE),
-            (build_dir+'/'+self.USER_CLASS_FILE,         self.user_header_dir+'/'+self.USER_CLASS_FILE),
-            (build_dir+'/'+self.USER_HEADER_FILE,        self.user_header_dir+'/'+self.USER_HEADER_FILE)
+            (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_manifest_dir),
+            (self.MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
+            (self.MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
+            (self.MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
+            (self.MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
+            (self.USER_CLASS_FILE,         self.user_class_dir, self.org_user_class_dir),
+            (self.USER_HEADER_FILE,        self.user_header_dir, self.org_user_class_dir),
         ]
         for font_path in glob("%s/*.fnt" % build_dir):
-            png_path = re.sub('.fnt$', '.png', font_path)
-            list.append((font_path, self.font_dir+'/'+os.path.basename(font_path)))
-            list.append((png_path,  self.font_dir+'/'+os.path.basename(png_path)))
-        for src, dest in list:
-            if os.path.exists(src):
-                info("install: %s -> %s" % (os.path.basename(src), os.path.dirname(dest)))
-                if not os.path.exists(os.path.dirname(dest)):
-                    os.makedirs(os.path.dirname(dest))
-                if call(['cmp', '--quiet', src, dest]) == 0:
-                    continue
-                if os.path.exists(dest):
-                    os.remove(dest)
-                debug("move '%s' -> '%s'" % (src, dest))
-                move(src, dest)
+            font_path = re.sub('^'+build_dir+'/', '', font_path)
+            png_path  = re.sub('.fnt$', '.png', font_path)
+            #list.append((font_path, self.font_dir, self.org_font_dir))
+            #list.append((png_path,  self.font_dir, self.org_font_dir))
+            list.append((font_path, self.font_dir, self.font_dir))
+            list.append((png_path,  self.font_dir, self.font_dir))
+        for filename, dest1, dest2 in list:
+            if os.path.exists(build_dir+'/'+filename):
+                info("install: %s -> %s + %s" % (filename, dest1, dest2))
+                for dest_dir in (dest1, dest2):
+                    src  = build_dir + '/' + filename
+                    dest = dest_dir + '/' + filename
+                    if not os.path.exists(dest_dir):
+                        os.makedirs(dest_dir)
+                    if call(['cmp', '--quiet', src, dest]) == 0:
+                        continue
+                    if os.path.exists(dest):
+                        os.remove(dest)
+                    debug("copy '%s' -> '%s'" % (src, dest))
+                    copy(src, dest)
         return True
 
-    def prepare_to_deploy(self):
-        if self.is_master:
-            for src, dest in ((self.local_asset_search_path+"/files", self.deploy_src_dir+"/files"), (self.local_asset_search_path+"/master", self.deploy_src_dir+"/master")):
-                debug("copytree '%s' -> '%s'" % (src, dest))
-                copytree(src, dest)
-        else:
-            for src, dest in ((self.local_asset_search_path+"/files", self.deploy_src_dir+"/files"), (self.master_bin_dir, self.deploy_src_dir+"/master")):
-                debug("copytree '%s' -> '%s'" % (src, dest))
-                copytree(src, dest)
+    def deploy_git_repo(self):
+        if not self.is_master or not self.git_dir:
+            return
 
-    def deploy_dev(self):
-        usernames = []
-        for f in os.listdir(self.users_dir) :
-            if os.path.isdir(self.users_dir+"/"+f):
-                usernames +=[f]
+        info("deploy to git repo: %s -> %s" % (self.main_dir, self.git_dir))
+        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
+        info(' '.join(cmdline))
+        check_call(cmdline)
 
-        list_file = self.build_dir + "/deploy_files.json"
-        with open(list_file, 'w') as f:
+    def deploy_dev_cdn(self):
+        list_file = self.cdn_dir+"/dev.asset_list.json"
+        with open(list_file, 'a+') as f:
+            f.seek(0)
+            usernames = json.load(f)
+            if not self.target in usernames and self.target != 'master':
+                usernames.append(self.target)
+            info("available users = "+", ".join(usernames))
+            f.truncate(0)
             json.dump(usernames, f, sort_keys=True, indent=2)
         os.chmod(list_file, 0664)
 
@@ -307,52 +371,50 @@ class AssetBuilder():
             manifest = json.load(f)
         assets = manifest.get('assets')
         keep_files = []
-        for key in assets:
-            asset = assets.get(key)
+        for key, asset in assets.iteritems():
             path = asset.get('path')
             if path == self.remote_dir_asset+"/"+key:
                 keep_files.append(path)
-        for root, dirs, files in os.walk(self.deploy_src_dir):
+        for root, dirs, files in os.walk(self.main_dir+'/contents'):
             for file in files:
-                key = root.replace(self.deploy_src_dir, self.remote_dir_asset) + os.sep + file
+                key = root.replace(self.main_dir+'/contents', self.remote_dir_asset)+'/'+file
                 if not key in keep_files:
-                    os.remove(root + '/' + file)
+                    os.remove(root+'/'+file)
 
-        rsync = ['rsync', '-crltvvO']
+        rsync = ['rsync', '-crltvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
+        rsync.extend(['--exclude', '.DS_Store'])
 
-        dst_dir = self.cdn_dir+'/'+self.asset_version_dir if self.is_master else self.cdn_dir+'/'+self.target
-        if not os.path.exists(dst_dir):
-            os.makedirs(dst_dir)
-        dst_asset = dst_dir+'/contents'
-        dst_project_manifest  = dst_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dst_listfile = self.cdn_dir+"/dev.asset_list.json"
+        dest_dir = self.cdn_dir+'/'+self.asset_version_dir
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir)
+        info("deploy to dev cdn: %s -> %s: " % (self.main_dir, dest_dir))
 
         if self.is_master:
-            dst_version_manifest = self.cdn_dir+'/'+self.VERSION_MANIFEST_FILE
+            dest_version_manifest = self.cdn_dir+'/'+self.VERSION_MANIFEST_FILE
         else:
-            dst_version_manifest = dst_dir+"/"+self.VERSION_MANIFEST_FILE
+            dest_version_manifest = dest_dir+"/"+self.VERSION_MANIFEST_FILE
 
-        check_call(rsync + [list_file, dst_listfile])
-        check_call("find " + self.deploy_src_dir + " -type f -print | xargs chmod 664", shell=True)
-        check_call("find " + self.deploy_src_dir + " -type d -print | xargs chmod 775", shell=True)
-        check_call(rsync + ['--delete', self.deploy_src_dir+"/", dst_asset])
-        check_call(['chmod', '775', dst_dir+"/contents"])
-        check_call(rsync + [version_file, dst_version_manifest])
-        check_call(rsync + [project_file, dst_project_manifest])
+        check_call("find " + self.main_dir+'/contents' + " -type f -print | xargs chmod 664", shell=True)
+        check_call("find " + self.main_dir+'/contents' + " -type d -print | xargs chmod 775", shell=True)
+        check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
+        check_call(['chmod', '775', dest_dir+"/contents"])
+        check_call(rsync + [version_file, dest_version_manifest])
+        check_call(rsync + [project_file, dest_dir+'/'+self.PROJECT_MANIFEST_FILE])
 
     # do all processes
     def build_all(self, check_modified=True):
         # check modified
-        build_depends = self._get_xlsxes() + self._get_editor_files() + [ self.editor_schema ]
+        build_depends = self._get_xlsxes() + self._get_editor_files() + [ self.editor_schema, self.main_schema_dir+'/'+self.USER_FBS_FILE ]
         modified = False
         if check_modified:
+            timestamp_base_file = self.master_bin_dir+'/'+self.MASTER_BIN_FILE
             for src in build_depends:
-                if self._check_modified(src, self.master_bin_dir+'/'+self.MASTER_BIN_FILE):
+                if self._check_modified(src, timestamp_base_file):
                     modified = True
                     break
             if not modified:
-                info("xlsxes and editor data are not modified")
+                info("source files of auto generated data are not modified")
 
         # main process
         try:
@@ -365,9 +427,9 @@ class AssetBuilder():
                 self.build_font()
                 self.build_user_class()
                 self.install()
-            self.prepare_to_deploy()
+            self.deploy_git_repo()
             self.build_manifest()
-            self.deploy_dev()
+            self.deploy_dev_cdn()
         finally:
             if self.auto_cleanup:
                 self.cleanup()
@@ -376,7 +438,6 @@ class AssetBuilder():
     # clean up
     def cleanup(self):
         rmtree(self.build_dir)
-        rmtree(self.deploy_src_dir)
         return True
 
 if __name__ == '__main__':
@@ -404,6 +465,9 @@ examples:
     $ cd kms_master_data/hook
     $ ./build.py build
 
+  build on local (for development)
+    $ kms_master_asset/hook/build.py build --target master --build-dir build --cdn-dir cdn --log-level DEBUG
+
   build all for 'kms_xxx.yyy_asset'
     $ kms_master_asset/hook/build.py build --target xxx.yyy
 
@@ -417,14 +481,16 @@ examples:
     parser.add_argument('--target', default = 'master', help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
     parser.add_argument('--force',  default = False, action = 'store_true', help = 'skip check timestamp. always build')
     parser.add_argument('--asset-version', help = 'asset version. default: <target>.<unix-timestamp>')
-    parser.add_argument('--top-dir',       help = 'asset top directory. default: same as script top')
-    parser.add_argument('--user-dir',      help = 'user working directory top. default: same as script top')
+    parser.add_argument('--master-dir',    help = 'master asset directory. default: same as script top')
+    parser.add_argument('--main-dir',      help = 'asset generated directory. default: same as script top')
     parser.add_argument('--build-dir',     help = 'build directory. default: temp dir')
+    parser.add_argument('--cdn-dir',       help = 'cdn directory to deploy. default: /var/www/cdn')
+    parser.add_argument('--git-dir',       help = 'git directory to deploy. default: (not to deploy)')
     parser.add_argument('--log-level',     help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
-    asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, top_dir = args.top_dir, user_dir = args.user_dir, build_dir = args.build_dir)
+    asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
     if args.command in ('build', 'build-all'):
         asset_builder.build_all(not args.force)
     elif args.command == 'build-manifest':

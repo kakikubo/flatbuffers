@@ -14,36 +14,52 @@ from collections import OrderedDict
 def ll2newLayout(master_asset_root, dst_filename):
     ground = []
     wall = []
+    bg = []
     with open(master_asset_root + "/master_derivatives/master_data.json", 'r') as f:
         master = json.loads(f.read(), object_pairs_hook=OrderedDict)
         for item in master["layoutDeprecated"]:
             #print(item["name"] + "\t" + item["type"] + "\t" + "@(" + str(item["x"]) + "," + str(item["z"]) + ")")
             name = item["name"]
-            ox = item["x"]
-            oy = item["z"]
-            layout_type = item["type"]
+            is_ground = item["type"] == "ground"
+            is_bg = item["type"] == "bg"
+            is_wall = item["type"] == "wall"
+
+            origin_x = item["x"]
+            origin_y = item["y"]
+            origin_z = item["z"]
+    
             with open(master_asset_root + "/contents/files/mapTest/"+name+".textures/"+name+".json.txt", 'r') as ff:
                 layout = json.loads(ff.read(), object_pairs_hook=OrderedDict)
                 for llitem in layout["root"]["childs"]:
                     if llitem["class"] == "Sprite":
                         if llitem.pop("childs"):
-                            print "error: not empty children"
+                            print "error: not empty children in sprite"
                         i = {}
                         i["image"] = llitem["image"]
                         i["width"] = llitem["size"]["width"]
                         i["height"] = llitem["size"]["height"]
-                        i["x"] = llitem["position"]["x"] + ox;
-                        i["y"] = llitem["position"]["y"] + oy;
-                        i["layer"] = llitem["z"]
+                        if is_ground:
+                            i["x"] = llitem["position"]["x"] + origin_x
+                            i["y"] = llitem["position"]["y"] + origin_y
+                            i["layer"] = llitem["z"]
+                        else:
+                            i["x"] = llitem["position"]["x"] + origin_x
+                            i["y"] = origin_y
+                            i["z"] = origin_z + llitem["z"]
+                            i["offsetX"] = 0
+                            i["offsetY"] = llitem["position"]["y"]
 
-                        if layout_type == "ground":
+                        if is_ground:
                             ground.append(i)
-                        if layout_type == "wall" or layout_type == "bg":
+                        elif is_wall:
                             wall.append(i)
+                        elif is_bg:
+                            bg.append(i)
     result = {}
     result["openWorld"] = {}
     result["openWorld"]["ground"] = ground
     result["openWorld"]["wall"] = wall
+    result["openWorld"]["bg"] = bg
     with open(dst_filename, 'w') as f:
         j = json.dumps(result, ensure_ascii = False, indent = 4)
         f.write(j.encode("utf-8"))
@@ -52,5 +68,5 @@ def ll2newLayout(master_asset_root, dst_filename):
 #
 if __name__ == '__main__':
     master_asset_root = "./kms_master_asset"
-    ll2newLayout(master_asset_root, "./openWorld.json")
+    ll2newLayout(master_asset_root, "./kms_master_asset/editor/openWorld.json")
     exit(0)
