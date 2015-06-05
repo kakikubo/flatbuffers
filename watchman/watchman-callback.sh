@@ -14,7 +14,9 @@ echo $json | jq '.'
 
 # launch jenkins job
 json_file=/tmp/watchman-callback.$$.json
-names=`echo $json | jq -r '.[]["name"]'`
+#names=`echo $json | jq -r '.[]["name"]'`
+names=`echo $json | jq -r '.[] | (if .exists and .new then "A" elif .exists then "U" else "D" end) + " " + .["name"]' | tr '\n' '+'`
 echo "{\"parameter\": [{\"name\": \"OPT_TARGET\", \"value\": \"$target\"}, {\"name\": \"OPT_FILES\", \"value\": \"$names\"}]}" > $json_file
+cat $json_file
 curl $jenkins_url -X POST --form json=@$json_file
 exit $?

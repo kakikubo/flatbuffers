@@ -49,4 +49,6 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   `dirname $0`/../script/sonya.sh ":) `hostname`:$WATCHMAN_ROOT" $commit_log_file $gitlab_url/kms/asset/commit/$commit_id || exit $?
 fi
 
-exit $exit_code
+# git push return by 1 when master branch is updated
+#exit $exit_code
+exit 0
