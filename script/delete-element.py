@@ -10,6 +10,7 @@ import argparse
 import datetime
 from collections import OrderedDict
 import time
+import xlrd
 
 CURRENT_CATEGORY_DEPTH = 0
 CURRENT_CATEGORY = "NONE"
@@ -92,7 +93,7 @@ def deleteAnimationBySlotName(dictData, slotName):
                 if isinstance(anim, dict):
                     if anim.has_key(slotName):
                         del anim[slotName]
-
+"""
 def exportWearPattern(name, dirName):
     srcPath = os.path.abspath(dirName)
     dstPath = os.path.abspath(dirName)
@@ -103,7 +104,7 @@ def exportWearPattern(name, dirName):
     parser.add_argument("-i", required=True)
     parser.add_argument("-o", required=True)
     parser.add_argument("-f", required=True)
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + wearNames[0], "-f", name, "-s", "C_bo_gear_inside", "-b"]))
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + wearNames[0], "-f", name, "-s", "C_bo_gear_inside", "-b"]))
     shutil.copy(srcPath + "/" + name + ".json", dstPath + "/" + wearNames[1] + ".json")
     shutil.copy(srcPath + "/" + name + ".atlas", dstPath + "/" + wearNames[1] + ".atlas")
     return wearNames
@@ -118,7 +119,7 @@ def exportWingPattern(name, dirName):
     parser.add_argument("-i", required=True)
     parser.add_argument("-o", required=True)
     parser.add_argument("-f", required=True)
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + wingNames[0], "-f", name, "-s", "C_bo_mant_b", "-b"]))
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + wingNames[0], "-f", name, "-s", "C_bo_mant_b", "-b"]))
     shutil.copy(srcPath + "/" + name + ".json", dstPath + "/" + wingNames[1] + ".json")
     shutil.copy(srcPath + "/" + name + ".atlas", dstPath + "/" + wingNames[1] + ".atlas")
     return wingNames
@@ -133,9 +134,22 @@ def exportAccessoryPattern(name, dirName):
     parser.add_argument("-i", required=True)
     parser.add_argument("-o", required=True)
     parser.add_argument("-f", required=True)
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[0], "-f", name, "-s", "C_rabbit_ear", "-b", "rabbit_earLeft1", "rabbit_earLeft1"]))
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[1], "-f", name, "-s", "C_cat_ear", "C_tail", "-b", "cat_earRight1", "cat_earLeft1", "tail"]))
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[2], "-f", name, "-s", "C_rabbit_ear", "C_cat_ear", "C_tail", "-b", "rabbit_earLeft1", "rabbit_earLeft1", "cat_earRight1", "cat_earLeft1", "tail"]))
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[0], "-f", name, "-s", "C_rabbit_ear", "-b", "rabbit_earLeft1", "rabbit_earLeft1"]))
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[1], "-f", name, "-s", "C_cat_ear", "C_tail", "-b", "cat_earRight1", "cat_earLeft1", "tail"]))
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[2], "-f", name, "-s", "C_rabbit_ear", "C_cat_ear", "C_tail", "-b", "rabbit_earLeft1", "rabbit_earLeft1", "cat_earRight1", "cat_earLeft1", "tail"]))
+    return accessoryNames
+
+def exportWithoutAccessory(name, dirName):
+    srcPath = os.path.abspath(dirName)
+    dstPath = os.path.abspath(dirName)
+    parser = argparse.ArgumentParser()
+    accessoryNames = [name + "_n"]
+    parser.add_argument("-s", nargs="*")
+    parser.add_argument("-b", nargs="*")
+    parser.add_argument("-i", required=True)
+    parser.add_argument("-o", required=True)
+    parser.add_argument("-f", required=True)
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[0], "-f", name, "-s", "C_rabbit_ear", "C_cat_ear", "C_tail", "-b", "rabbit_earLeft1", "rabbit_earLeft1", "cat_earRight1", "cat_earLeft1", "tail"]))
     return accessoryNames
 
 def exportHairPattern(name, dirName):
@@ -148,55 +162,46 @@ def exportHairPattern(name, dirName):
     parser.add_argument("-i", required=True)
     parser.add_argument("-o", required=True)
     parser.add_argument("-f", required=True)
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[0], "-f", name, "-s", "C_hd_twintail_R", "C_hd_twintail_L", "C_hd_hair_tail", "-b", "twintail_L1", "twintail_R1", "hair_tail"]))
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[1], "-f", name, "-s", "C_hd_twintail_R", "C_hd_twintail_L", "C_hd_hair_b", "-b", "twintail_L1", "twintail_R1"]))
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[2], "-f", name, "-s", "C_hd_hair_tail", "C_hd_hair_b", "-b", "hair_tail"]))
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[0], "-f", name, "-s", "C_hd_twintail_R", "C_hd_twintail_L", "C_hd_hair_tail", "-b", "twintail_L1", "twintail_R1", "hair_tail"]))
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[1], "-f", name, "-s", "C_hd_twintail_R", "C_hd_twintail_L", "C_hd_hair_b", "-b", "twintail_L1", "twintail_R1"]))
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[2], "-f", name, "-s", "C_hd_hair_tail", "C_hd_hair_b", "-b", "hair_tail"]))
     return hairNames
 
-def exportWeaponPattern(name, dirName):
+def exportWithoutHair(name, dirName):
     srcPath = os.path.abspath(dirName)
     dstPath = os.path.abspath(dirName)
-    weaponNames = [name + "_1", name + "_2", name + "_3", name + "_4", name + "_5"]
+    hairNames = [name + "_b"]
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", nargs="*")
     parser.add_argument("-b", nargs="*")
     parser.add_argument("-i", required=True)
     parser.add_argument("-o", required=True)
     parser.add_argument("-f", required=True)
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[0], "-f", name, "-s", "R_weapon_2", "R_weapon_3", "R_weapon_4", "R_weapon_5", "-b"]))
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[1], "-f", name, "-s", "R_weapon_1", "R_weapon_3", "R_weapon_4", "R_weapon_5", "-b"]))
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[2], "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_4", "R_weapon_5", "-b"]))
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[3], "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_3", "R_weapon_5", "-b"]))
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponNames[4], "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_3", "R_weapon_4", "-b"]))
-    return weaponNames
+    deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[0], "-f", name, "-s", "C_hd_twintail_R", "C_hd_twintail_L", "C_hd_hair_tail", "-b", "twintail_L1", "twintail_R1", "hair_tail"]))
+    return hairNames
 
-def exportWithoutWeapon(name, dirName):
-    srcPath = os.path.abspath(dirName)
-    dstPath = os.path.abspath(dirName)
-    weaponName = name + "_base"
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", nargs="*")
-    parser.add_argument("-b", nargs="*")
-    parser.add_argument("-i", required=True)
-    parser.add_argument("-o", required=True)
-    parser.add_argument("-f", required=True)
-    deleteElementBySlotsName(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + weaponName, "-f", name, "-s", "R_weapon_1", "R_weapon_2", "R_weapon_3", "R_weapon_4", "R_weapon_5", "-b"]))
-    return weaponName
+def autoExport(name, dirName):
+    wearNames = exportWearPattern(name, dirName)
+    for wearName in wearNames:
+        wingNames = exportWingPattern(wearName, dirName)
+        for wingName in wingNames:
+            accessoryNames = exportAccessoryPattern(wingName, dirName)
+            for accessoryName in accessoryNames:
+                hairNames = exportHairPattern(accessoryName, dirName)
+"""
 
 # ---
 # default help message
 #
 def printHelp():
-    print '''Error :: not enough params.
-    e.g. > python delete-element.py test.json slotName1 slotName2 slotName3'''
+    print '''> python delete-element.py {excelFilePath} {excelSheetName} {startRow} {startCol} {spineFilePath} {outPutFolderPath}
+    e.g. > python delete-element.py master/character.xlsx characterSpine 3 9 contents/files/spine/characterSpine/character.json contents/files/spine/characterSpine/'''
 
-def deleteElementBySlotsName(args):
+def deleteElement(args):
     srcPath = os.path.abspath(args.i)
     dstPath = os.path.abspath(args.o)
-    srcJson = srcPath + "/" + args.f + ".json"
-    dstJson = dstPath + ".json"
-    srcAtlas = srcPath + "/" + args.f + ".atlas"
-    dstAtlas = dstPath + ".atlas"
+    srcJson = srcPath
+    dstJson = dstPath
 
     boneList = args.b
     slotList = args.s
@@ -208,8 +213,8 @@ def deleteElementBySlotsName(args):
         print "bones = {0}".format(boneList)
         print "slots = {0}".format(slotList)
         print "skins = {0}".format(skinList)
-        print "copy file = {0} to {1}".format(srcAtlas, dstAtlas)
 
+    jsonData = {}
     with open(srcJson, 'r') as f:
         jsonData = json.loads(f.read(), object_pairs_hook=OrderedDict)
         for boneName in boneList:
@@ -221,27 +226,97 @@ def deleteElementBySlotsName(args):
         for skinName in skinList:
             deleteSkinBySlotName(jsonData, skinName)
 
-    with open(dstJson, 'w') as f:
-        #f.write(json.dumps(jsonData, indent=2, sort_keys=False))
-        f.write(json.dumps(jsonData))
-    shutil.copy(srcAtlas, dstAtlas)
+    changed = True
+    with open(dstJson, 'r') as f_old:
+        dstData = json.loads(f_old.read(), object_pairs_hook=OrderedDict)
+        if jsonData == dstData:
+            print "data not changed:{0}".format(dstJson)
+            changed = False
+        else:
+            os.remove(dstJson)
 
-def autoExport(name, dirName):
-    """
-    wearNames = exportWearPattern(name, dirName)
-    for wearName in wearNames:
-        wingNames = exportWingPattern(wearName, dirName)
-        for wingName in wingNames:
-            accessoryNames = exportAccessoryPattern(wingName, dirName)
-            for accessoryName in accessoryNames:
-                hairNames = exportHairPattern(accessoryName, dirName)
-                for hairName in hairNames:
-                    weaponNames = exportWeaponPattern(hairName, dirName)
-    """
-    baseName = exportWithoutWeapon(name, dirName)
-    accessoryNames = exportAccessoryPattern(baseName, dirName)
-    for accessoryName in accessoryNames:
-        exportHairPattern(accessoryName, dirName)
+    if changed:
+        with open(dstJson, 'w+') as f_new:
+            print "data created {0}".format(dstJson)
+            #f.write(json.dumps(jsonData, indent=2, sort_keys=False))
+            f_new.write(json.dumps(jsonData))
+    
+def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail):
+    slot = []
+    bone = []
+    if hasTwinTail:
+        slot.append("C_hd_hair_b")
+    else:
+        slot.append("C_hd_twintail_R")
+        slot.append("C_hd_twintail_L")
+        bone.append("twintail_L1")
+        bone.append("twintail_R1")
+
+    if hasPonyTail:
+        slot.append("C_hd_hair_b")
+    else:
+        slot.append("C_hd_hair_tail")
+        bone.append("hair_tail")
+
+    if not hasEarCat:
+        slot.append("C_cat_ear")
+        bone.append("cat_earRight1")
+        bone.append("cat_earLeft1")
+
+    if not hasEarRabbit:
+        slot.append("C_rabbit_ear")
+        bone.append("rabbit_earLeft1")
+        bone.append("rabbit_earLeft1")
+
+    if not hasTail:
+        slot.append("C_tail")
+        bone.append("tail")
+
+    dic = {}
+    dic["slot"] = slot
+    dic["bone"] = bone
+    return dic
+
+def exportSpine(masterExcel, sheetName, paramStartRow, paramStartCol, srcFile, outPath):
+    iParamStartRow = int(paramStartRow)
+    iParamStartCol = int(paramStartCol)
+    book = xlrd.open_workbook(masterExcel)
+    sheet = book.sheet_by_name(sheetName)
+    for row in range(sheet.nrows):
+        if (sheet.ncols < iParamStartCol+5):
+            print "ncols={0} but paramStartCol={1}".format(sheet.ncols, iParamStartCol)
+        else:
+            if (row >= iParamStartRow):
+                modelID = int(sheet.cell_value(row, 0))
+                hasTwinTail = sheet.cell_value(row, iParamStartCol)
+                hasPonyTail = sheet.cell_value(row, iParamStartCol+1)
+                hasEarCat = sheet.cell_value(row, iParamStartCol+2)
+                hasEarRabitt = sheet.cell_value(row, iParamStartCol+3)
+                hasTail = sheet.cell_value(row, iParamStartCol+4)
+                print "Convert Param = {0}:{1},{2},{3},{4},{5}".format(str(modelID), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
+                dic = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
+                srcPath = os.path.abspath(srcFile)
+                root, ext = os.path.splitext(srcFile)
+                dstPath = os.path.abspath(outPath) + "/" + str(modelID) + "/" + str(modelID) + ext
+
+                params = []
+                params.append("-i")
+                params.append(srcPath)
+                params.append("-o")
+                params.append(dstPath)
+                params.append("-s")
+                for slot in dic["slot"]:
+                    params.append(slot)
+                params.append("-b")
+                for bone in dic["bone"]:
+                    params.append(bone)
+                print params
+                parser = argparse.ArgumentParser()
+                parser.add_argument("-s", nargs="*")
+                parser.add_argument("-b", nargs="*")
+                parser.add_argument("-i", required=True)
+                parser.add_argument("-o", required=True)
+                deleteElement(parser.parse_args(params))
 
 # ---
 # main function
@@ -250,18 +325,34 @@ if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
     argv = sys.argv
     argc = len(argv)
-    if argc < 4:
-        if argc == 3:
-            # e.g. > cd testdata (chara.json & chara.atlas are existing in testdata folder.)
-            #      > python ${KMS_SCRIPT}/delete-element.py chara ./ (convert "chara.json". output in "./" folder)
-            autoExport(argv[1], argv[2])
-        else:
+
+    if argc > 1:
+        if argv[1] == "-h":
             printHelp()
+        else:
+            if argc == 7:
+                """
+                python ${KMS_SCRIPT}/delete-element.py /Users/motoshi.abe/Box\ Sync/kms_motoshi.abe_asset/master/character.xlsx characterSpine 3 9 chara.json ./
+                python ${KMS_SCRIPT}/delete-element.py  ./ (convert "chara.json". output in "./" folder)
+                """
+                exportSpine(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6])
+                """
+                    # e.g. > cd testdata (chara.json & chara.atlas are existing in testdata folder.)
+                    #      > python ${KMS_SCRIPT}/delete-element.py chara ./ (convert "chara.json". output in "./" folder)
+                    autoExport(argv[1], argv[2])
+                else:
+                printHelp()
+                """
+            elif argc == 5:
+                parser = argparse.ArgumentParser()
+                parser.add_argument("-s", nargs="*")
+                parser.add_argument("-b", nargs="*")
+                parser.add_argument("-i", required=True)
+                parser.add_argument("-o", required=True)
+                deleteElement(parser.parse_args())
+            else:
+                print 'Error :: not enough params.'
+                printHelp()
     else:
-        parser = argparse.ArgumentParser()
-        parser.add_argument("-s", nargs="*")
-        parser.add_argument("-b", nargs="*")
-        parser.add_argument("-i", required=True)
-        parser.add_argument("-o", required=True)
-        parser.add_argument("-f", required=True)
-        deleteElementBySlotsName(parser.parse_args())
+        printHelp()
+
