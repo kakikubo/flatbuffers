@@ -52,7 +52,7 @@ def createVersionManifest(version, remote_manifest_url, remote_version_url, pack
 def createManifest(dst_file_project_manifest, dst_file_version_manifest,
                    version, url_project_manifest, url_version_manifest, url_asset,
                    remote_dir_asset, local_asset_search_path, 
-                   reference_manifest_path):
+                   reference_manifest_path, keep_ref_entries):
 
     manifest = createVersionManifest(version, url_project_manifest, url_version_manifest, url_asset)
     with open(dst_file_version_manifest, 'w') as f:
@@ -60,20 +60,25 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
 
     assets = createAssetList(remote_dir_asset, local_asset_search_path)
 
-    if reference_manifest_path == None or not os.path.exists(reference_manifest_path):
-        manifest['assets'] = assets
-    else:
+    if reference_manifest_path and os.path.exists(reference_manifest_path):
         baseManifest = loadManifest(reference_manifest_path)
-
         baseAssets = baseManifest.get('assets')
-        for key in assets:
-            asset = assets.get(key)
-            if baseAssets.has_key(key):
-                baseAsset = baseAssets.get(key)
-                if baseAsset.get('md5') == asset.get('md5'):
-                    continue
-            baseAssets[key] = asset
-        manifest['assets'] = baseAssets
+        if keep_ref_entries:
+            primaryAssets = baseAssets
+            secondaryAssets = assets
+        else:
+            primaryAssets = assets
+            secondaryAssets = baseAssets
+        for key in secondaryAssets:
+            if not primaryAssets.has_key(key):
+              continue
+            primary   = primaryAssets.get(key)
+            secondary = secondaryAssets.get(key)
+            if primary.get('md5') == secondary.get('md5'):
+                continue
+            primaryAssets[key] = secondary
+        assets = primaryAssets
+    manifest['assets'] = assets
 
     for key in manifest['assets'].keys():
         manifest['assets'][key]['path'] = urllib.quote(manifest['assets'][key]['path'])
@@ -100,9 +105,10 @@ example:
     parser.add_argument('remote_dir_asset', metavar='remote.dir.asset', help='remote directory for asset files')
     parser.add_argument('local_asset_search_path', metavar='local.asset.search.path', help='local asset path')
     parser.add_argument('--ref', metavar='reference.manifest.path', help='reference manifest path')
+    parser.add_argument('--keep-ref-entries', default = False, action = 'store_true', help = 'do not delete entries only exists in reference manifest')
     args = parser.parse_args()
 
     createManifest(args.dst_file_project_manifest, args.dst_file_version_manifest,
         args.version, args.url_project_manifest, args.url_version_manifest, args.url_asset,
         args.remote_dir_asset, args.local_asset_search_path,
-        args.ref)
+        args.ref, args.keep_ref_entries)
