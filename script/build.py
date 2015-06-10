@@ -202,6 +202,7 @@ class AssetBuilder():
             url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
 
         info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
+        info("reference manifest: %s" % reference_manifest)
 
         cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
@@ -433,9 +434,9 @@ class AssetBuilder():
                 self.build_master_bin()
                 self.build_font()
                 self.build_user_class()
-                self.install()
             self.deploy_git_repo()
             self.build_manifest()
+            self.install()
             self.deploy_dev_cdn()
         finally:
             if self.auto_cleanup:
