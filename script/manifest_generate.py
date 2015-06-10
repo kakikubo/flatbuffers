@@ -60,20 +60,18 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
 
     assets = createAssetList(remote_dir_asset, local_asset_search_path)
 
-    if reference_manifest_path == None or not os.path.exists(reference_manifest_path):
-        manifest['assets'] = assets
-    else:
+    if reference_manifest_path and os.path.exists(reference_manifest_path):
         baseManifest = loadManifest(reference_manifest_path)
-
         baseAssets = baseManifest.get('assets')
-        for key in assets:
+        for key in baseAssets:
+            if not assets.has_key(key):
+              continue
+            baseAsset = baseAssets.get(key)
             asset = assets.get(key)
-            if baseAssets.has_key(key):
-                baseAsset = baseAssets.get(key)
-                if baseAsset.get('md5') == asset.get('md5'):
-                    continue
-            baseAssets[key] = asset
-        manifest['assets'] = baseAssets
+            if asset.get('md5') == asset.get('md5'):
+                continue
+            assets[key] = baseAsset
+    manifest['assets'] = assets
 
     for key in manifest['assets'].keys():
         manifest['assets'][key]['path'] = urllib.quote(manifest['assets'][key]['path'])
