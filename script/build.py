@@ -196,10 +196,12 @@ class AssetBuilder():
             reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
             url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
             url_version_manifest  = self.DEV_CDN_URL+'/'+self.VERSION_MANIFEST_FILE
+            keep_ref_entries      = False
         else:
             reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
             url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
             url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
+            keep_ref_entries      = True
 
         info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
         info("reference manifest: %s" % reference_manifest)
@@ -207,6 +209,8 @@ class AssetBuilder():
         cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
                    self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
+        if keep_ref_entries:
+          cmdline.append('--keep-ref-entries')
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
