@@ -8,13 +8,14 @@ import re
 import datetime
 import argparse
 import logging
+import os
+import shutil
 from logging import info, warning, error
 from collections import OrderedDict
 
-def ll2newLayout(master_asset_root, dst_filename):
-    ground = []
-    wall = []
-    bg = []
+def ll2newLayout(master_asset_root, dst_asset_root):
+    result = {}
+
     with open(master_asset_root + "/master_derivatives/master_data.json", 'r') as f:
         master = json.loads(f.read(), object_pairs_hook=OrderedDict)
         for item in master["layoutDeprecated"]:
@@ -23,6 +24,9 @@ def ll2newLayout(master_asset_root, dst_filename):
             is_ground = item["type"] == "ground"
             is_bg = item["type"] == "bg"
             is_wall = item["type"] == "wall"
+            area_id = str(item["mapID"])
+            if not area_id in result:
+                result[area_id] = {"areaId":item["mapID"], "ground":[], "wall":[], "bg":[]}
 
             origin_x = item["x"]
             origin_y = item["y"]
@@ -35,7 +39,7 @@ def ll2newLayout(master_asset_root, dst_filename):
                         if llitem.pop("childs"):
                             print "error: not empty children in sprite"
                         i = {}
-                        i["image"] = llitem["image"]
+                        i["image"] = llitem["image"].replace("common_","")
                         i["width"] = llitem["size"]["width"]
                         i["height"] = llitem["size"]["height"]
                         if is_ground:
@@ -48,25 +52,33 @@ def ll2newLayout(master_asset_root, dst_filename):
                             i["z"] = origin_z + llitem["z"]
                             i["offsetX"] = 0
                             i["offsetY"] = llitem["position"]["y"]
-
+                        result[area_id]["area_id"] = area_id
                         if is_ground:
-                            ground.append(i)
+                            result[area_id]["ground"].append(i)
                         elif is_wall:
-                            wall.append(i)
+                            result[area_id]["wall"].append(i)
                         elif is_bg:
-                            bg.append(i)
-    result = {}
-    result["openWorld"] = {}
-    result["openWorld"]["ground"] = ground
-    result["openWorld"]["wall"] = wall
-    result["openWorld"]["bg"] = bg
-    with open(dst_filename, 'w') as f:
-        j = json.dumps(result, ensure_ascii = False, indent = 4)
-        f.write(j.encode("utf-8"))
+                            result[area_id]["bg"].append(i)
+    dst_json_dir = dst_asset_root + "/editor/areaInfo"
+    if not os.path.exists(dst_json_dir):
+        os.makedirs(dst_json_dir)
+
+    dst_image_dir = dst_asset_root + "/contents/files/area/test1"
+    src_image_dir = master_asset_root + "/contents/files/common/image"
+    for area_id in result.keys():
+        info = result[area_id]
+        with open(dst_json_dir + "/areaInfo_"+ area_id + ".json", 'w') as f:
+            j = json.dumps({"areaInfo_item":info}, ensure_ascii = False, indent = 4)
+            f.write(j.encode("utf-8"))
+        for t in ["ground", "wall", "bg"]:
+            for i in info[t]:
+                d = dst_image_dir + "/" + t
+                if not os.path.exists(d):
+                    os.makedirs(d)
+                shutil.copyfile(src_image_dir+"/common_"+i["image"], d + "/" + i["image"])
 # ---
 # main function
 #
 if __name__ == '__main__':
-    master_asset_root = "./kms_master_asset"
-    ll2newLayout(master_asset_root, "./kms_master_asset/editor/openWorld.json")
+    ll2newLayout("./kms_master_asset", "./kms_tomohiko.furumoto_asset")
     exit(0)
