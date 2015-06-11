@@ -8,7 +8,7 @@ sleep=$1
 [ -n "$sleep" ] || sleep=0
 
 commit_log_file=/tmp/watchman-commit-message.log
-gitlab_url=http://git.gree-dev.net
+github_url=http://git.gree-dev.net
 version_manifest=manifests/dev/version.manifest
 version_tag=
 
@@ -21,10 +21,18 @@ exit_code=0
 if git status | grep 'Changes to be committed:' > /dev/null; then
   sleep $sleep # wait to sync complete
 
-  # commit git
+  # commit log
   echo "git commit and push (committed by $self `whoami`@`hostname`)"
-  git status --short | grep -e '^[MAD]' > $commit_log_file
+  git status --short | grep -e '^[MAD]' > $commit_log_file || exit $?
   echo "committed by $self `whoami`@`hostname`" >> $commit_log_file
+
+  # get xlsx diff
+  for i in `git status --short | grep -e '^ [MAD]' | grep .xlsx | cut -c 4-`; do
+    echo -e "\n" >> $commit_log_file
+    git diff --cached $i >> $commit_log_file || exit $?
+  done
+
+  # commit git
   git commit --file $commit_log_file || exit $?
   commit_id=`git log -1 | head -1 | cut -c 8-`
 
@@ -46,7 +54,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   echo "automatic sync with git is done: $exit_code"
 
   # log
-  `dirname $0`/../script/sonya.sh ":) `whoami`@`hostname`" $gitlab_url/kms/asset/commit/$commit_id $commit_log_file || exit $?
+  `dirname $0`/../script/sonya.sh ":) git commit by `whoami`@`hostname`" $github_url/kms/asset/commit/$commit_id $commit_log_file || exit $?
 fi
 
 # git push return by 1 when master branch is updated
