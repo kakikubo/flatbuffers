@@ -169,7 +169,8 @@ class AssetBuilder():
 
     # get editor data files
     def _get_editor_files(self):
-        editor_dirs = (self.master_editor_dir, self.main_editor_dir)
+        editor_dirs = (self.master_editor_dir, self.master_editor_dir + "/areaInfo")
+        editor_dirs += (self.main_editor_dir, self.main_editor_dir + "/areaInfo")
         editor_files = {}
         for editor_dir in editor_dirs:
             for editor_path in glob("%s/*.json" % editor_dir):
@@ -238,7 +239,16 @@ class AssetBuilder():
                 with open(editor_file, 'r') as f:
                     editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
                 for key in editor_json_data:
-                    json_data[key] = editor_json_data[key]
+                    data = editor_json_data[key]
+                    if '_' in key:
+                        a = key.split('_')
+                        key = a[0]
+                        if a[1] == "item":
+                            if not key in json_data:
+                                editor_json_data[key] = []
+                            json_data[key].append(data)
+                    else:
+                        json_data[key] = data
 
             with open(master_file, 'w') as f:
                 j = json.dumps(json_data, ensure_ascii = False, indent = 4)

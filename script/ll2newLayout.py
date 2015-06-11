@@ -52,7 +52,6 @@ def ll2newLayout(master_asset_root, dst_asset_root):
                             i["z"] = origin_z + llitem["z"]
                             i["offsetX"] = 0
                             i["offsetY"] = llitem["position"]["y"]
-                        result[area_id]["area_id"] = area_id
                         if is_ground:
                             result[area_id]["ground"].append(i)
                         elif is_wall:
