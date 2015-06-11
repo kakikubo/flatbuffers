@@ -331,26 +331,8 @@ class AssetBuilder():
         return True
 
     # copy all generated files 
-    def install(self, build_dir=None):
+    def install_list(self, list, build_dir=None):
         build_dir = build_dir or self.build_dir
-        list = [
-            (self.PROJECT_MANIFEST_FILE,   self.manifest_dir, self.org_manifest_dir),
-            (self.VERSION_MANIFEST_FILE,   self.manifest_dir, self.org_manifest_dir),
-            (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
-            (self.MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
-            (self.MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
-            (self.MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
-            (self.MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
-            (self.USER_CLASS_FILE,         self.user_class_dir, self.org_user_class_dir),
-            (self.USER_HEADER_FILE,        self.user_header_dir, self.org_user_class_dir),
-        ]
-        for font_path in glob("%s/*.fnt" % build_dir):
-            font_path = re.sub('^'+build_dir+'/', '', font_path)
-            png_path  = re.sub('.fnt$', '.png', font_path)
-            #list.append((font_path, self.font_dir, self.org_font_dir))
-            #list.append((png_path,  self.font_dir, self.org_font_dir))
-            list.append((font_path, self.font_dir, self.font_dir))
-            list.append((png_path,  self.font_dir, self.font_dir))
         for filename, dest1, dest2 in list:
             if os.path.exists(build_dir+'/'+filename):
                 info("install: %s -> %s + %s" % (filename, dest1, dest2))
@@ -366,6 +348,32 @@ class AssetBuilder():
                     debug("copy '%s' -> '%s'" % (src, dest))
                     copy(src, dest)
         return True
+
+    def install_generated(self, build_dir=None):
+        list = [
+            (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
+            (self.MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
+            (self.MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
+            (self.MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
+            (self.MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
+            (self.USER_CLASS_FILE,         self.user_class_dir, self.org_user_class_dir),
+            (self.USER_HEADER_FILE,        self.user_header_dir, self.org_user_class_dir),
+        ]
+        for font_path in glob("%s/*.fnt" % build_dir):
+            font_path = re.sub('^'+build_dir+'/', '', font_path)
+            png_path  = re.sub('.fnt$', '.png', font_path)
+            #list.append((font_path, self.font_dir, self.org_font_dir))
+            #list.append((png_path,  self.font_dir, self.org_font_dir))
+            list.append((font_path, self.font_dir, self.font_dir))
+            list.append((png_path,  self.font_dir, self.font_dir))
+        return self.install_list(list, build_dir)
+
+    def install_manifest(self, build_dir=None):
+        list = [
+            (self.PROJECT_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
+            (self.VERSION_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
+        ]
+        return self.install_list(list, build_dir)
 
     def deploy_git_repo(self):
         if not self.is_master or not self.git_dir:
@@ -453,9 +461,10 @@ class AssetBuilder():
                 self.build_master_bin()
                 self.build_font()
                 self.build_user_class()
+                self.install_generated()
             self.deploy_git_repo()
             self.build_manifest()
-            self.install()
+            self.install_manifest()
             self.deploy_dev_cdn()
         finally:
             if self.auto_cleanup:
@@ -535,7 +544,8 @@ examples:
     elif args.command == 'build-font':
         asset_builder.build_font()
     elif args.command == 'install':
-        asset_builder.install()
+        asset_builder.install_generated()
+        asset_builder.install_manifest()
     elif args.command == 'deploy-dev':
         asset_builder.deploy_dev()
     elif args.command == 'cleanup':

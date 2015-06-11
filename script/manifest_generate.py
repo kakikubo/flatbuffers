@@ -75,8 +75,7 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
             primary   = primaryAssets.get(key)
             secondary = secondaryAssets.get(key)
             if primary.get('md5') == secondary.get('md5'):
-                continue
-            primaryAssets[key] = secondary
+                primaryAssets[key] = secondary
         assets = primaryAssets
     manifest['assets'] = assets
 
