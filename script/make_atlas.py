@@ -56,7 +56,7 @@ def makeAtlas(masterExcel, sheetName, paramStartRow, folderPath):
 
             with open(dstAtlas, 'w') as f:
                 base = "{0}.png\nsize: {1},{2}\nformat: RGBA8888\nfilter: Linear,Linear\nrepeat: none\n{3}\n  rotate: false\n  xy: 0,0\n  size: {4},{5}\n  orig: {6},{7}\n  offset: {8},{9}\n  index: -1\n"
-                f.write(base.format(modelId, width, height, modelId, width, height, width, height, x, y))
+                f.write(base.format(modelId, width, height, modelId, width, height, width, height, int(width*0.5)-x, int(height*0.5)-y))
 
 # ---
 # main function
