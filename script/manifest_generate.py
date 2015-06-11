@@ -64,19 +64,22 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
         baseManifest = loadManifest(reference_manifest_path)
         baseAssets = baseManifest.get('assets')
         if keep_ref_entries:
-            primaryAssets = baseAssets
-            secondaryAssets = assets
+            for key in assets:
+                if not baseAssets.has_key(key):
+                  continue
+                asset     = assets.get(key)
+                baseAsset = baseAssets.get(key)
+                if baseAsset.get('md5') != asset.get('md5'):
+                    baseAssets[key] = asset
+            assets = baseAssets
         else:
-            primaryAssets = assets
-            secondaryAssets = baseAssets
-        for key in secondaryAssets:
-            if not primaryAssets.has_key(key):
-              continue
-            primary   = primaryAssets.get(key)
-            secondary = secondaryAssets.get(key)
-            if primary.get('md5') == secondary.get('md5'):
-                primaryAssets[key] = secondary
-        assets = primaryAssets
+            for key in baseAssets:
+                if not assets.has_key(key):
+                  continue
+                asset     = assets.get(key)
+                baseAsset = baseAssets.get(key)
+                if baseAsset.get('md5') == asset.get('md5'):
+                    assets[key] = baseAsset
     manifest['assets'] = assets
 
     for key in manifest['assets'].keys():
