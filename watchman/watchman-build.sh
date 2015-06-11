@@ -9,11 +9,13 @@ target=$1
 
 # build asset
 $tool_dir/script/build.py build --target $target --git-dir $git_dir || exit $?
+echo "build $target done"
 
 if [ $target = "master" ]; then
   # update each user in master updated
   for user_target in `cat $asset_list_json | jq '.[]' -r`; do
     $tool_dir/script/build.py build --target $user_target || exit $?
+    echo "build $user_target done"
   done
 
   # git commit + push
@@ -23,6 +25,12 @@ if [ $target = "master" ]; then
   current_branch=`git branch | cut -c 3-`
   if [ $current_branch != 'master' ]; then
     echo "current branch is not master ($current_branch)"
+    exit 1
+  fi
+
+  # check box conflicted files
+  if ! find . -name '* (*@gree.net)*' 2>/dev/null; then
+    echo "Box Sync conflicted files are found: cannot commit to git"
     exit 1
   fi
 

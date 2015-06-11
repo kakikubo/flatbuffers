@@ -429,10 +429,14 @@ class AssetBuilder():
 
         check_call("find " + self.main_dir+'/contents' + " -type f -print | xargs chmod 664", shell=True)
         check_call("find " + self.main_dir+'/contents' + " -type d -print | xargs chmod 775", shell=True)
+        info("deploy %s" % self.main_dir+'/contents/')
         check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
         check_call(['chmod', '775', dest_dir+"/contents"])
+        info("deploy %s" % version_file)
         check_call(rsync + [version_file, dest_version_manifest])
+        info("deploy %s" % project_file)
         check_call(rsync + [project_file, dest_dir+'/'+self.PROJECT_MANIFEST_FILE])
+        info("deploy to dev cdn: done")
 
     # do all processes
     def build_all(self, check_modified=True):
