@@ -169,13 +169,18 @@ class AssetBuilder():
 
     # get editor data files
     def _get_editor_files(self):
-        editor_dirs = (self.master_editor_dir, self.master_editor_dir + "/areaInfo")
-        editor_dirs += (self.main_editor_dir, self.main_editor_dir + "/areaInfo")
+        editor_dirs = (self.master_editor_dir, self.main_editor_dir)
         editor_files = {}
         for editor_dir in editor_dirs:
-            for editor_path in glob("%s/*.json" % editor_dir):
-                basename = os.path.basename(editor_path)
-                editor_files[basename] = editor_path
+            for dirpath, dirnames, filenames in os.walk(editor_dir):
+                for filename in filenames:
+                    base, ext = os.path.splitext(filename)
+                    if ext != ".json":
+                        continue
+                    editor_path = os.path.join(dirpath, filename)
+                    basename = os.path.basename(editor_path)
+                    editor_files[basename] = editor_path
+                    print(editor_path)
         return editor_files.values()
 
     # check modification of user editted files
