@@ -297,7 +297,7 @@ def exportSpine(masterExcel, sheetName, paramStartRow, paramStartCol, srcFile, o
                 dic = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
                 srcPath = os.path.abspath(srcFile)
                 root, ext = os.path.splitext(srcFile)
-                dstPath = os.path.abspath(outPath) + "/" + str(modelID) + "/" + str(modelID) + ext
+                dstPath = os.path.abspath(outPath) + "/" + str(modelID) + ext
 
                 params = []
                 params.append("-i")
