@@ -262,8 +262,8 @@ class AssetBuilder():
 
     # sort master json
     def sort_master_json(self):
-        data = self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
-        schema = self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        schema = self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        data = self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         cmdline = [self.sort_master_json_bin, schema, data, data]
         debug(' '.join(cmdline))
         check_call(cmdline)
