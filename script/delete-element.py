@@ -331,18 +331,7 @@ if __name__ == '__main__':
             printHelp()
         else:
             if argc == 7:
-                """
-                python ${KMS_SCRIPT}/delete-element.py /Users/motoshi.abe/Box\ Sync/kms_motoshi.abe_asset/master/character.xlsx characterSpine 3 9 chara.json ./
-                python ${KMS_SCRIPT}/delete-element.py  ./ (convert "chara.json". output in "./" folder)
-                """
                 exportSpine(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6])
-                """
-                    # e.g. > cd testdata (chara.json & chara.atlas are existing in testdata folder.)
-                    #      > python ${KMS_SCRIPT}/delete-element.py chara ./ (convert "chara.json". output in "./" folder)
-                    autoExport(argv[1], argv[2])
-                else:
-                printHelp()
-                """
             elif argc == 5:
                 parser = argparse.ArgumentParser()
                 parser.add_argument("-s", nargs="*")

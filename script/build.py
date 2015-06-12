@@ -110,6 +110,7 @@ class AssetBuilder():
         self.flatc_bin     = self_dir+'/flatc'
         self.fbs2class_bin = self_dir+'/fbs2class.py'
         self.json2font_bin = self_dir+'/json2font.py'
+        self.sort_master_json_bin = self_dir+'/sort-master-json.py'
         
         self.PROJECT_MANIFEST_FILE   = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE   = 'dev.version.manifest'
@@ -258,6 +259,12 @@ class AssetBuilder():
             with open(master_file, 'w') as f:
                 j = json.dumps(json_data, ensure_ascii = False, indent = 4)
                 f.write(j.encode("utf-8"))
+
+    # sort master json
+    def sort_master_json(self):
+        data = self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        schema = self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        sort_master_json_bin(schema, data, data)
 
     # create fbs from json
     def build_master_fbs(self, src_json=None, dest_fbs=None, root_name=None, namespace=None):
@@ -461,6 +468,7 @@ class AssetBuilder():
             if not check_modified or modified:
                 self.build_master_json()
                 self.merge_editor_file()
+                self.sort_master_json()
                 self.build_master_fbs()
                 self.build_master_bin()
                 self.build_font()
