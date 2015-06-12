@@ -278,46 +278,55 @@ def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail):
     dic["bone"] = bone
     return dic
 
-def exportSpine(masterExcel, sheetName, paramStartRow, paramStartCol, srcFile, outPath):
+def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile, outPath):
     iParamStartRow = int(paramStartRow)
-    iParamStartCol = int(paramStartCol)
+    iParamStartCol = -1
     book = xlrd.open_workbook(masterExcel)
     sheet = book.sheet_by_name(sheetName)
-    for row in range(sheet.nrows):
-        if (sheet.ncols < iParamStartCol+5):
-            print "ncols={0} but paramStartCol={1}".format(sheet.ncols, iParamStartCol)
-        else:
-            if (row >= iParamStartRow):
-                modelID = int(sheet.cell_value(row, 0))
-                hasTwinTail = sheet.cell_value(row, iParamStartCol)
-                hasPonyTail = sheet.cell_value(row, iParamStartCol+1)
-                hasEarCat = sheet.cell_value(row, iParamStartCol+2)
-                hasEarRabitt = sheet.cell_value(row, iParamStartCol+3)
-                hasTail = sheet.cell_value(row, iParamStartCol+4)
-                print "Convert Param = {0}:{1},{2},{3},{4},{5}".format(str(modelID), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
-                dic = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
-                srcPath = os.path.abspath(srcFile)
-                root, ext = os.path.splitext(srcFile)
-                dstPath = os.path.abspath(outPath) + "/" + str(modelID) + ext
 
-                params = []
-                params.append("-i")
-                params.append(srcPath)
-                params.append("-o")
-                params.append(dstPath)
-                params.append("-s")
-                for slot in dic["slot"]:
-                    params.append(slot)
-                params.append("-b")
-                for bone in dic["bone"]:
-                    params.append(bone)
-                print params
-                parser = argparse.ArgumentParser()
-                parser.add_argument("-s", nargs="*")
-                parser.add_argument("-b", nargs="*")
-                parser.add_argument("-i", required=True)
-                parser.add_argument("-o", required=True)
-                deleteElement(parser.parse_args(params))
+    if sheet.nrows > 0:
+        for col in range(sheet.ncols):
+            if sheet.cell_value(0, col) == paramStartField:
+                iParamStartCol = col
+                print "find {0}:{1}".format(paramStartField, col)
+                break
+
+    if iParamStartCol >= 0:
+        for row in range(sheet.nrows):
+            if (sheet.ncols < iParamStartCol+5):
+                print "ncols={0} but paramStartCol={1}".format(sheet.ncols, iParamStartCol)
+            else:
+                if (row >= iParamStartRow):
+                    modelID = int(sheet.cell_value(row, 0))
+                    hasTwinTail = sheet.cell_value(row, iParamStartCol)
+                    hasPonyTail = sheet.cell_value(row, iParamStartCol+1)
+                    hasEarCat = sheet.cell_value(row, iParamStartCol+2)
+                    hasEarRabitt = sheet.cell_value(row, iParamStartCol+3)
+                    hasTail = sheet.cell_value(row, iParamStartCol+4)
+                    print "Convert Param = {0}:{1},{2},{3},{4},{5}".format(str(modelID), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
+                    dic = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
+                    srcPath = os.path.abspath(srcFile)
+                    root, ext = os.path.splitext(srcFile)
+                    dstPath = os.path.abspath(outPath) + "/" + str(modelID) + ext
+
+                    params = []
+                    params.append("-i")
+                    params.append(srcPath)
+                    params.append("-o")
+                    params.append(dstPath)
+                    params.append("-s")
+                    for slot in dic["slot"]:
+                        params.append(slot)
+                    params.append("-b")
+                    for bone in dic["bone"]:
+                        params.append(bone)
+                    print params
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("-s", nargs="*")
+                    parser.add_argument("-b", nargs="*")
+                    parser.add_argument("-i", required=True)
+                    parser.add_argument("-o", required=True)
+                    deleteElement(parser.parse_args(params))
 
 # ---
 # main function
