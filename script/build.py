@@ -264,7 +264,10 @@ class AssetBuilder():
     def sort_master_json(self):
         data = self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         schema = self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
-        sort_master_json_bin(schema, data, data)
+        cmdline = [self.sort_master_json_bin, schema, data, data]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
 
     # create fbs from json
     def build_master_fbs(self, src_json=None, dest_fbs=None, root_name=None, namespace=None):
