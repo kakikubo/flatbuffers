@@ -29,7 +29,8 @@ if [ $target = "master" ]; then
   fi
 
   # check box conflicted files
-  invalid_file_count=`find `pwd` -name '* (*).*' | wc -l`
+  cwd=`pwd`
+  invalid_file_count=`find $cwd -name '* (*).*' | wc -l`
   if [ $invalid_file_count -gt 0 ]; then
     echo "=== Box Sync conflicted files are found: cannot commit to git"
     find `pwd` -name '* (*).*'
