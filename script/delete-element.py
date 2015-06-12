@@ -227,13 +227,14 @@ def deleteElement(args):
             deleteSkinBySlotName(jsonData, skinName)
 
     changed = True
-    with open(dstJson, 'r') as f_old:
-        dstData = json.loads(f_old.read(), object_pairs_hook=OrderedDict)
-        if jsonData == dstData:
-            print "data not changed:{0}".format(dstJson)
-            changed = False
-        else:
-            os.remove(dstJson)
+    if os.path.exists(dstJson):
+        with open(dstJson, 'r') as f_old:
+            dstData = json.loads(f_old.read(), object_pairs_hook=OrderedDict)
+            if jsonData == dstData:
+                print "data not changed:{0}".format(dstJson)
+                changed = False
+            else:
+                os.remove(dstJson)
 
     if changed:
         with open(dstJson, 'w+') as f_new:
