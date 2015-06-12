@@ -28,7 +28,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
 
   # get xlsx diff
   for i in `git status --short | grep -e '^[MAD]' | grep .xlsx | cut -c 4-`; do
-    echo -e "\n" >> $commit_log_file
+    echo >> $commit_log_file
     git diff --cached $i >> $commit_log_file || exit $?
   done
 
