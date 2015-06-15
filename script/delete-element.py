@@ -12,13 +12,6 @@ from collections import OrderedDict
 import time
 import xlrd
 
-CURRENT_CATEGORY_DEPTH = 0
-CURRENT_CATEGORY = "NONE"
-RELAED_TARGET = []
-
-SLOT_NAME = ""
-BONE_NAME = ""
-
 def searchInListDataRecursiveByKeyAndValue(listData, key, value):
     for data in listData:
         if isinstance(data, dict):
@@ -217,14 +210,77 @@ def deleteElement(args):
     jsonData = {}
     with open(srcJson, 'r') as f:
         jsonData = json.loads(f.read(), object_pairs_hook=OrderedDict)
+
+
+        # 全slotの名前とインデクスを保存
+        slotIndexMap = {}
+        if jsonData.has_key("slots"):
+            count = 0
+            for slot in jsonData["slots"]:
+                if isinstance(slot, dict):
+                    if slot.has_key("name"):
+                        slotIndexMap[slot["name"]] = count
+                        count += 1
+
+        slotIndexMapAfter = slotIndexMap.copy()
+
         for boneName in boneList:
             deleteAnimationByBoneName(jsonData, boneName)
         for slotName in slotList:
             deleteAnimationBySlotName(jsonData, slotName)
+            slotIndexMapAfter[slotName] = -1
         for slotName in slotList:
             deleteSlotBySlotName(jsonData, slotName)
         for skinName in skinList:
             deleteSkinBySlotName(jsonData, skinName)
+
+        count = 0
+        slotIndexMapKeys = slotIndexMap.keys()
+        for search in range(len(slotIndexMapKeys)):
+            for slotIndexMapKey in slotIndexMapKeys:
+                if slotIndexMap[slotIndexMapKey] == search:
+                    if slotIndexMapAfter[slotIndexMapKey] != -1:
+                        slotIndexMapAfter[slotIndexMapKey] = count
+                        count += 1
+                    else:
+                        slotIndexMapAfter[slotIndexMapKey] = count
+
+        # for slotIndexMapKey in slotIndexMapKeys:
+        #    print "{0} : {1}->{2}".format(slotIndexMapKey, slotIndexMap[slotIndexMapKey], slotIndexMapAfter[slotIndexMapKey])
+
+        # drawOrderアニメーションのoffsetを付け替える
+        if jsonData.has_key("animations"):
+            animations = jsonData["animations"]
+            animationsKeys = animations.keys()
+            for animationsKey in animationsKeys:
+                animation = animations[animationsKey]
+                animationKeys = animation.keys()
+                for animationKey in animationKeys:
+                    if animationKey == "drawOrder":
+                        drawOrders = animation["drawOrder"]
+                        for drawOrder in drawOrders:
+                            if drawOrder.has_key("offsets"):
+                                offsets = drawOrder["offsets"]
+                                for offsetData in offsets:
+                                    slot = offsetData["slot"]
+                                    offset = offsetData["offset"]
+
+                                    targetIndex = slotIndexMap[slot] + offset
+                                    targetName = ""
+                                    currentIndex = 0
+                                    for slotIndexMapKey in slotIndexMapKeys:
+                                        if slotIndexMap[slotIndexMapKey] == targetIndex:
+                                            targetName = slotIndexMapKey
+                                            break
+                                    if targetName != "":
+                                        offsetData["offset"] = slotIndexMapAfter[targetName] - slotIndexMapAfter[slot]
+
+                                    print "slot:{0} : offset:{1} : index:{2}->{3} : target:{4}:{5}->{6}".format(slot, offset, slotIndexMap[slot], slotIndexMapAfter[slot], targetName, targetIndex, slotIndexMapAfter[targetName])
+                                    
+
+            #print "{0}.{1}->{2}".format(key, slotIndexMap[key], slotIndexMapAfter[key])
+
+
 
     changed = True
     if os.path.exists(dstJson):
