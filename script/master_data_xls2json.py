@@ -87,6 +87,9 @@ def check_data(data):
         if table['type'].find('ignore') >= 0:
             continue
         if table['type'].find('json') < 0:
+            if not data.has_key(table['name']):
+                errors.append("no data in table %s: %s" % (table['name'], ", ".join(data.keys())))
+                continue
             for d in data[table['name']]:
                 if d.has_key('_error'):
                     errors.append(d['_error'])
