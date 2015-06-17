@@ -11,6 +11,8 @@ import datetime
 from collections import OrderedDict
 import time
 import xlrd
+import logging
+from logging import info, warning, debug
 
 def searchInListDataRecursiveByKeyAndValue(listData, key, value):
     for data in listData:
@@ -201,11 +203,11 @@ def deleteElement(args):
     skinList = slotList
 
     if True:
-        print "convert file = {0}".format(srcJson)
-        print "output file = {0}".format(dstJson)
-        print "bones = {0}".format(boneList)
-        print "slots = {0}".format(slotList)
-        print "skins = {0}".format(skinList)
+        debug("convert file = {0}".format(srcJson))
+        debug("output file = {0}".format(dstJson))
+        debug("bones = {0}".format(boneList))
+        debug("slots = {0}".format(slotList))
+        debug("skins = {0}".format(skinList))
 
     jsonData = {}
     with open(srcJson, 'r') as f:
@@ -246,7 +248,7 @@ def deleteElement(args):
                         slotIndexMapAfter[slotIndexMapKey] = count
 
         # for slotIndexMapKey in slotIndexMapKeys:
-        #    print "{0} : {1}->{2}".format(slotIndexMapKey, slotIndexMap[slotIndexMapKey], slotIndexMapAfter[slotIndexMapKey])
+        #    debug("{0} : {1}->{2}".format(slotIndexMapKey, slotIndexMap[slotIndexMapKey], slotIndexMapAfter[slotIndexMapKey]))
 
         # drawOrderアニメーションのoffsetを付け替える
         if jsonData.has_key("animations"):
@@ -275,10 +277,10 @@ def deleteElement(args):
                                     if targetName != "":
                                         offsetData["offset"] = slotIndexMapAfter[targetName] - slotIndexMapAfter[slot]
 
-                                    print "slot:{0} : offset:{1} : index:{2}->{3} : target:{4}:{5}->{6}".format(slot, offset, slotIndexMap[slot], slotIndexMapAfter[slot], targetName, targetIndex, slotIndexMapAfter[targetName])
+                                    debug("slot:{0} : offset:{1} : index:{2}->{3} : target:{4}:{5}->{6}".format(slot, offset, slotIndexMap[slot], slotIndexMapAfter[slot], targetName, targetIndex, slotIndexMapAfter[targetName]))
                                     
 
-            #print "{0}.{1}->{2}".format(key, slotIndexMap[key], slotIndexMapAfter[key])
+            #debug("{0}.{1}->{2}".format(key, slotIndexMap[key], slotIndexMapAfter[key]))
 
 
 
@@ -287,14 +289,14 @@ def deleteElement(args):
         with open(dstJson, 'r') as f_old:
             dstData = json.loads(f_old.read(), object_pairs_hook=OrderedDict)
             if jsonData == dstData:
-                print "data not changed:{0}".format(dstJson)
+                info("data not changed:{0}".format(dstJson))
                 changed = False
             else:
                 os.remove(dstJson)
 
     if changed:
         with open(dstJson, 'w+') as f_new:
-            print "data created {0}".format(dstJson)
+            info("data created {0}".format(dstJson))
             #f.write(json.dumps(jsonData, indent=2, sort_keys=False))
             f_new.write(json.dumps(jsonData))
     
@@ -344,13 +346,13 @@ def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile,
         for col in range(sheet.ncols):
             if sheet.cell_value(0, col) == paramStartField:
                 iParamStartCol = col
-                print "find {0}:{1}".format(paramStartField, col)
+                debug("find {0}:{1}".format(paramStartField, col))
                 break
 
     if iParamStartCol >= 0:
         for row in range(sheet.nrows):
             if (sheet.ncols < iParamStartCol+5):
-                print "ncols={0} but paramStartCol={1}".format(sheet.ncols, iParamStartCol)
+                debug("ncols={0} but paramStartCol={1}".format(sheet.ncols, iParamStartCol))
             else:
                 if (row >= iParamStartRow):
                     modelID = int(sheet.cell_value(row, 0))
@@ -359,7 +361,7 @@ def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile,
                     hasEarCat = sheet.cell_value(row, iParamStartCol+2)
                     hasEarRabitt = sheet.cell_value(row, iParamStartCol+3)
                     hasTail = sheet.cell_value(row, iParamStartCol+4)
-                    print "Convert Param = {0}:{1},{2},{3},{4},{5}".format(str(modelID), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
+                    debug("Convert Param = {0}:{1},{2},{3},{4},{5}".format(str(modelID), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail))
                     dic = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
                     srcPath = os.path.abspath(srcFile)
                     root, ext = os.path.splitext(srcFile)
@@ -376,7 +378,7 @@ def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile,
                     params.append("-b")
                     for bone in dic["bone"]:
                         params.append(bone)
-                    print params
+                    debug(params)
                     parser = argparse.ArgumentParser()
                     parser.add_argument("-s", nargs="*")
                     parser.add_argument("-b", nargs="*")
@@ -388,6 +390,8 @@ def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile,
 # main function
 #
 if __name__ == '__main__':
+    log_level = "INFO" # "DEBUG" # FIXME get via arguments
+    logging.basicConfig(level = log_level, format = '%(asctime)-15s %(levelname)s %(message)s')
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
     argv = sys.argv
     argc = len(argv)
