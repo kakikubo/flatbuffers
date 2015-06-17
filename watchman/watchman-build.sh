@@ -14,7 +14,11 @@ echo "build $target done"
 if [ $target = "master" ]; then
   # update each user in master updated
   for user_target in `cat $asset_list_json | jq '.[]' -r`; do
-    $tool_dir/script/build.py build --target $user_target || exit $?
+    $tool_dir/script/build.py build --target $user_target
+    if [ $? -ne 0 ]; then
+      echo "*** build $user_target via master failed ***"
+      #exit 1	# ignore other user error
+    fi
     echo "build $user_target done"
   done
 
@@ -38,9 +42,9 @@ if [ $target = "master" ]; then
   fi
 
   # git add + git rm
-  git status --short | grep -e '^R[M\?]' | cut -f 4 -d ' ' | xargs git add -- || exit $?  # renamed + changed
-  git status --short | grep -e '^.[M\?]' | cut -c 4-       | xargs git add -- || exit $?  # added + changed
-  git status --short | grep -e '^.D'     | cut -c 4-       | xargs git rm  -- || exit $?  # deleted
+  git status --short | grep -e '^R[M\?]' | cut -f 4 -d ' ' | xargs git add || exit $?  # renamed + changed
+  git status --short | grep -e '^.[M\?]' | cut -c 4-       | xargs git add || exit $?  # added + changed
+  git status --short | grep -e '^.D'     | cut -c 4-       | xargs git rm  || exit $?  # deleted
 
   # commit git
   if git status | grep 'Changes to be committed:' > /dev/null; then

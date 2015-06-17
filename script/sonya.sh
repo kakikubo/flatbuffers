@@ -16,5 +16,5 @@ if [ "$#" -lt 3 ]; then
   exit 1
 fi
 
-curl --silent -F rid=$chat_id -F text="[info][title]$title[/title]$job_url[code]`tail -100 $log_file`[/code]$reference_url[/info]" $sonya_chan_url || exit $?
+gtimeout 10 curl --silent -F rid=$chat_id -F text="'[info][title]$title[/title]$job_url[code]`tail -100 $log_file`[/code]$reference_url[/info]'" $sonya_chan_url || exit $?
 exit 0
