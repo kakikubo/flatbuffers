@@ -9,6 +9,7 @@ import codecs
 import tempfile
 import argparse
 import json
+import xlrd
 import logging
 from time import strftime
 from subprocess import check_call, check_output, call
@@ -76,6 +77,7 @@ class AssetBuilder():
         self.master_header_dir        = self.main_dir+'/master_header'
         self.user_class_dir           = self.main_dir+'/user_header'
         self.user_header_dir          = self.main_dir+'/user_header'
+        self.spine_dir                = self.main_dir+'/contents/files/spine'
         self.font_dir                 = self.main_dir+'/contents/files/font'
 
         self.org_manifest_dir         = self.org_main_dir+'/manifests'
@@ -86,6 +88,7 @@ class AssetBuilder():
         self.org_master_header_dir    = self.org_main_dir+'/master_header'
         self.org_user_class_dir       = self.org_main_dir+'/user_header'
         self.org_user_header_dir      = self.org_main_dir+'/user_header'
+        self.org_spine_dir            = self.org_main_dir+'/contents/files/spine'
         self.org_font_dir             = self.org_main_dir+'/contents/files/font'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
@@ -104,13 +107,14 @@ class AssetBuilder():
         main_editor_schema = self.main_editor_schema_dir+'/editor_schema.json'
         self.editor_schema = main_editor_schema if os.path.exists(main_editor_schema) else self.master_editor_schema_dir+'/editor_schema.json'
 
-        self.manifest_bin  = self_dir+'/manifest_generate.py'
-        self.xls2json_bin  = self_dir+'/master_data_xls2json.py'
-        self.json2fbs_bin  = self_dir+'/json2fbs.py'
-        self.flatc_bin     = self_dir+'/flatc'
-        self.fbs2class_bin = self_dir+'/fbs2class.py'
-        self.json2font_bin = self_dir+'/json2font.py'
+        self.manifest_bin         = self_dir+'/manifest_generate.py'
+        self.xls2json_bin         = self_dir+'/master_data_xls2json.py'
+        self.json2fbs_bin         = self_dir+'/json2fbs.py'
+        self.flatc_bin            = self_dir+'/flatc'
+        self.fbs2class_bin        = self_dir+'/fbs2class.py'
+        self.json2font_bin        = self_dir+'/json2font.py'
         self.sort_master_json_bin = self_dir+'/sort-master-json.py'
+        self.delete_element_bin   = self_dir+'/delete-element.py'
         
         self.PROJECT_MANIFEST_FILE   = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE   = 'dev.version.manifest'
@@ -128,6 +132,7 @@ class AssetBuilder():
         self.USER_FBS_ROOT_NAME      = 'UserDataFBS'
         self.USER_FBS_NAMESPACE      = 'kms.userdata'
         self.DEV_CDN_URL             = 'http://kms-dev.dev.gree.jp/cdn' # FIXME
+        self.MASTER_DATA_ROW_START   = 3
 
     # prepare and isolate source data via box
     def prepare_dir(self, src, dest):
@@ -167,6 +172,13 @@ class AssetBuilder():
                     continue
                 xlsxes[basename] = xlsx_path
         return xlsxes.values()
+
+    def _get_xlsx_sheets(self, xlsx_path):
+        sheets = []
+        xlsx_book = xlrd.open_workbook(xlsx_path)
+        for sheet in xlsx_book.sheets():
+            sheets.append(sheet.name)
+        return sheets
 
     # get editor data files
     def _get_editor_files(self):
@@ -298,6 +310,29 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    # strip spine character animations
+    def build_spine(self, src_xlsxes=None, src_spine_dir=None, dest_dir=None):
+        src_xlsxes    = src_xlsxes    or self._get_xlsxes()
+        src_spine_dir = src_spine_dir or self.spine_dir
+        dest_dir      = dest_dir      or self.build_dir
+
+        for xlsx in self._get_xlsxes():
+            sheets = self._get_xlsx_sheets(xlsx)
+            for sheet_name in ('characterSpine', 'npcSpine', 'snpcSpine'):
+                  if not sheet_name in sheets:
+                      continue
+                  spine_file     = re.sub('Spine$', '.json', sheet_name)
+                  src_spine_json = src_spine_dir+'/'+sheet_name+'/'+spine_file
+                  dest_spine_dir = dest_dir+'/'+sheet_name
+                  if not os.path.exists(dest_spine_dir):
+                      os.makedirs(dest_spine_dir)
+
+                  info("build spine: %s:%s %s" % (os.path.basename(xlsx), sheet_name, os.path.basename(src_spine_json)))
+                  cmdline = [self.delete_element_bin, xlsx, sheet_name, str(self.MASTER_DATA_ROW_START), "hasTwinTail", src_spine_json, dest_spine_dir]
+                  debug(' '.join(cmdline))
+                  check_call(cmdline)
+        return True
+
     # create class header from fbs
     def build_user_class(self, src_fbs=None, dest_class=None, namespace=None):
         src_fbs    = src_fbs    or self.main_schema_dir+'/'+self.USER_FBS_FILE
@@ -345,7 +380,7 @@ class AssetBuilder():
         build_dir = build_dir or self.build_dir
         for filename, dest1, dest2 in list:
             if os.path.exists(build_dir+'/'+filename):
-                info("install: %s -> %s + %s" % (filename, dest1, dest2))
+                info("install if updated: %s" % filename)
                 for dest_dir in (dest1, dest2):
                     src  = build_dir + '/' + filename
                     dest = dest_dir + '/' + filename
@@ -355,11 +390,13 @@ class AssetBuilder():
                         continue
                     if os.path.exists(dest):
                         os.remove(dest)
-                    debug("copy '%s' -> '%s'" % (src, dest))
+                    info("install: %s -> %s" % (src, dest))
                     copy(src, dest)
         return True
 
     def install_generated(self, build_dir=None):
+        build_dir = build_dir or self.build_dir
+        # fixed pathes
         list = [
             (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
             (self.MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
@@ -369,13 +406,16 @@ class AssetBuilder():
             (self.USER_CLASS_FILE,         self.user_class_dir, self.org_user_class_dir),
             (self.USER_HEADER_FILE,        self.user_header_dir, self.org_user_class_dir),
         ]
+        # spine
+        for spine_path in glob("%s/*Spine/*.json" % build_dir):
+            spine_path = re.sub('^'+build_dir+'/', '', spine_path)
+            list.append((spine_path, self.spine_dir, self.org_spine_dir))
+        # font
         for font_path in glob("%s/*.fnt" % build_dir):
             font_path = re.sub('^'+build_dir+'/', '', font_path)
             png_path  = re.sub('.fnt$', '.png', font_path)
-            #list.append((font_path, self.font_dir, self.org_font_dir))
-            #list.append((png_path,  self.font_dir, self.org_font_dir))
-            list.append((font_path, self.font_dir, self.font_dir))
-            list.append((png_path,  self.font_dir, self.font_dir))
+            list.append((font_path, self.font_dir, self.org_font_dir))
+            list.append((png_path,  self.font_dir, self.org_font_dir))
         return self.install_list(list, build_dir)
 
     def install_manifest(self, build_dir=None):
@@ -474,6 +514,7 @@ class AssetBuilder():
                 self.sort_master_json()
                 self.build_master_fbs()
                 self.build_master_bin()
+                self.build_spine()
                 self.build_font()
                 self.build_user_class()
                 self.install_generated()
@@ -506,6 +547,7 @@ commands:
   build-master-bin   generate master_data.bin + master_header/*.h from master_data.json + master_data.fbs
   build-user-class   generate user_header/*.h from user_data.fbs
   build-user-header  generate user_header/*_generated.h from user_data.fbs
+  build-spine        generate spine animation patterns
   build-font         generate bitmap font from master_data.json
   deploy-dev         deploy asset files to cdn directory
   install            install files from build dir
@@ -517,7 +559,7 @@ examples:
     $ ./build.py build
 
   build on local (for development)
-    $ kms_master_asset/hook/build.py build --target master --build-dir build --cdn-dir cdn --log-level DEBUG
+    $ kms_master_asset/hook/build.py build --target master --build-dir build --cdn-dir cdn --git-dir git --log-level DEBUG
 
   build all for 'kms_xxx.yyy_asset'
     $ kms_master_asset/hook/build.py build --target xxx.yyy
@@ -552,6 +594,8 @@ examples:
         asset_builder.build_master_fbs()
     elif args.command == 'build-master-bin':
         asset_builder.build_master_bin()
+    elif args.command == 'build-spine':
+        asset_builder.build_spine()
     elif args.command == 'build-user-class':
         asset_builder.build_user_class()
     elif args.command == 'build-user-header':
