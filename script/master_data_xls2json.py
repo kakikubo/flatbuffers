@@ -30,9 +30,12 @@ def parse_xls(xls_path, except_sheets=[]):
     for sheet in xls_book.sheets():
         if sheet.name in except_sheets or re.match('^_', sheet.name):
             continue
-        keys  = sheet.row(0)
-        types = sheet.row(1)
-        descs = sheet.row(2)
+        try:
+            keys  = sheet.row(0)
+            types = sheet.row(1)
+            descs = sheet.row(2)
+        except:
+            raise Exception("Empty sheet: %s" % sheet.name)
   
         sheet_schema = OrderedDict()
         for i, key in enumerate(keys):
