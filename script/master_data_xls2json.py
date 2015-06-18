@@ -42,7 +42,7 @@ def parse_xls(xls_path, except_sheets=[]):
                 'type': types[i].value,
                 'description': descs[i].value,
                 'file': os.path.basename(xls_path),
-                'table': sheet.name
+                'sheet': sheet.name
             }
         schema[sheet.name] = sheet_schema
   
@@ -85,14 +85,14 @@ def parse_xls(xls_path, except_sheets=[]):
 
 def check_data(data):
     errors = []
-    for table in data['table']:
-        if table['type'].find('ignore') >= 0:
+    for sheet in data['sheet']:
+        if sheet['type'].find('ignore') >= 0:
             continue
-        if table['type'].find('json') < 0:
-            if not data.has_key(table['name']):
-                errors.append("no data in table %s: %s" % (table['name'], ", ".join(data.keys())))
+        if sheet['type'].find('json') < 0:
+            if not data.has_key(sheet['name']):
+                errors.append("no data in sheet %s: %s" % (sheet['name'], ", ".join(data.keys())))
                 continue
-            for d in data[table['name']]:
+            for d in data[sheet['name']]:
                 if d.has_key('_error'):
                     errors.append(d['_error'])
     if errors:
@@ -104,39 +104,39 @@ def check_data(data):
         print("----------------------------\n")
         raise Exception("master data check error")
   
-def normalize_schema(schema, tables):
+def normalize_schema(schema, sheets):
     normalized = OrderedDict()
     meta = []
-    for table in tables:
-        if table['type'].find('ignore') >= 0:
+    for sheet in sheets:
+        if sheet['type'].find('ignore') >= 0:
             continue
 
-        table_name = table['name']
-        if table['type'].find('json') >= 0:
-            normalized[table_name] = "swaped later"
+        sheet_name = sheet['name']
+        if sheet['type'].find('json') >= 0:
+            normalized[sheet_name] = "swaped later"
         else:
             filtered = []
-            for name in schema[table_name]:
-                d = schema[table_name][name]
+            for name in schema[sheet_name]:
+                d = schema[sheet_name][name]
                 if d['type'].find('ignore') >= 0 or \
                    re.match('^_', d['name']):
                     continue
                 filtered.append(d)
 
-            normalized[table_name] = filtered
-        meta.append(table)
+            normalized[sheet_name] = filtered
+        meta.append(sheet)
     normalized["_meta"] = meta
     return normalized
   
 def normalize_data(data):
     normalized = OrderedDict()
-    for table in data['table']:
-        if table['type'].find('ignore') >= 0:
+    for sheet in data['sheet']:
+        if sheet['type'].find('ignore') >= 0:
             continue
         filtered = []
-        if table['type'].find('json') < 0:
+        if sheet['type'].find('json') < 0:
             id_mapping = OrderedDict()
-            for d in data[table['name']]:
+            for d in data[sheet['name']]:
                 # filter by primary key
                 if d['id'] is not None:
                     if d['id'] >= 0:
@@ -146,15 +146,15 @@ def normalize_data(data):
                         if id in id_mapping:
                             del id_mapping[id]  # delete
                 else:
-                  warning("no primary key record: %s: %s" % (table['name'], d))
+                  warning("no primary key record: %s: %s" % (sheet['name'], d))
       
             # object -> list
             for id in id_mapping:
                 filtered.append(id_mapping[id])
       
-            if table['type'].find('object') >= 0:
+            if sheet['type'].find('object') >= 0:
                 filtered = filtered[0] # by object, not object array
-        normalized[table['name']] = filtered
+        normalized[sheet['name']] = filtered
     return normalized
   
 if __name__ == '__main__':
@@ -181,14 +181,14 @@ if __name__ == '__main__':
         xls = parse_xls(input_xlsx, except_sheets)
         data.update(xls['data'])
         schema.update(xls['schema'])
-    for t in data['table']:
-        info("table: %s" % t['name'])
+    for t in data['sheet']:
+        info("sheet: %s" % t['name'])
 
     # check error cells
     check_data(data)
 
     # write json
-    schema = normalize_schema(schema, data['table'])
+    schema = normalize_schema(schema, data['sheet'])
     data = normalize_data(data)
     for t in ((schema_json_file, schema), (data_json_file, data)):
         info("output: %s" % t[0])
