@@ -324,6 +324,8 @@ class AssetBuilder():
                   spine_file     = re.sub('Spine$', '.json', sheet_name)
                   src_spine_json = src_spine_dir+'/'+sheet_name+'/'+spine_file
                   dest_spine_dir = dest_dir+'/'+sheet_name
+                  if not os.path.exists(src_spine_json):
+                      continue
                   if not os.path.exists(dest_spine_dir):
                       os.makedirs(dest_spine_dir)
 
@@ -414,8 +416,8 @@ class AssetBuilder():
         for font_path in glob("%s/*.fnt" % build_dir):
             font_path = re.sub('^'+build_dir+'/', '', font_path)
             png_path  = re.sub('.fnt$', '.png', font_path)
-            list.append((font_path, self.font_dir, self.org_font_dir))
-            list.append((png_path,  self.font_dir, self.org_font_dir))
+            list.append((font_path, self.font_dir, self.font_dir)) # self.org_font_dir
+            list.append((png_path,  self.font_dir, self.font_dir)) # self.org_font_dir
         return self.install_list(list, build_dir)
 
     def install_manifest(self, build_dir=None):
