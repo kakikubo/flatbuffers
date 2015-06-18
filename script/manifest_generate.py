@@ -6,6 +6,8 @@ import argparse
 import hashlib
 import json
 import os
+import logging
+from logging import info, warning, debug
 
 ENGINE_VERSION = 'Cocos2d-x v3.5'
 
@@ -60,7 +62,9 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
 
     assets = createAssetList(remote_dir_asset, local_asset_search_path)
 
-    if reference_manifest_path and os.path.exists(reference_manifest_path):
+    if reference_manifest_path:
+        if not os.path.exists(reference_manifest_path):
+            raise Exception("reference manifest is not found: %s" % reference_manifest_path)
         baseManifest = loadManifest(reference_manifest_path)
         baseAssets = baseManifest.get('assets')
         if keep_ref_entries:
@@ -108,7 +112,10 @@ example:
     parser.add_argument('local_asset_search_path', metavar='local.asset.search.path', help='local asset path')
     parser.add_argument('--ref', metavar='reference.manifest.path', help='reference manifest path')
     parser.add_argument('--keep-ref-entries', default = False, action = 'store_true', help = 'do not delete entries only exists in reference manifest')
+    parser.add_argument('--log-level',     help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
+
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
     createManifest(args.dst_file_project_manifest, args.dst_file_version_manifest,
         args.version, args.url_project_manifest, args.url_version_manifest, args.url_asset,
