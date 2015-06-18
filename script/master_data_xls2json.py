@@ -40,7 +40,9 @@ def parse_xls(xls_path, except_sheets=[]):
             sheet_schema[key] = {
                 'name': key,
                 'type': types[i].value,
-                'description': descs[i].value
+                'description': descs[i].value,
+                'file': os.path.basename(xls_path),
+                'table': sheet.name
             }
         schema[sheet.name] = sheet_schema
   
@@ -117,7 +119,6 @@ def normalize_schema(schema, tables):
             for name in schema[table_name]:
                 d = schema[table_name][name]
                 if d['type'].find('ignore') >= 0 or \
-                   d['name'] == table['versionKey'] or \
                    re.match('^_', d['name']):
                     continue
                 filtered.append(d)
@@ -134,15 +135,14 @@ def normalize_data(data):
             continue
         filtered = []
         if table['type'].find('json') < 0:
-            primary_key = table['primaryKey']
             id_mapping = OrderedDict()
             for d in data[table['name']]:
                 # filter by primary key
-                if d[primary_key] is not None:
-                    if d[primary_key] >= 0:
-                        id_mapping[d[primary_key]] = d  # override
-                    elif d[primary_key] < 0:
-                        id = abs(d[primary_key])
+                if d['id'] is not None:
+                    if d['id'] >= 0:
+                        id_mapping[d['id']] = d  # override
+                    elif d['id'] < 0:
+                        id = abs(d['id'])
                         if id in id_mapping:
                             del id_mapping[id]  # delete
                 else:
@@ -161,7 +161,7 @@ if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
 
     parser = argparse.ArgumentParser(description = 'master data xlsx to json converter')
-    parser.add_argument('input_xlsxes',    metavar = 'input.xlsx(es)',  nargs = "*", help = 'input Excel master data files')
+    parser.add_argument('input_xlsxes',    metavar = 'input.xlsx(es)',  nargs = "+", help = 'input Excel master data files')
     parser.add_argument('--schema-json',   metavar = 'schema.json', help = 'output schema json file. default:  master_schema.json')
     parser.add_argument('--data-json',     metavar = 'data.json',   help = 'output data json file. default:  master_data.json')
     parser.add_argument('--except-sheets', default = '',        help = 'except sheets (, separated list) default: ')
