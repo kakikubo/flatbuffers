@@ -468,6 +468,7 @@ class AssetBuilder():
             with open(manifest_file, 'r+') as f:
                 manifest = json.load(f)
                 manifest["version"] += " "+self.timestamp
+                f.seek(0)
                 f.truncate(0)
                 json.dump(manifest, f, indent=2)
 
