@@ -167,7 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('input_xlsxes',    metavar = 'input.xlsx(es)',  nargs = "+", help = 'input Excel master data files')
     parser.add_argument('--schema-json',   metavar = 'schema.json', help = 'output schema json file. default:  master_schema.json')
     parser.add_argument('--data-json',     metavar = 'data.json',   help = 'output data json file. default:  master_data.json')
-    parser.add_argument('--except-sheets', default = '',        help = 'except sheets (, separated list) default: ')
+    parser.add_argument('--except-sheets', default = '',            help = 'except sheets (, separated list) default: ')
     args = parser.parse_args()
     schema_json_file = args.schema_json or 'master_schema.json'
     data_json_file   = args.data_json   or 'master_data.json'
@@ -184,6 +184,7 @@ if __name__ == '__main__':
         xls = parse_xls(input_xlsx, except_sheets)
         data.update(xls['data'])
         schema.update(xls['schema'])
+    data['sheet'] = sorted(data['sheet'], key=lambda v: int(v['id']))
     for t in data['sheet']:
         info("sheet: %s" % t['name'])
 
