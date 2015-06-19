@@ -19,11 +19,12 @@ from logging import info, warning, debug
 
 class AssetBuilder():
     def __init__(self, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, cdn_dir=None, git_dir=None):
-        self.target              = target or 'master'
-        self.is_master           = self.target == 'master'
+        self.target            = target or 'master'
+        self.is_master         = self.target == 'master'
 
-        self.asset_version       = asset_version or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
-        self.asset_version_dir   = target
+        self.asset_version     = asset_version or target
+        self.asset_version_dir = asset_version or target
+        self.timestamp         = strftime('%Y-%m-%d %H:%M:%S')
 
         self_dir = os.path.dirname(os.path.abspath(__file__))
         for main_dir_default in (\
@@ -436,8 +437,7 @@ class AssetBuilder():
 
     def deploy_dev_cdn(self):
         list_file = self.cdn_dir+"/dev.asset_list.json"
-        with open(list_file, 'a+') as f:
-            f.seek(0)
+        with open(list_file, 'r+') as f:
             usernames = json.load(f)
             if not self.target in usernames:
                 usernames.append(self.target)
@@ -451,17 +451,24 @@ class AssetBuilder():
 
         with open(project_file, 'r') as f:
             manifest = json.load(f)
-        assets = manifest.get('assets')
-        keep_files = []
-        for key, asset in assets.iteritems():
-            path = asset.get('path')
-            if path == self.remote_dir_asset+"/"+key:
-                keep_files.append(path)
-        for root, dirs, files in os.walk(self.main_dir+'/contents'):
-            for file in files:
-                key = root.replace(self.main_dir+'/contents', self.remote_dir_asset)+'/'+file
-                if not key in keep_files:
-                    os.remove(root+'/'+file)
+            assets = manifest.get('assets')
+            keep_files = []
+            for key, asset in assets.iteritems():
+                path = asset.get('path')
+                if path == self.remote_dir_asset+"/"+key:
+                    keep_files.append(path)
+            for root, dirs, files in os.walk(self.main_dir+'/contents'):
+                for file in files:
+                    key = root.replace(self.main_dir+'/contents', self.remote_dir_asset)+'/'+file
+                    if not key in keep_files:
+                        os.remove(root+'/'+file)
+
+        for manifest_file in (project_file, version_file):
+            with open(manifest_file, 'r+') as f:
+                manifest = json.load(f)
+                manifest["version"] += " "+self.timestamp
+                f.truncate(0)
+                json.dump(manifest, f, indent=2)
 
         rsync = ['rsync', '-crltvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
