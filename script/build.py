@@ -442,6 +442,7 @@ class AssetBuilder():
             if not self.target in usernames:
                 usernames.append(self.target)
             info("available users = "+", ".join(usernames))
+            f.seek(0)
             f.truncate(0)
             json.dump(usernames, f, sort_keys=True, indent=2)
         os.chmod(list_file, 0664)
@@ -451,17 +452,17 @@ class AssetBuilder():
 
         with open(project_file, 'r') as f:
             manifest = json.load(f)
-            assets = manifest.get('assets')
-            keep_files = []
-            for key, asset in assets.iteritems():
-                path = asset.get('path')
-                if path == self.remote_dir_asset+"/"+key:
-                    keep_files.append(path)
-            for root, dirs, files in os.walk(self.main_dir+'/contents'):
-                for file in files:
-                    key = root.replace(self.main_dir+'/contents', self.remote_dir_asset)+'/'+file
-                    if not key in keep_files:
-                        os.remove(root+'/'+file)
+        assets = manifest.get('assets')
+        keep_files = []
+        for key, asset in assets.iteritems():
+            path = asset.get('path')
+            if path == self.remote_dir_asset+"/"+key:
+                keep_files.append(path)
+        for root, dirs, files in os.walk(self.main_dir+'/contents'):
+            for file in files:
+                key = root.replace(self.main_dir+'/contents', self.remote_dir_asset)+'/'+file
+                if not key in keep_files:
+                    os.remove(root+'/'+file)
 
         for manifest_file in (project_file, version_file):
             with open(manifest_file, 'r+') as f:
