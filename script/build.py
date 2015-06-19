@@ -23,7 +23,7 @@ class AssetBuilder():
         self.is_master           = self.target == 'master'
 
         self.asset_version       = asset_version or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
-        self.asset_version_dir   = 'ver1' if self.is_master else target
+        self.asset_version_dir   = target
 
         self_dir = os.path.dirname(os.path.abspath(__file__))
         for main_dir_default in (\
@@ -211,15 +211,13 @@ class AssetBuilder():
         dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
         url_asset               = self.DEV_CDN_URL+'/'
         
+        url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
+        url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
         if self.is_master:
             reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
-            url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
-            url_version_manifest  = self.DEV_CDN_URL+'/'+self.VERSION_MANIFEST_FILE
             keep_ref_entries      = False
         else:
             reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-            url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
-            url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
             keep_ref_entries      = True
 
         info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
@@ -441,7 +439,7 @@ class AssetBuilder():
         with open(list_file, 'a+') as f:
             f.seek(0)
             usernames = json.load(f)
-            if not self.target in usernames and self.target != 'master':
+            if not self.target in usernames:
                 usernames.append(self.target)
             info("available users = "+", ".join(usernames))
             f.truncate(0)
@@ -474,18 +472,13 @@ class AssetBuilder():
             os.makedirs(dest_dir)
         info("deploy to dev cdn: %s -> %s: " % (self.main_dir, dest_dir))
 
-        if self.is_master:
-            dest_version_manifest = self.cdn_dir+'/'+self.VERSION_MANIFEST_FILE
-        else:
-            dest_version_manifest = dest_dir+"/"+self.VERSION_MANIFEST_FILE
-
         check_call("find " + self.main_dir+'/contents' + " -type f -print | xargs chmod 664", shell=True)
         check_call("find " + self.main_dir+'/contents' + " -type d -print | xargs chmod 775", shell=True)
         info("deploy %s" % self.main_dir+'/contents/')
         check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
         check_call(['chmod', '775', dest_dir+"/contents"])
         info("deploy %s" % version_file)
-        check_call(rsync + [version_file, dest_version_manifest])
+        check_call(rsync + [version_file, dest_dir+"/"+self.VERSION_MANIFEST_FILE])
         info("deploy %s" % project_file)
         check_call(rsync + [project_file, dest_dir+'/'+self.PROJECT_MANIFEST_FILE])
         info("deploy to dev cdn: done")
