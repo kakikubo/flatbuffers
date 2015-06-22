@@ -67,8 +67,10 @@ def makeAtlas(masterExcel, sheetName, paramStartRow, folderPath):
                 size_y = h
                 orig_x = w/s
                 orig_y = h/s
-                offset_x = x - w/2
-                offset_y = y - h/2 - (size_y - orig_y) / 2
+                center_x = w/2
+                center_y = h/2
+                offset_x = center_x - x - orig_x/s
+                offset_y = y - center_y - orig_y/s
                 f.write(base.format(modelId, modelId, size_x, size_y, orig_x, orig_y, offset_x, offset_y))
 
 # ---
