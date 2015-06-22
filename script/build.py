@@ -438,7 +438,7 @@ class AssetBuilder():
     def deploy_dev_cdn(self):
         list_file = self.cdn_dir+"/dev.asset_list.json"
         with open(list_file, 'r+') as f:
-            usernames = json.load(f)
+            usernames = json.load(f, object_pairs_hook=OrderedDict)
             if not self.target in usernames:
                 usernames.append(self.target)
             info("available users = "+", ".join(usernames))
@@ -451,7 +451,7 @@ class AssetBuilder():
         version_file = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
 
         with open(project_file, 'r') as f:
-            manifest = json.load(f)
+            manifest = json.load(f, object_pairs_hook=OrderedDict)
         assets = manifest.get('assets')
         keep_files = []
         for key, asset in assets.iteritems():
@@ -466,8 +466,9 @@ class AssetBuilder():
 
         for manifest_file in (project_file, version_file):
             with open(manifest_file, 'r+') as f:
-                manifest = json.load(f)
+                manifest = json.load(f, object_pairs_hook=OrderedDict)
                 manifest["version"] += " "+self.timestamp
+                f.seek(0)
                 f.truncate(0)
                 json.dump(manifest, f, indent=2)
 
