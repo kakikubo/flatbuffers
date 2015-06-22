@@ -317,7 +317,7 @@ def deleteElement(args):
             #f.write(json.dumps(jsonData, indent=2, sort_keys=False))
             f_new.write(json.dumps(jsonData))
     
-def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail):
+def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail, hasEar, hasMant, hasInside, hasShoulder):
     slot = []
     bone = []
     if hasTwinTail:
@@ -348,6 +348,18 @@ def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail):
         slot.append("C_tail")
         bone.append("tail")
 
+    if not hasEar:
+        slot.append("C_hd_ear")
+
+    if not hasMant:
+        slot.append("C_bo_mant_b")
+
+    if not hasInside:
+        slot.append("C_bo_gear_inside")
+
+    if not hasShoulder:
+        slot.append("L_shoulder")
+
     dic = {}
     dic["slot"] = slot
     dic["bone"] = bone
@@ -368,7 +380,7 @@ def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile,
 
     if iParamStartCol >= 0:
         for row in range(sheet.nrows):
-            if (sheet.ncols < iParamStartCol+5):
+            if (sheet.ncols < iParamStartCol+9):
                 debug("ncols={0} but paramStartCol={1}".format(sheet.ncols, iParamStartCol))
             else:
                 if (row >= iParamStartRow):
@@ -378,8 +390,12 @@ def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile,
                     hasEarCat = sheet.cell_value(row, iParamStartCol+2)
                     hasEarRabitt = sheet.cell_value(row, iParamStartCol+3)
                     hasTail = sheet.cell_value(row, iParamStartCol+4)
-                    debug("Convert Param = {0}:{1},{2},{3},{4},{5}".format(str(modelID), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail))
-                    dic = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail)
+                    hasEar = sheet.cell_value(row, iParamStartCol+5)
+                    hasMant = sheet.cell_value(row, iParamStartCol+6)
+                    hasInside = sheet.cell_value(row, iParamStartCol+7)
+                    hasShoulder = sheet.cell_value(row, iParamStartCol+8)
+                    debug("Convert Param = {0}:{1},{2},{3},{4},{5},{6},{7},{8},{9}".format(str(modelID), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail, hasEar, hasMant, hasInside, hasShoulder))
+                    dic = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail, hasEar, hasMant, hasInside, hasShoulder)
                     srcPath = os.path.abspath(srcFile)
                     root, ext = os.path.splitext(srcFile)
                     dstPath = os.path.abspath(outPath) + "/" + str(modelID) + ext
