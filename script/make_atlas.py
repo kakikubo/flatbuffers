@@ -52,6 +52,12 @@ def makeAtlas(masterExcel, sheetName, paramStartRow, folderPath):
                         h = model["height"]
                     else:
                         print "can not find 'height' named [{0}] dictionary.".format(strModelId)
+            
+                    if model.has_key("scale"):
+                        s = 1.0 / model["scale"]
+                    else:
+                        print "can not find 'scale' named [{0}] dictionary.".format(strModelId)
+
                 else:
                     print "can not find named [{0}] dictionary.".format(strModelId)
 
