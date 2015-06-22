@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+from collections import OrderedDict
 import logging
 from logging import info, warning, debug
 
@@ -14,14 +15,14 @@ ENGINE_VERSION = 'Cocos2d-x v3.5'
 def loadManifest(path):
     manifest = {}
     with open(path, 'r') as f:
-        manifest = json.load(f)
+        manifest = json.load(f, object_pairs_hook=OrderedDict)
     return manifest
 
 def createAssetList(remote_dir, local_search_path):
     if 0 < len(local_search_path) and not local_search_path.endswith('/'):
        local_search_path += '/' # force local_search_path directory to end with '/'
 
-    assetsDic = {}
+    assetsDic = OrderedDict()
     for dpath, dnames, fnames in os.walk(local_search_path):
         for fname in fnames:
             path = os.path.join(dpath, fname)
@@ -34,14 +35,14 @@ def createAssetList(remote_dir, local_search_path):
                         raise Exception, "%s is empty file" % path
 
                 assetPath = path[len(local_search_path):]
-                asset = {}
+                asset = OrderedDict()
                 asset['md5'] = hashlib.md5(byte).hexdigest()
                 asset['path'] = remote_dir + "/" + assetPath
                 assetsDic[assetPath] = asset
     return assetsDic
 
 def createVersionManifest(version, remote_manifest_url, remote_version_url, package_url):
-    manifest = {}
+    manifest = OrderedDict()
     
     manifest['packageUrl'] = package_url
     manifest['remoteManifestUrl'] = remote_manifest_url
