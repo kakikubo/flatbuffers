@@ -282,7 +282,16 @@ def deleteElement(args):
 
             #debug("{0}.{1}->{2}".format(key, slotIndexMap[key], slotIndexMapAfter[key]))
 
-
+        # spineツール上でテストするために使用しているR_weaponのオフセットを初期化する
+        if jsonData.has_key("bones"):
+            bonesList = jsonData["bones"]
+            for bone in bonesList:
+                if bone.has_key("name"):
+                    if bone["name"] == "R_weapon":
+                        if bone.has_key("x"):
+                            bone["x"] = 0
+                        if bone.has_key("y"):
+                            bone["y"] = 0
 
     changed = True
     if os.path.exists(dstJson):
