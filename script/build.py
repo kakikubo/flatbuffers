@@ -80,6 +80,7 @@ class AssetBuilder():
         self.user_header_dir          = self.main_dir+'/user_header'
         self.spine_dir                = self.main_dir+'/contents/files/spine'
         self.font_dir                 = self.main_dir+'/contents/files/font'
+        self.weapon_dir               = self.main_dir+'/contents/files/weapon'
 
         self.org_manifest_dir         = self.org_main_dir+'/manifests'
         self.org_master_schema_dir    = self.org_main_dir+'/master_derivatives'
@@ -91,6 +92,7 @@ class AssetBuilder():
         self.org_user_header_dir      = self.org_main_dir+'/user_header'
         self.org_spine_dir            = self.org_main_dir+'/contents/files/spine'
         self.org_font_dir             = self.org_main_dir+'/contents/files/font'
+        self.org_weapon_dir            = self.org_main_dir+'/contents/files/weapon'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -116,6 +118,7 @@ class AssetBuilder():
         self.json2font_bin        = self_dir+'/json2font.py'
         self.sort_master_json_bin = self_dir+'/sort-master-json.py'
         self.delete_element_bin   = self_dir+'/delete-element.py'
+        self.make_atlas_bin       = self_dir+'/make_atlas.py'
         
         self.PROJECT_MANIFEST_FILE   = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE   = 'dev.version.manifest'
@@ -334,6 +337,26 @@ class AssetBuilder():
                   check_call(cmdline)
         return True
 
+    # create weapon atlas from json
+    def build_weapon(self, src_xlsxes=None, src_weapon_dir=None, dest_dir=None):
+        src_xlsxes     = src_xlsxes    or self._get_xlsxes()
+        src_weapon_dir = src_weapon_dir or self.weapon_dir
+        dest_dir       = dest_dir      or self.build_dir
+
+        for xlsx in self._get_xlsxes():
+            sheets = self._get_xlsx_sheets(xlsx)
+            for sheet in sheets:
+                if sheet == "weapon":
+                    dest_weapon_dir = dest_dir+'/'+"weapon"
+                    if not os.path.exists(dest_weapon_dir):
+                        os.makedirs(dest_weapon_dir)
+
+                    info("build weapon atlas: %s:" % os.path.basename(xlsx))
+                    cmdline = [self.make_atlas_bin, xlsx, "weapon", str(self.MASTER_DATA_ROW_START), src_weapon_dir, dest_weapon_dir]
+                    debug(' '.join(cmdline))
+                    check_call(cmdline)
+        return True
+
     # create class header from fbs
     def build_user_class(self, src_fbs=None, dest_class=None, namespace=None):
         src_fbs    = src_fbs    or self.main_schema_dir+'/'+self.USER_FBS_FILE
@@ -363,7 +386,9 @@ class AssetBuilder():
     # create fnt+png from json
     def build_font(self, src_json=None, src_gd_dir=None, dest_font_dir=None):
         # check GDCL
-        if call(['GDCL'], stdout = open(os.devnull, 'w')) == 127:
+        try:
+            call(['GDCL'], stdout = open(os.devnull, 'w'))
+        except OSError:
             warning("GDCL is not installed. skip to build font")
             return False
 
@@ -417,6 +442,15 @@ class AssetBuilder():
             png_path  = re.sub('.fnt$', '.png', font_path)
             list.append((font_path, self.font_dir, self.font_dir)) # self.org_font_dir
             list.append((png_path,  self.font_dir, self.font_dir)) # self.org_font_dir
+        # weapon
+        for weapon_path in glob("%s/weapon/*.atlas" % build_dir):
+            weapon_path = re.sub('^'+build_dir+'/', '', weapon_path)
+            png_path  = re.sub('.atlas$', '.png', weapon_path)
+            list.append((weapon_path, self.weapon_dir, self.org_weapon_dir))
+            list.append((png_path,  self.weapon_dir, self.org_weapon_dir))
+            print abebebebebebebebebe
+            print weapon_path
+            print png_path
         return self.install_list(list, build_dir)
 
     def install_manifest(self, build_dir=None):
@@ -519,6 +553,7 @@ class AssetBuilder():
                 self.build_master_fbs()
                 self.build_master_bin()
                 self.build_spine()
+                self.build_weapon()
                 self.build_font()
                 self.build_user_class()
                 self.install_generated()
@@ -552,6 +587,7 @@ commands:
   build-user-class   generate user_header/*.h from user_data.fbs
   build-user-header  generate user_header/*_generated.h from user_data.fbs
   build-spine        generate spine animation patterns
+  build-weapon       generate weapon atlas
   build-font         generate bitmap font from master_data.json
   deploy-dev         deploy asset files to cdn directory
   install            install files from build dir
@@ -600,6 +636,8 @@ examples:
         asset_builder.build_master_bin()
     elif args.command == 'build-spine':
         asset_builder.build_spine()
+    elif args.command == 'build-weapon':
+        asset_builder.build_weapon()
     elif args.command == 'build-user-class':
         asset_builder.build_user_class()
     elif args.command == 'build-user-header':
