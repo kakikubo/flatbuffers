@@ -65,6 +65,7 @@ def parse_table(line):
             return
         name = m.group(1)
         item = {'is_vector':False, 'item_type':m.group(2)}
+    item['name']         = name
     item['is_hash_key']  = is_hash_key
     item['is_range_key'] = is_range_key
 
@@ -86,6 +87,12 @@ def snake_case(src):
 
 def upper_camel_case(src):
     return src[0:1].upper() + src[1:]
+
+def get_item_range_key(item, fbs_data, table_property):
+    if not item["is_default_type"] and "range_key" in table_property[item["item_type"]]:
+        return fbs_data[item["item_type"]][table_property[item["item_type"]]["range_key"]]
+    else:
+        return None
 
 def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, with_fbs=False):
     global fbs_data
@@ -158,10 +165,14 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
         for item_name, item in table.iteritems():
             if item["is_vector"]:
                 s += "  std::vector<" + item["cpp_type"] + " > _" + item_name + ";\n"
+                range_key = get_item_range_key(item, fbs_data, table_property)
+                if range_key:
+                    s += "  std::map<" + range_key["cpp_type"] + ", " + item["cpp_type"] + " > _" + item_name + "Map;\n"
             else:
                 s += "  " + item["cpp_type"] + " _" + item_name + ";\n"
         s += "\n"
         s += "  time_t __timestamp;  // timestamp of sync or flush (internal use)\n"
+        s += "  bool __dirty; // dirty flag to detect this record is modified (internal use)\n"
 
         s += "\n public:\n"
         s += "  // constructer\n"
@@ -169,21 +180,101 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
         for item_name, item in table.iteritems():
             if not item["is_default_type"] and not item["is_vector"]:
                 inits.append("    _" + item_name + "(std::make_shared<" + item["item_type"] + " >()),\n")
-        s += "  " + table_name + "() : \n" + "".join(inits) + "    __timestamp(0) {}\n"
+        s += "  " + table_name + "() : \n" + "".join(inits) + "    __timestamp(0), __dirty(true) {}\n"
 
-        s += "\n  // getter\n"
+        s += "\n  // getters\n"
         for item_name, item in table.iteritems():
             if item["is_vector"]:
-                s += "  std::vector<" + item["cpp_type"] + " >* " + item_name + "() { return &_" + item_name + "; }\n"
+                s += "  const std::vector<" + item["cpp_type"] + " >* " + item_name + "() const { return &_" + item_name + "; }\n"
+                range_key = get_item_range_key(item, fbs_data, table_property)
+                if range_key:
+                    s += "  " + item["cpp_type"]+ " lookup" + upper_camel_case(item_name) + "(" + range_key["cpp_type"] + " needle) {\n"
+                    s += "    return _" + item_name + "Map.at(needle);\n"
+                    s += "  }\n"
             else:
-                s += "  " + item["cpp_type"] + " " + item_name + "() { return _" + item_name + "; }\n"
+                s += "  " + item["cpp_type"] + " " + item_name + "() const { return _" + item_name + "; }\n"
 
-        s += "\n  // setter\n"
+        s += "\n  // setters\n"
         for item_name, item in table.iteritems():
-            if item["is_default_type"] and not item["is_vector"]:
-                s += "  void set" + upper_camel_case(item_name) + "(" + item["cpp_type"] + " value) { _" + item_name + " = value; }\n"
+            s += "  // setter for " + item_name + "\n"
+            if item["is_vector"]:
+                range_key = get_item_range_key(item, fbs_data, table_property)
+                s += "  void assign" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value) {\n"
+                if range_key:
+                    s += "    if (_" + item_name + "[pos]) _" + item_name + "Map.erase(_" + item_name + "[pos]->" + range_key["name"] + "());\n"
+                    s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
+                s += "    _" + item_name + ".assign(pos, value);\n"
+                s += "    __dirty = true;\n"
+                s += "  }\n"
+                s += "  void insert" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
+                s += "    _" + item_name + ".insert(pos, value);\n"
+                if range_key:
+                    s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
+                s += "    __dirty = true;\n"
+                s += "  }\n"
+                s += "  void pushBack" + upper_camel_case(item_name) + "(const " + item["cpp_type"] + "& value) {\n"
+                s += "    _" + item_name + ".push_back(value);\n"
+                if range_key:
+                    s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
+                s += "    __dirty = true;\n"
+                s += "  }\n"
+                s += "  void erase" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos) {\n"
+                s += "    _" + item_name + ".erase(pos);\n"
+                if range_key:
+                    s += "    _" + item_name + "Map.erase((*pos)->" + range_key["name"] + "());\n"
+                s += "    __dirty = true;\n"
+                s += "  }\n"
+                s += "  void clear" + upper_camel_case(item_name) + "() {\n"
+                s += "    _" + item_name + ".clear();\n"
+                if range_key:
+                    s += "    _" + item_name + "Map.clear();\n"
+                s += "    __dirty = true;\n"
+                s += "  }\n"
+            elif item["is_default_type"]:
+                s += "  void set" + upper_camel_case(item_name) + "(" + item["cpp_type"] + " value) { \n"
+                s += "    _" + item_name + " = value;\n"
+                s += "    __dirty = true;\n"
+                s += "  }\n"
                 if item["item_type"] == 'string':
-                    s += "  void set" + upper_camel_case(item_name) + "(const char* value) { _" + item_name + " = value; }\n"
+                    s += "  void set" + upper_camel_case(item_name) + "(const char* value) {\n"
+                    s += "    _" + item_name + " = value;\n"
+                    s += "    __dirty = true;\n"
+                    s += "  }\n"
+
+        s += "\n  // dirty flag\n"
+        s += "  bool isDirty() const {\n"
+        s += "    return __dirty;\n"
+        s += "  }\n"
+        s += "  bool isDirtyRecursive() {\n"
+        s += "    if (__dirty) return true;\n"
+        for item_name, item in table.iteritems():
+            if not item["is_default_type"] and item["is_vector"]:
+                s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
+                s += "      if ((*it)->isDirtyRecursive()) {\n"
+                s += "        __dirty = true;  // bump up to parent\n"
+                s += "        return true;\n"
+                s += "      }\n"
+                s += "    }\n"
+            elif not item["is_default_type"]:
+                s += "    if (_" + item_name + "->isDirtyRecursive()) {\n"
+                s += "      __dirty = true;  // bump up to parent\n"
+                s += "      return true;\n"
+                s += "    }\n"
+        s += "    return false;\n"
+        s += "  }\n"
+        s += "  void clearDirty() {\n"
+        s += "    __dirty = false;\n"
+        s += "  }\n"
+        s += "  void clearDirtyRecursive() {\n"
+        for item_name, item in table.iteritems():
+            if not item["is_default_type"] and item["is_vector"]:
+                s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
+                s += "      (*it)->clearDirtyRecursive();\n"
+                s += "    }\n"
+            elif not item["is_default_type"]:
+                s += "    _" + item_name + "->clearDirtyRecursive();\n"
+        s += "    __dirty = false;\n"
+        s += "  }\n"
 
         s += "\n  // general accessor\n"
         if fbs_root_type == table_name:
@@ -230,7 +321,10 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             s += "    return _" + hash_key + ";\n"
             s += "  }\n"
             s += "  long setHashKey(long v) {\n"
-            s += "    if (!_" + hash_key + ") _" + hash_key + " = v;\n" 
+            s += "    if (!_" + hash_key + ") {\n"
+            s += "      _" + hash_key + " = v;\n" 
+            s += "      __dirty = true;\n"
+            s += "    }\n"
             s += "    return v;\n"
             s += "  }\n"
         if "range_key" in prop:
@@ -242,7 +336,10 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             s += "    return _" + range_key + ";\n"
             s += "  }\n"
             s += "  int setRangeKey(int v) {\n"
-            s += "    if (!_" + range_key + ") _" + range_key + " = v++;\n" 
+            s += "    if (!_" + range_key + ") {\n"
+            s += "      _" + range_key + " = v++;\n" 
+            s += "      __dirty = true;\n"
+            s += "    }\n"
             s += "    return v;\n"
             s += "  }\n"
         s += "  int completeKey(long hashKey, int rangeKey) {\n"
@@ -302,33 +399,34 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 s += "    json_t* v;\n"
             for item_name, item in table.iteritems():
                 item_type = item["item_type"]
-                s += 'auto __' + item_name + ' = json_object_get(json, "' + item_name + '");\n'
-                s += 'if (__' + item_name + ') {\n'
+                s += '    auto __' + item_name + ' = json_object_get(json, "' + item_name + '");\n'
+                s += '    if (__' + item_name + ') {\n'
                 if item["is_vector"]:
                     s += "      _" + item_name + ".clear();\n"
                     s += '      json_array_foreach(__' + item_name + ', i, v) {\n'
                     if item_type in ('string'):
-                        s += "        _" + item_name + ".push_back(json_string_value(v));\n"
+                        s += "        pushBack" + upper_camel_case(item_name) + "(json_string_value(v));\n"
                     elif item_type in ('int', 'long'):
-                        s += "        _" + item_name + ".push_back(json_integer_value(v));\n"
+                        s += "        pushBack" + upper_camel_case(item_name) + "(json_integer_value(v));\n"
                     elif item_type in ('float', 'double'):
-                        s += "        _" + item_name + ".push_back(json_real_value(v));\n"
+                        s += "        pushBack" + upper_camel_case(item_name) + "(json_real_value(v));\n"
                     elif item_type in ('bool'):
-                        s += "        _" + item_name + ".push_back(json_boolean_value(v));\n"
+                        s += "        pushBack" + upper_camel_case(item_name) + "(json_boolean_value(v));\n"
                     else:
-                        s += "        _" + item_name + ".push_back(" + item["cpp_type"] + "(new " + item["item_type"] + "(v)));\n"
+                        s += "        pushBack" + upper_camel_case(item_name) + "(std::make_shared<" + item["item_type"] + " >(v));\n"
                     s += "    }\n"
                 elif item_type in ('string'):
-                    s += "      _" + item_name + ' = json_string_value(__' + item_name + ');\n'
+                    s += "      set" + upper_camel_case(item_name) + '(json_string_value(__' + item_name + '));\n'
                 elif item_type in ('int', 'long'):
-                    s += "      _" + item_name + ' = json_integer_value(__' + item_name + ');\n'
+                    s += "      set" + upper_camel_case(item_name) + '(json_integer_value(__' + item_name + '));\n'
                 elif item_type in ('float', 'double'):
-                    s += "      _" + item_name + ' = json_real_value(__' + item_name + ');\n'
+                    s += "      set" + upper_camel_case(item_name) + '(json_real_value(__' + item_name + '));\n'
                 elif item_type in ('bool'):
-                    s += "      _" + item_name + ' = json_boolean_value(__' + item_name + ');\n'
+                    s += "      set" + upper_camel_case(item_name) + '(json_boolean_value(__' + item_name + '));\n'
                 else:
                     s += "      _" + item_name + '->fromJson(__' + item_name + ');\n'
-                s += '}\n'
+                s += '    }\n'
+            s += "    clearDirty();\n"
             s += "  }\n"
             s += "  // construct with json\n"
             s += "  " + table_name + "(json_t* json) {\n"
@@ -336,7 +434,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
             s += "  }\n"
 
         if with_msgpack:
-            s += "\n  // setter via msgpack\n"
+            s += "\n  // getter via msgpack\n"
             s += "  void toMsgpack(msgpack::packer<msgpack::sbuffer>& pk) {\n"
             s += "    pk.pack_map(%d);\n" % len(table)
             for item_name, item in table.iteritems():
@@ -359,7 +457,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     s += '    _' + item_name + '->toMsgpack(pk);\n'
             s += "  }\n"
 
-            s += "\n  // getter via msgpack\n"
+            s += "\n  // setter via msgpack\n"
             s += "  void fromMsgpack(msgpack::object& obj) {\n"
             s += "    std::map<std::string, msgpack::object> __map = obj.as<std::map<std::string, msgpack::object> >();\n"
             for item_name, item in table.iteritems():
@@ -370,12 +468,12 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     s += '      auto __' + item_name + ' = __v_' + item_name + '->second.as<msgpack::object>();\n';
                     s += '      for (msgpack::object* p(__' + item_name + '.via.array.ptr), * const pend(__' + item_name + '.via.array.ptr + __' + item_name + '.via.array.size); p < pend; ++p) {\n'
                     if item["is_default_type"]:
-                        s += '        _' + item_name + '.push_back(p->as<' + item["cpp_type"] + '>());\n'
+                        s += '        pushBack' + upper_camel_case(item_name) + '(p->as<' + item["cpp_type"] + '>());\n'
                     else:
-                        s += '        _' + item_name + '.push_back(' + item["cpp_type"] + '(new ' + item["item_type"] + '(*p)));\n'
+                        s += '        pushBack' + upper_camel_case(item_name) + '(std::make_shared<' + item["item_type"] + ' >(*p));\n'
                     s += '      }\n'
                 elif item["is_default_type"]:
-                    s += '      _' + item_name + ' =  __v_' + item_name + '->second.as<' + item["cpp_type"] + ' >();\n'
+                    s += '      set' + upper_camel_case(item_name) + '(__v_' + item_name + '->second.as<' + item["cpp_type"] + ' >());\n'
                 else:
                     s += '      _' + item_name + '->fromMsgpack(__v_' + item_name + '->second);\n'
                 s += '    }\n'
