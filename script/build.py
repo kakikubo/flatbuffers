@@ -443,11 +443,13 @@ class AssetBuilder():
             list.append((font_path, self.font_dir, self.font_dir)) # self.org_font_dir
             list.append((png_path,  self.font_dir, self.font_dir)) # self.org_font_dir
         # weapon
-        for weapon_path in glob("%s/*.atlas" % build_dir):
+        for weapon_path in glob("%s/weapon/*.atlas" % build_dir):
             weapon_path = re.sub('^'+build_dir+'/', '', weapon_path)
             png_path  = re.sub('.atlas$', '.png', weapon_path)
-            list.append((weapon_path, self.weapon_dir, self.org_weapon_dir))
-            list.append((png_path,  self.weapon_dir, self.org_weapon_dir))
+            dest_weapon_dir1 = re.sub('/weapon', '', self.weapon_dir)
+            dest_weapon_dir2 = re.sub('/weapon', '', self.org_weapon_dir)
+            list.append((weapon_path, dest_weapon_dir1, dest_weapon_dir2))
+            list.append((png_path,  dest_weapon_dir1, dest_weapon_dir2))
         return self.install_list(list, build_dir)
 
     def install_manifest(self, build_dir=None):
