@@ -343,6 +343,9 @@ class AssetBuilder():
         src_weapon_dir = src_weapon_dir or self.weapon_dir
         dest_dir       = dest_dir      or self.build_dir
 
+        if not os.path.exists(src_weapon_dir):
+            return True
+
         for xlsx in self._get_xlsxes():
             sheets = self._get_xlsx_sheets(xlsx)
             for sheet in sheets:
