@@ -443,7 +443,7 @@ class AssetBuilder():
             list.append((font_path, self.font_dir, self.font_dir)) # self.org_font_dir
             list.append((png_path,  self.font_dir, self.font_dir)) # self.org_font_dir
         # weapon
-        for weapon_path in glob("%s/weapon/*.atlas" % build_dir):
+        for weapon_path in glob("%s/*.atlas" % build_dir):
             weapon_path = re.sub('^'+build_dir+'/', '', weapon_path)
             png_path  = re.sub('.atlas$', '.png', weapon_path)
             list.append((weapon_path, self.weapon_dir, self.org_weapon_dir))
