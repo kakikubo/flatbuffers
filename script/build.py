@@ -448,9 +448,6 @@ class AssetBuilder():
             png_path  = re.sub('.atlas$', '.png', weapon_path)
             list.append((weapon_path, self.weapon_dir, self.org_weapon_dir))
             list.append((png_path,  self.weapon_dir, self.org_weapon_dir))
-            print abebebebebebebebebe
-            print weapon_path
-            print png_path
         return self.install_list(list, build_dir)
 
     def install_manifest(self, build_dir=None):
