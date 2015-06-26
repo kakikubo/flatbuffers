@@ -35,12 +35,21 @@ class AssetBuilder():
                 break
         self.org_main_dir = main_dir or main_dir_default
 
-        for master_dir_default in (\
-            os.path.normpath(os.curdir+'/kms_master_asset'), \
-            os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
-            os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))):
-            if os.path.exists(master_dir_default):
-                break
+        if target in ('hiroto.furuya', 'tomohiko.furumoto'):
+            for master_dir_default in (\
+                os.path.normpath(os.curdir+'/asset'), \
+                git_dir, \
+                os.path.normpath(self_dir+'/../client/asset'), \
+                os.path.normpath(os.path.expanduser('~/kms/asset'))):
+                if master_dir_default and os.path.exists(master_dir_default):
+                    break
+        else:
+            for master_dir_default in (\
+                os.path.normpath(os.curdir+'/kms_master_asset'), \
+                os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
+                os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))):
+                if master_dir_default and os.path.exists(master_dir_default):
+                    break
         self.org_master_dir = master_dir or master_dir_default
 
         cdn_dir_default          = '/var/www/cdn'
