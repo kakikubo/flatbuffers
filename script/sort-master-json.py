@@ -29,7 +29,10 @@ def sort_master_json(schema, data, type_name = "_meta"):
     result =  OrderedDict()
     currentSchema = schema[type_name]
     for key, entry in data.items():
-        entry_type_str = [x for x in schema[type_name] if x["name"] == key][0]["type"]
+        entry_keys = [x for x in schema[type_name] if x["name"] == key]
+        if not entry_keys:
+            continue
+        entry_type_str = entry_keys[0]["type"]
         entry_type_name, entry_attributes, entry_is_array = split_type(entry_type_str)
         if type_name == "_meta":
             if entry_type_name == "json_array" or entry_type_name == "array":
