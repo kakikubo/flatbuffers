@@ -116,7 +116,7 @@ def normalize_schema(schema, sheets):
 
         sheet_name = sheet['name']
         if sheet['type'].find('json') >= 0:
-            normalized[sheet_name] = "swaped later"
+            normalized[sheet_name] = "swapped later"
         else:
             filtered = []
             for name in schema[sheet_name]:
@@ -168,10 +168,12 @@ if __name__ == '__main__':
     parser.add_argument('--schema-json',   metavar = 'schema.json', help = 'output schema json file. default:  master_schema.json')
     parser.add_argument('--data-json',     metavar = 'data.json',   help = 'output data json file. default:  master_data.json')
     parser.add_argument('--except-sheets', default = '',            help = 'except sheets (, separated list) default: ')
+    parser.add_argument('--except-json',   default = False, action = 'store_true', help = 'except json master data (type = json, json_array)')
     args = parser.parse_args()
     schema_json_file = args.schema_json or 'master_schema.json'
     data_json_file   = args.data_json   or 'master_data.json'
     except_sheets    = args.except_sheets.split(',')
+    except_json      = args.except_json
     
     # parse excel
     data   = OrderedDict()
@@ -184,7 +186,14 @@ if __name__ == '__main__':
         xls = parse_xls(input_xlsx, except_sheets)
         data.update(xls['data'])
         schema.update(xls['schema'])
+
     data['sheet'] = sorted(data['sheet'], key=lambda v: int(v['id']))
+    if args.except_json:
+        sheet = []
+        for t in data['sheet']:
+            if not re.match('json', t['type']):
+                sheet.append(t)
+        data['sheet'] = sheet
     for t in data['sheet']:
         info("sheet: %s" % t['name'])
 
