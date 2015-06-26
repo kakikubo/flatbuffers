@@ -488,8 +488,11 @@ class AssetBuilder():
 
     def deploy_dev_cdn(self):
         list_file = self.cdn_dir+"/dev.asset_list.json"
-        with open(list_file, 'r+') as f:
-            usernames = json.load(f, object_pairs_hook=OrderedDict)
+        with open(list_file, 'w+') as f:
+            try:
+                usernames = json.load(f, object_pairs_hook=OrderedDict)
+            except ValueError:
+                usernames = []
             if not self.target in usernames:
                 usernames.append(self.target)
             info("available users = "+", ".join(usernames))
