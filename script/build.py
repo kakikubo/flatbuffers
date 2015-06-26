@@ -35,7 +35,7 @@ class AssetBuilder():
                 break
         self.org_main_dir = main_dir or main_dir_default
 
-        if target in ('hiroto.furuya', 'tomohiko.furumoto'):
+        if target in ('hiroto.furuya'):
             for master_dir_default in (\
                 os.path.normpath(os.curdir+'/asset'), \
                 git_dir, \
@@ -211,7 +211,6 @@ class AssetBuilder():
                     editor_path = os.path.join(dirpath, filename)
                     basename = os.path.basename(editor_path)
                     editor_files[basename] = editor_path
-                    print(editor_path)
         return editor_files.values()
 
     # cerate master data json from xlsx
@@ -230,7 +229,6 @@ class AssetBuilder():
 
     # merge editor's json data into the master json data
     def merge_editor_file(self):
-
         for master_file, editor_files in \
                 ((self.build_dir+'/'+self.MASTER_JSON_DATA_FILE, self._get_editor_files()), \
                 (self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, [self.editor_schema])):
@@ -238,6 +236,7 @@ class AssetBuilder():
                 json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
             for editor_file in editor_files:
+                info("merge editor master file: %s + %s" % (os.path.basename(master_file), os.path.basename(editor_file)))
                 with open(editor_file, 'r') as f:
                     editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
                 for key in editor_json_data:
@@ -260,6 +259,8 @@ class AssetBuilder():
     def sort_master_json(self, src_schema=None, src_data=None):
         src_schema = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         src_data   = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        info("sort master json: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
+
         cmdline = [self.sort_master_json_bin, src_schema, src_data, src_data]
         debug(' '.join(cmdline))
         check_call(cmdline)
@@ -321,9 +322,9 @@ class AssetBuilder():
 
     # create weapon atlas from json
     def build_weapon(self, src_xlsxes=None, src_weapon_dir=None, dest_dir=None):
-        src_xlsxes     = src_xlsxes    or self._get_xlsxes()
+        src_xlsxes     = src_xlsxes     or self._get_xlsxes()
         src_weapon_dir = src_weapon_dir or self.weapon_dir
-        dest_dir       = dest_dir      or self.build_dir
+        dest_dir       = dest_dir       or self.build_dir
 
         if not os.path.exists(src_weapon_dir):
             return True
@@ -390,13 +391,14 @@ class AssetBuilder():
     def install_list(self, list, build_dir=None):
         build_dir = build_dir or self.build_dir
         for filename, dest1, dest2 in list:
-            if os.path.exists(build_dir+'/'+filename):
+            src = build_dir+'/'+filename
+            if os.path.exists(src):
                 info("install if updated: %s" % filename)
                 for dest_dir in (dest1, dest2):
-                    src  = build_dir + '/' + filename
-                    dest = dest_dir + '/' + filename
-                    if not os.path.exists(dest_dir):
-                        os.makedirs(dest_dir)
+                    dest = dest_dir+'/'+filename
+                    info("install debug : %s -> %s" % (src, dest))
+                    if not os.path.exists(os.path.dirname(dest)):
+                        os.makedirs(os.path.dirname(dest))
                     if call(['cmp', '--quiet', src, dest]) == 0:
                         continue
                     if os.path.exists(dest):
@@ -410,17 +412,17 @@ class AssetBuilder():
         # fixed pathes
         list = [
             (self.MASTER_JSON_SCHEMA_FILE,        self.master_schema_dir, self.org_master_schema_dir),
-            (self.MASTER_JSON_DATA_FILE,          self.master_data_dir, self.org_master_data_dir),
-            (self.MASTER_FBS_FILE,                self.master_fbs_dir, self.org_master_fbs_dir),
-            (self.MASTER_BIN_FILE,                self.master_bin_dir, self.org_master_bin_dir),
+            (self.MASTER_JSON_DATA_FILE,          self.master_data_dir,   self.org_master_data_dir),
+            (self.MASTER_FBS_FILE,                self.master_fbs_dir,    self.org_master_fbs_dir),
+            (self.MASTER_BIN_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
-            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
-            (self.EDITOR_MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
-            (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
+            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir,   self.org_master_data_dir),
+            (self.EDITOR_MASTER_FBS_FILE,         self.master_fbs_dir,    self.org_master_fbs_dir),
+            (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
-            (self.USER_CLASS_FILE,                self.user_class_dir, self.org_user_class_dir),
-            (self.USER_HEADER_FILE,               self.user_header_dir, self.org_user_class_dir),
+            (self.USER_CLASS_FILE,                self.user_class_dir,    self.org_user_class_dir),
+            (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_class_dir),
         ]
         # spine
         for spine_path in glob("%s/*Spine/*.json" % build_dir):
@@ -516,6 +518,7 @@ class AssetBuilder():
             for file in files:
                 key = root.replace(self.main_dir+'/contents', self.remote_dir_asset)+'/'+file
                 if not key in keep_files:
+                    info("except from cdn: %s" % key)
                     os.remove(root+'/'+file)
 
         for manifest_file in (project_file, version_file):
@@ -526,7 +529,8 @@ class AssetBuilder():
                 f.truncate(0)
                 json.dump(manifest, f, indent=2)
 
-        rsync = ['rsync', '-crltvO']
+        rsync = ['rsync', '-a']
+        #rsync = ['rsync', '-crltvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
         rsync.extend(['--exclude', '.DS_Store'])
 
