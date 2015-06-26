@@ -24,8 +24,7 @@ def split_type(str):
 def sort_master_json(schema, data, type_name = "_meta"):
     if not isinstance(data, dict):
         if isinstance(data, list):
-            print ("Error :" + type_name)
-            raise
+            raise Exception("Error : %s" % type_name)
         return data
     result =  OrderedDict()
     currentSchema = schema[type_name]
