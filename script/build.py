@@ -120,23 +120,28 @@ class AssetBuilder():
         self.delete_element_bin   = self_dir+'/delete-element.py'
         self.make_atlas_bin       = self_dir+'/make_atlas.py'
         
-        self.PROJECT_MANIFEST_FILE   = 'dev.project.manifest'
-        self.VERSION_MANIFEST_FILE   = 'dev.version.manifest'
-        self.REFERENCE_MANIFEST_FILE = 'dev.reference.manifest'
-        self.MASTER_JSON_SCHEMA_FILE = 'master_schema.json'
-        self.MASTER_JSON_DATA_FILE   = 'master_data.json'
-        self.MASTER_FBS_FILE         = 'master_data.fbs'
-        self.MASTER_BIN_FILE         = 'master_data.bin'
-        self.MASTER_HEADER_FILE      = 'master_data_generated.h'
-        self.MASTER_FBS_ROOT_NAME    = 'MasterDataFBS'
-        self.MASTER_FBS_NAMESPACE    = 'kms.masterdata'
-        self.USER_FBS_FILE           = 'user_data.fbs'
-        self.USER_CLASS_FILE         = 'user_data.h'
-        self.USER_HEADER_FILE        = 'user_data_generated.h'
-        self.USER_FBS_ROOT_NAME      = 'UserDataFBS'
-        self.USER_FBS_NAMESPACE      = 'kms.userdata'
-        self.DEV_CDN_URL             = 'http://kms-dev.dev.gree.jp/cdn' # FIXME
-        self.MASTER_DATA_ROW_START   = 3
+        self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
+        self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
+        self.REFERENCE_MANIFEST_FILE        = 'dev.reference.manifest'
+        self.MASTER_JSON_SCHEMA_FILE        = 'master_schema.json'
+        self.MASTER_JSON_DATA_FILE          = 'master_data.json'
+        self.MASTER_FBS_FILE                = 'master_data.fbs'
+        self.MASTER_BIN_FILE                = 'master_data.bin'
+        self.MASTER_HEADER_FILE             = 'master_data_generated.h'
+        self.EDITOR_MASTER_JSON_SCHEMA_FILE = 'editor_master_schema.json'
+        self.EDITOR_MASTER_JSON_DATA_FILE   = 'editor_master_data.json'
+        self.EDITOR_MASTER_FBS_FILE         = 'editor_master_data.fbs'
+        self.EDITOR_MASTER_BIN_FILE         = 'editor_master_data.bin'
+        self.EDITOR_MASTER_HEADER_FILE      = 'editor_master_data_generated.h'
+        self.MASTER_FBS_ROOT_NAME           = 'MasterDataFBS'
+        self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
+        self.USER_FBS_FILE                  = 'user_data.fbs'
+        self.USER_CLASS_FILE                = 'user_data.h'
+        self.USER_HEADER_FILE               = 'user_data_generated.h'
+        self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
+        self.USER_FBS_NAMESPACE             = 'kms.userdata'
+        self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn' # FIXME
+        self.MASTER_DATA_ROW_START          = 3
 
     # prepare and isolate source data via box
     def prepare_dir(self, src, dest):
@@ -200,50 +205,16 @@ class AssetBuilder():
                     print(editor_path)
         return editor_files.values()
 
-    # check modification of user editted files
-    def _check_modified(self, target, base):
-        timestamps = []
-        for f in (target, base):
-            ts = os.stat(f).st_mtime if os.path.exists(f) else 0
-            timestamps.append(ts)
-        return timestamps[0] > timestamps[1]
-
-    # create manifest json from
-    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None):
-        asset_version           = asset_version or self.asset_version
-        dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
-        url_asset               = self.DEV_CDN_URL+'/'
-        
-        url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
-        url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
-        if self.is_master:
-            reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
-            keep_ref_entries      = False
-        else:
-            reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-            keep_ref_entries      = True
-
-        info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
-        info("reference manifest: %s" % reference_manifest)
-
-        cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
-                   asset_version, url_project_manifest, url_version_manifest, url_asset,
-                   self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
-        if keep_ref_entries:
-          cmdline.append('--keep-ref-entries')
-        debug(' '.join(cmdline))
-        check_call(cmdline)
-        return True
-
     # cerate master data json from xlsx
-    def build_master_json(self, src_xlsxes=None, dest_schema=None, dest_data=None):
+    def build_master_json(self, src_xlsxes=None, dest_schema=None, dest_data=None, except_json=False):
         src_xlsxes  = src_xlsxes  or self._get_xlsxes()
         dest_schema = dest_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         dest_data   = dest_data   or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         info("build master json: %s + %s" % (os.path.basename(dest_schema), os.path.basename(dest_data)))
 
         cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data]
+        if except_json:
+            cmdline.append('--except-json') 
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -251,7 +222,9 @@ class AssetBuilder():
     # merge editor's json data into the master json data
     def merge_editor_file(self):
 
-        for master_file, editor_files in ((self.build_dir+'/'+self.MASTER_JSON_DATA_FILE, self._get_editor_files()), (self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, [self.editor_schema])):
+        for master_file, editor_files in \
+                ((self.build_dir+'/'+self.MASTER_JSON_DATA_FILE, self._get_editor_files()), \
+                (self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, [self.editor_schema])):
             with open(master_file, 'r') as f:
                 json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
@@ -275,10 +248,10 @@ class AssetBuilder():
                 f.write(j.encode("utf-8"))
 
     # sort master json
-    def sort_master_json(self):
-        schema = self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
-        data = self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
-        cmdline = [self.sort_master_json_bin, schema, data, data]
+    def sort_master_json(self, src_schema=None, src_data=None):
+        src_schema = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        src_data   = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        cmdline = [self.sort_master_json_bin, src_schema, src_data, src_data]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -427,13 +400,18 @@ class AssetBuilder():
         build_dir = build_dir or self.build_dir
         # fixed pathes
         list = [
-            (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
-            (self.MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
-            (self.MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
-            (self.MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
-            (self.MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
-            (self.USER_CLASS_FILE,         self.user_class_dir, self.org_user_class_dir),
-            (self.USER_HEADER_FILE,        self.user_header_dir, self.org_user_class_dir),
+            (self.MASTER_JSON_SCHEMA_FILE,        self.master_schema_dir, self.org_master_schema_dir),
+            (self.MASTER_JSON_DATA_FILE,          self.master_data_dir, self.org_master_data_dir),
+            (self.MASTER_FBS_FILE,                self.master_fbs_dir, self.org_master_fbs_dir),
+            (self.MASTER_BIN_FILE,                self.master_bin_dir, self.org_master_bin_dir),
+            (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
+            (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
+            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
+            (self.EDITOR_MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
+            (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
+            (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
+            (self.USER_CLASS_FILE,                self.user_class_dir, self.org_user_class_dir),
+            (self.USER_HEADER_FILE,               self.user_header_dir, self.org_user_class_dir),
         ]
         # spine
         for spine_path in glob("%s/*Spine/*.json" % build_dir):
@@ -470,6 +448,34 @@ class AssetBuilder():
         cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
         info(' '.join(cmdline))
         check_call(cmdline)
+
+    # create manifest json from
+    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None):
+        asset_version           = asset_version or self.asset_version
+        dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        url_asset               = self.DEV_CDN_URL+'/'
+        
+        url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
+        url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
+        if self.is_master:
+            reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
+            keep_ref_entries      = False
+        else:
+            reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
+            keep_ref_entries      = True
+
+        info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
+        info("reference manifest: %s" % reference_manifest)
+
+        cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
+                   asset_version, url_project_manifest, url_version_manifest, url_asset,
+                   self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
+        if keep_ref_entries:
+          cmdline.append('--keep-ref-entries')
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
 
     def deploy_dev_cdn(self):
         list_file = self.cdn_dir+"/dev.asset_list.json"
@@ -530,35 +536,38 @@ class AssetBuilder():
 
     # do all processes
     def build_all(self, check_modified=True):
-        # check modified
-        """
-        build_depends = self._get_xlsxes() + self._get_editor_files() + [ self.editor_schema, self.main_schema_dir+'/'+self.USER_FBS_FILE ]
-        modified = False
-        if check_modified:
-            timestamp_base_file = self.master_bin_dir+'/'+self.MASTER_BIN_FILE
-            for src in build_depends:
-                if self._check_modified(src, timestamp_base_file):
-                    modified = True
-                    break
-            if not modified:
-                info("source files of auto generated data are not modified")
-        """
-        modified = True
-
         # main process
         try:
             self.setup_dir()
-            if not check_modified or modified:
-                self.build_master_json()
-                self.merge_editor_file()
-                self.sort_master_json()
-                self.build_master_fbs()
-                self.build_master_bin()
-                self.build_spine()
-                self.build_weapon()
-                self.build_font()
-                self.build_user_class()
-                self.install_generated()
+
+            # for standard master data
+            self.build_master_json()
+            self.merge_editor_file()
+            self.sort_master_json()
+            self.build_master_fbs()
+            self.build_master_bin()
+
+            # for editor master data
+            editor_schema_file = self.build_dir+'/'+self.EDITOR_MASTER_JSON_SCHEMA_FILE
+            editor_data_file   = self.build_dir+'/'+self.EDITOR_MASTER_JSON_DATA_FILE
+            editor_fbs_file    = self.build_dir+'/'+self.EDITOR_MASTER_FBS_FILE
+            editor_bin_file    = self.build_dir+'/'+self.EDITOR_MASTER_BIN_FILE
+            editor_header_file = self.build_dir+'/'+self.EDITOR_MASTER_HEADER_FILE
+            self.build_master_json(dest_schema=editor_schema_file, dest_data=editor_data_file, except_json=True)
+            self.sort_master_json(src_schema=editor_schema_file, src_data=editor_data_file)
+            self.build_master_fbs(src_json=editor_schema_file, dest_fbs=editor_fbs_file)
+            self.build_master_bin(src_json=editor_data_file, src_fbs=editor_fbs_file, dest_bin=editor_bin_file, dest_header=editor_header_file)
+
+            # user data
+            self.build_user_class()
+
+            # asset
+            self.build_spine()
+            self.build_weapon()
+            self.build_font()
+
+            # install and deploy
+            self.install_generated()
             self.deploy_git_repo()
             self.build_manifest()
             self.install_manifest()

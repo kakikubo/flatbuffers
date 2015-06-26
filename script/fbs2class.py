@@ -477,6 +477,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 else:
                     s += '      _' + item_name + '->fromMsgpack(__v_' + item_name + '->second);\n'
                 s += '    }\n'
+            s += "    clearDirty();\n"
             s += "  }\n"
             s += "  // construct with json\n"
             s += "  " + table_name + "(msgpack::object& obj) {\n"
