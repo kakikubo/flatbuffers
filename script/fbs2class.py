@@ -165,6 +165,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
         for item_name, item in table.iteritems():
             if item["is_vector"]:
                 s += "  std::vector<" + item["cpp_type"] + " > _" + item_name + ";\n"
+                s += "  std::vector<" + item["cpp_type"] + " > _" + item_name + "Erased;\n"
                 range_key = get_item_range_key(item, fbs_data, table_property)
                 if range_key:
                     s += "  std::map<" + range_key["cpp_type"] + ", " + item["cpp_type"] + " > _" + item_name + "Map;\n"
@@ -219,16 +220,20 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 s += "    __dirty = true;\n"
                 s += "  }\n"
                 s += "  void erase" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos) {\n"
-                s += "    _" + item_name + ".erase(pos);\n"
+                s += "    auto erased = _" + item_name + ".erase(pos);\n"
+                s += "    _" + item_name + "Erased.push_back(*erased);\n"
                 if range_key:
                     s += "    _" + item_name + "Map.erase((*pos)->" + range_key["name"] + "());\n"
-                s += "    __dirty = true;\n"
+                s += "    // __dirty = true; // erase is not dirty\n"
                 s += "  }\n"
                 s += "  void clear" + upper_camel_case(item_name) + "() {\n"
+                s += "    for (auto __v : _" + item_name + ") {\n"
+                s += "      _" + item_name + "Erased.push_back(__v);\n"
+                s += "    }\n"
                 s += "    _" + item_name + ".clear();\n"
                 if range_key:
                     s += "    _" + item_name + "Map.clear();\n"
-                s += "    __dirty = true;\n"
+                s += "    // __dirty = true; // erase is not dirty\n"
                 s += "  }\n"
             elif item["is_default_type"]:
                 s += "  void set" + upper_camel_case(item_name) + "(" + item["cpp_type"] + " value) { \n"
@@ -311,6 +316,20 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 s += '    }\n'
             s += '    return rangeKeys;\n'
             s += '  }\n'
+            s += "  std::vector<int> collectErasedRangeKey(const std::string& target) {\n"
+            s += '    std::vector<int> rangeKeys;\n'
+            for item_name, item in table.iteritems():
+                if not "range_key" in table_property[item["item_type"]]:
+                    continue
+                s += '    if (target == "' + item_name + '") {\n'
+                if item["is_vector"]:
+                    s += "      for (auto it = _" + item_name + "Erased.begin(); it != _" + item_name + "Erased.end(); it++) {\n"
+                    s += "        rangeKeys.push_back((*it)->rangeKeyValue());\n"
+                    s += "      }\n"
+                s += '      return rangeKeys;\n'
+                s += '    }\n'
+            s += '    return rangeKeys;\n'
+            s += '  }\n'
 
         if "hash_key" in prop:
             hash_key = prop["hash_key"]
@@ -360,7 +379,8 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
 
         if with_json:
             s += "\n  // getter via json\n"
-            s += "  json_t* toJson() {\n"
+            s += "  json_t* toJson(bool onlyDirty) {\n"
+            s += "    if (onlyDirty && !isDirty()) return nullptr;\n"
             s += "    auto json = json_object();\n"
             for item_name, item in table.iteritems():
                 item_type = item["item_type"]
@@ -376,7 +396,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                     elif item_type in ('bool'):
                         s += "      json_array_append(a_" + item_name + ", json_boolean(*it));\n"
                     else:
-                        s += "      json_array_append(a_" + item_name + ", (*it)->toJson());\n"
+                        s += "      json_array_append(a_" + item_name + ", (*it)->toJson(onlyDirty));\n"
                     s += "    }\n"
                     s += '    json_object_set_new(json, "' + item_name + '", a_' + item_name + ');\n'
                 elif item_type == 'string':
@@ -388,7 +408,7 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
                 elif item_type in ('bool'):
                     s += '    json_object_set_new(json, "' + item_name + '", json_boolean(_' + item_name + '));\n'
                 else:
-                    s += '    json_object_set_new(json, "' + item_name + '", _' + item_name + '->toJson());\n'
+                    s += '    json_object_set_new(json, "' + item_name + '", _' + item_name + '->toJson(onlyDirty));\n'
             s += "    return json;\n";
             s += "  }\n"
 
@@ -486,17 +506,20 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
 
         if with_json and fbs_root_type == table_name:
             s += "\n  // top level of JSON IO\n"
-            s += "  json_t* serializeJson(const std::string& target) {\n"
+            s += "  json_t* serializeJson(const std::string& target, bool onlyDirty) {\n"
             for item_name, item in table.iteritems():
                 s += '    if (target == "' + item_name + '") {\n'
                 if item["is_vector"]:
                     s += '      auto a_' + item_name + ' = json_array();\n'
                     s += '      for (auto it = _' + item_name + '.begin(); it != _' + item_name + '.end(); it++) {\n'
-                    s += '        json_array_append(a_' + item_name + ', (*it)->toJson());\n'
+                    s += '        if (onlyDirty && !(*it)->isDirtyRecursive()) continue;\n'
+                    s += '        auto __j = (*it)->toJson(onlyDirty);\n'
+                    s += '        if (__j != nullptr) json_array_append(a_' + item_name + ', __j);\n'
                     s += '      }\n'
-                    s += '      return a_' + item_name +';\n'
+                    s += '      return (!onlyDirty || json_array_size(a_' + item_name +') > 0) ? a_' + item_name +' : json_null();\n'
                 else:
-                    s += '      return _' + item_name + '->toJson();\n'
+                    s += '      if (onlyDirty && !_' + item_name + '->isDirtyRecursive()) return json_null();\n'
+                    s += '      return _' + item_name + '->toJson(onlyDirty);\n'
                 s += '    }\n'
             s += "    return json_null();\n"
             s += "  }\n"
