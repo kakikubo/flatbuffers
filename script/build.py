@@ -490,7 +490,10 @@ class AssetBuilder():
 
     def deploy_dev_cdn(self):
         list_file = self.cdn_dir+"/dev.asset_list.json"
-        with open(list_file, 'w+') as f:
+        if not os.path.exists(list_file):
+            with open(list_file, 'w') as f:
+                json.dump([], f)
+        with open(list_file, 'r+') as f:
             try:
                 usernames = json.load(f, object_pairs_hook=OrderedDict)
             except ValueError:
