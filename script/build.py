@@ -87,6 +87,7 @@ class AssetBuilder():
         self.master_header_dir        = self.main_dir+'/master_header'
         self.user_class_dir           = self.main_dir+'/user_header'
         self.user_header_dir          = self.main_dir+'/user_header'
+        self.user_data_dir            = self.main_dir+'/contents/files/user_data'
         self.spine_dir                = self.main_dir+'/contents/files/spine'
         self.font_dir                 = self.main_dir+'/contents/files/font'
         self.weapon_dir               = self.main_dir+'/contents/files/weapon'
@@ -99,9 +100,10 @@ class AssetBuilder():
         self.org_master_header_dir    = self.org_main_dir+'/master_header'
         self.org_user_class_dir       = self.org_main_dir+'/user_header'
         self.org_user_header_dir      = self.org_main_dir+'/user_header'
+        self.org_user_data_dir        = self.org_main_dir+'/contents/files/user_data'
         self.org_spine_dir            = self.org_main_dir+'/contents/files/spine'
         self.org_font_dir             = self.org_main_dir+'/contents/files/font'
-        self.org_weapon_dir            = self.org_main_dir+'/contents/files/weapon'
+        self.org_weapon_dir           = self.org_main_dir+'/contents/files/weapon'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -119,15 +121,17 @@ class AssetBuilder():
         main_editor_schema = self.main_editor_schema_dir+'/editor_schema.json'
         self.editor_schema = main_editor_schema if os.path.exists(main_editor_schema) else self.master_editor_schema_dir+'/editor_schema.json'
 
-        self.manifest_bin         = self_dir+'/manifest_generate.py'
-        self.xls2json_bin         = self_dir+'/master_data_xls2json.py'
-        self.json2fbs_bin         = self_dir+'/json2fbs.py'
-        self.flatc_bin            = self_dir+'/flatc'
-        self.fbs2class_bin        = self_dir+'/fbs2class.py'
-        self.json2font_bin        = self_dir+'/json2font.py'
-        self.sort_master_json_bin = self_dir+'/sort-master-json.py'
-        self.delete_element_bin   = self_dir+'/delete-element.py'
-        self.make_atlas_bin       = self_dir+'/make_atlas.py'
+        self.manifest_bin           = self_dir+'/manifest_generate.py'
+        self.xls2json_bin           = self_dir+'/master_data_xls2json.py'
+        self.json2fbs_bin           = self_dir+'/json2fbs.py'
+        self.flatc_bin              = self_dir+'/flatc'
+        self.fbs2class_bin          = self_dir+'/fbs2class.py'
+        self.json2font_bin          = self_dir+'/json2font.py'
+        self.sort_master_json_bin   = self_dir+'/sort-master-json.py'
+        self.verify_master_json_bin = self_dir+'/verify_master_json.py'
+        self.verify_user_json_bin   = self_dir+'/verify_user_json.py'
+        self.delete_element_bin     = self_dir+'/delete-element.py'
+        self.make_atlas_bin         = self_dir+'/make_atlas.py'
         
         self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
@@ -266,6 +270,16 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    def verify_master_json(self, src_schema=None, src_data=None):
+        src_schema = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        src_data   = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        info("verify master json: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
+
+        cmdline = [self.verify_master_json_bin, src_schema, src_data]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
     # create fbs from json
     def build_master_fbs(self, src_json=None, dest_fbs=None, root_name=None, namespace=None):
         src_json   = src_json  or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
@@ -353,6 +367,15 @@ class AssetBuilder():
 
         info("build user class: %s" % os.path.basename(dest_class))
         cmdline = [self.fbs2class_bin, src_fbs, dest_class, '--namespace', namespace]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    def verify_user_json(self, src_user_data_dir=None):
+        src_user_data_dir = src_user_data_dir or self.user_data_dir
+
+        info("verify user data: %s" % src_user_data_dir)
+        cmdline = [self.verify_user_json_bin, src_user_data_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -563,6 +586,7 @@ class AssetBuilder():
             self.build_master_json()
             self.merge_editor_file()
             self.sort_master_json()
+            self.verify_master_json()
             self.build_master_fbs()
             self.build_master_bin()
 
@@ -579,6 +603,7 @@ class AssetBuilder():
 
             # user data
             self.build_user_class()
+            self.verify_user_json()
 
             # asset
             self.build_spine()
