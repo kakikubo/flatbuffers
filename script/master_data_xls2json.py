@@ -143,6 +143,8 @@ def normalize_data(data):
                 # filter by primary key
                 if d['id'] is not None:
                     if d['id'] >= 0:
+                        if id_mapping.has_key(d['id']):
+                            raise Exception("Duplicated id %s in '%s'" % (d['id'], sheet['name']))
                         id_mapping[d['id']] = d  # override
                     elif d['id'] < 0:
                         id = abs(d['id'])
