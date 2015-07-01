@@ -14,9 +14,6 @@ from glob import glob
 from subprocess import check_output
 
 def verify_user_json(src_dir):
-    if not os.path.isdir(src_dir):
-        raise Exception("not dir: %s" % src_dir)
-
     user_data = OrderedDict()
     for json_path in glob("%s/*.json" % src_dir):
         key = re.sub('.json$', '', os.path.basename(json_path))
