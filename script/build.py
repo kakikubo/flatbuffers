@@ -153,7 +153,10 @@ class AssetBuilder():
         self.USER_HEADER_FILE               = 'user_data_generated.h'
         self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
-        self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn' # FIXME
+        self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
+        self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets/master'
+        self.S3_INTERNAL_URL                = 's3://gree-kms-assets/master'
+        self.S3_CREDENTIALS_FILE            = '~/.aws/credentials'
         self.MASTER_DATA_ROW_START          = 3
 
     # prepare and isolate source data via box
@@ -482,6 +485,7 @@ class AssetBuilder():
         cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
         info(' '.join(cmdline))
         check_call(cmdline)
+        return True
 
     # create manifest json from
     def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None):
@@ -570,11 +574,42 @@ class AssetBuilder():
         info("deploy %s" % self.main_dir+'/contents/')
         check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
         check_call(['chmod', '775', dest_dir+"/contents"])
-        info("deploy %s" % version_file)
-        check_call(rsync + [version_file, dest_dir+"/"+self.VERSION_MANIFEST_FILE])
-        info("deploy %s" % project_file)
-        check_call(rsync + [project_file, dest_dir+'/'+self.PROJECT_MANIFEST_FILE])
+        info("deploy %s + %s" % (project_file, version_file))
+        check_call(rsync + [project_file, version_file, dest_dir+"/"])
         info("deploy to dev cdn: done")
+        return True
+
+    def deploy_s3_cdn(self):
+        if not os.path.exists(os.path.normpath(os.path.expanduser(self.S3_CREDENTIALS_FILE))):
+            warning("aws credentials file is not found")
+            return False
+
+        project_file = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        version_file = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+
+        for manifest_file in (project_file, version_file):
+            with open(manifest_file, 'r+') as f:
+                manifest = json.load(f, object_pairs_hook=OrderedDict)
+                prevUrl = manifest["packageUrl"]
+                manifest["packageUrl"] = self.S3_CDN_URL+'/'
+                manifest["remoteManifestUrl"] = re.sub('^'+prevUrl, self.S3_CDN_URL+'/', manifest["remoteManifestUrl"])
+                manifest["remoteVersionUrl"]  = re.sub('^'+prevUrl, self.S3_CDN_URL+'/', manifest["remoteVersionUrl"])
+                f.seek(0)
+                f.truncate(0)
+                json.dump(manifest, f, indent=2)
+
+        info("deploy to s3 cdn: %s -> %s: %s" % (self.main_dir, self.S3_INTERNAL_URL, self.S3_CDN_URL))
+
+        aws_s3 = ['aws', 's3']
+        s3_internal_url = self.S3_INTERNAL_URL+'/'+self.asset_version_dir
+        info("deploy %s" % self.main_dir+'/contents/')
+        check_call(aws_s3 + ['sync', self.main_dir+'/contents/', s3_internal_url+'/contents'])
+        info("deploy %s" % project_file)
+        check_call(aws_s3 + ['cp', project_file, s3_internal_url+'/'])
+        info("deploy %s" % version_file)
+        check_call(aws_s3 + ['cp', version_file, s3_internal_url+'/'])
+        info("deploy to s3 cdn: done")
+        return True
 
     # do all processes
     def build_all(self, check_modified=True):
@@ -616,6 +651,7 @@ class AssetBuilder():
             self.build_manifest()
             self.install_manifest()
             self.deploy_dev_cdn()
+            self.deploy_s3_cdn()
         finally:
             if self.auto_cleanup:
                 self.cleanup()
