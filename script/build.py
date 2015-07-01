@@ -124,6 +124,7 @@ class AssetBuilder():
         self.manifest_bin           = self_dir+'/manifest_generate.py'
         self.xls2json_bin           = self_dir+'/master_data_xls2json.py'
         self.json2fbs_bin           = self_dir+'/json2fbs.py'
+        self.json2macro_bin         = self_dir+'/json2macro.py'
         self.flatc_bin              = self_dir+'/flatc'
         self.fbs2class_bin          = self_dir+'/fbs2class.py'
         self.json2font_bin          = self_dir+'/json2font.py'
@@ -138,11 +139,13 @@ class AssetBuilder():
         self.REFERENCE_MANIFEST_FILE        = 'dev.reference.manifest'
         self.MASTER_JSON_SCHEMA_FILE        = 'master_schema.json'
         self.MASTER_JSON_DATA_FILE          = 'master_data.json'
+        self.MASTER_MACRO_FILE              = 'MasterAccessors.h'
         self.MASTER_FBS_FILE                = 'master_data.fbs'
         self.MASTER_BIN_FILE                = 'master_data.bin'
         self.MASTER_HEADER_FILE             = 'master_data_generated.h'
         self.EDITOR_MASTER_JSON_SCHEMA_FILE = 'editor_master_schema.json'
         self.EDITOR_MASTER_JSON_DATA_FILE   = 'editor_master_data.json'
+        self.EDITOR_MASTER_MACRO_FILE       = 'EditorMasterAccessors.h'
         self.EDITOR_MASTER_FBS_FILE         = 'editor_master_data.fbs'
         self.EDITOR_MASTER_BIN_FILE         = 'editor_master_data.bin'
         self.EDITOR_MASTER_HEADER_FILE      = 'editor_master_data_generated.h'
@@ -296,6 +299,17 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    # create macro from json
+    def build_master_macro(self, src_json=None, dest_macro=None):
+        src_json   = src_json   or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        dest_macro = dest_macro or self.build_dir+'/'+self.MASTER_MACRO_FILE
+        info("build master macro: %s" % os.path.basename(dest_macro))
+
+        cmdline = [self.json2macro_bin, src_json, dest_macro]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
     # create bin+header from json+fbs
     def build_master_bin(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None):
         src_json    = src_json    or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
@@ -439,11 +453,13 @@ class AssetBuilder():
         list = [
             (self.MASTER_JSON_SCHEMA_FILE,        self.master_schema_dir, self.org_master_schema_dir),
             (self.MASTER_JSON_DATA_FILE,          self.master_data_dir,   self.org_master_data_dir),
+            (self.MASTER_MACRO_FILE,              self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_FBS_FILE,                self.master_fbs_dir,    self.org_master_fbs_dir),
             (self.MASTER_BIN_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
             (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir,   self.org_master_data_dir),
+            (self.EDITOR_MASTER_MACRO_FILE,       self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_FBS_FILE,         self.master_fbs_dir,    self.org_master_fbs_dir),
             (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
@@ -622,17 +638,20 @@ class AssetBuilder():
             self.merge_editor_file()
             self.sort_master_json()
             self.verify_master_json()
+            #self.build_master_macro()
             self.build_master_fbs()
             self.build_master_bin()
 
             # for editor master data
             editor_schema_file = self.build_dir+'/'+self.EDITOR_MASTER_JSON_SCHEMA_FILE
             editor_data_file   = self.build_dir+'/'+self.EDITOR_MASTER_JSON_DATA_FILE
+            editor_macro_file  = self.build_dir+'/'+self.EDITOR_MASTER_MACRO_FILE
             editor_fbs_file    = self.build_dir+'/'+self.EDITOR_MASTER_FBS_FILE
             editor_bin_file    = self.build_dir+'/'+self.EDITOR_MASTER_BIN_FILE
             editor_header_file = self.build_dir+'/'+self.EDITOR_MASTER_HEADER_FILE
             self.build_master_json(dest_schema=editor_schema_file, dest_data=editor_data_file, except_json=True)
             self.sort_master_json(src_schema=editor_schema_file, src_data=editor_data_file)
+            self.build_master_macro(src_json=editor_data_file, dest_macro=editor_macro_file)
             self.build_master_fbs(src_json=editor_schema_file, dest_fbs=editor_fbs_file)
             self.build_master_bin(src_json=editor_data_file, src_fbs=editor_fbs_file, dest_bin=editor_bin_file, dest_header=editor_header_file)
 
