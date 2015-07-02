@@ -656,9 +656,12 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
 
 def generate_schema():
     global fbs_data
+    global fbs_root_type
 
     schemas = OrderedDict()
     for table_name, table in fbs_data.iteritems():
+        if fbs_root_type == table_name:
+            continue
         schemas[table_name] = []
         for item_name, item in table.iteritems():
             s = OrderedDict()
