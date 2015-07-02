@@ -619,7 +619,7 @@ class AssetBuilder():
         aws_s3 = ['aws', 's3']
         s3_internal_url = self.S3_INTERNAL_URL+'/'+self.asset_version_dir
         info("deploy %s" % self.main_dir+'/contents/')
-        check_call(aws_s3 + ['sync', self.main_dir+'/contents/', s3_internal_url+'/contents'])
+        check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/contents/', s3_internal_url+'/contents'])
         info("deploy %s" % project_file)
         check_call(aws_s3 + ['cp', project_file, s3_internal_url+'/'])
         info("deploy %s" % version_file)
