@@ -6,12 +6,13 @@ import sys
 import re
 import argparse
 import logging
+import json
 
 from logging import info, warning, error
 from collections import OrderedDict
 
-def fbs2class(fbs, dst, namespace, with_json, with_msgpack, with_fbs):
-    with open(fbs, 'r') as f:
+def fbs2class(input_fbs, output_class, output_schema, namespace, with_json, with_msgpack, with_fbs):
+    with open(input_fbs, 'r') as f:
         global state, fbs_data
         state = "default"
         fbs_data = OrderedDict({})
@@ -20,7 +21,16 @@ def fbs2class(fbs, dst, namespace, with_json, with_msgpack, with_fbs):
                 parse_default(line)
             elif state == "table":
                 parse_table(line)
-    generate_classes(dst, namespace, with_json, with_msgpack, with_fbs)
+
+    # write user_data.h
+    cls = generate_classes(namespace, with_json, with_msgpack, with_fbs)
+    with open(output_class, 'w') as f:
+        f.write(cls)
+
+    # write user_schema.json
+    json = generate_schema()
+    with open(output_schema, 'w') as f:
+        f.write(json)
 
 def parse_default(line):
     global state
@@ -94,7 +104,7 @@ def get_item_range_key(item, fbs_data, table_property):
     else:
         return None
 
-def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, with_fbs=False):
+def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs=False):
     global fbs_data
     global fbs_root_type
     global fbs_namespace
@@ -642,9 +652,23 @@ def generate_classes(dst, namespace=None, with_json=True, with_msgpack=True, wit
     nss.reverse()
     for ns in nss:
         s += "} // namespace %s\n" % ns
+    return s
 
-    with open(dst, 'w') as f:
-        f.write(s)
+def generate_schema():
+    global fbs_data
+
+    schemas = OrderedDict()
+    for table_name, table in fbs_data.iteritems():
+        schemas[table_name] = []
+        for item_name, item in table.iteritems():
+            s = OrderedDict()
+            s['name'] = item_name
+            s['type'] = item['item_type']
+            s['is_hash_key']  = True if item['is_hash_key']  else False
+            s['is_range_key'] = True if item['is_range_key'] else False
+            s['is_vector']    = True if item['is_vector']    else False
+            schemas[table_name].append(s)
+    return json.dumps(schemas, indent=2)
 
 # ---
 # main function
@@ -653,9 +677,10 @@ if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
 
     parser = argparse.ArgumentParser(description = 'convert fbs schema to C++ classes')
-    parser.add_argument('input_fbs',     metavar = 'input.fbs',  help = 'input FlatBuffers schema file')
-    parser.add_argument('output_class',  metavar = 'output.h',   help = 'output class file (C++ header)')
-    parser.add_argument('--namespace',   help = 'name space override')
+    parser.add_argument('input_fbs',     metavar = 'input.fbs',   help = 'input FlatBuffers schema file')
+    parser.add_argument('output_class',  metavar = 'output.h',    help = 'output class file (C++ header)')
+    parser.add_argument('output_schema', metavar = 'output.json', help = 'output schema file (json)')
+    parser.add_argument('--namespace',  help = 'name space override')
     parser.add_argument('--json',    action = 'store_true', default = True,  help = 'generate json IO code')
     parser.add_argument('--msgpack', action = 'store_true', default = True,  help = 'generate msgpack IO code')
     parser.add_argument('--fbs',     action = 'store_true', default = False, help = 'generate flatbuffers IO code')
@@ -667,6 +692,6 @@ if __name__ == '__main__':
     info("with json = %s" % args.json)
     info("with msgpack = %s" % args.msgpack)
     info("with fbs = %s" % args.fbs)
-    fbs2class(args.input_fbs, args.output_class, args.namespace, args.json, args.msgpack, args.fbs)
+    fbs2class(args.input_fbs, args.output_class, args.output_schema, args.namespace, args.json, args.msgpack, args.fbs)
     exit(0)
 
