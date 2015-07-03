@@ -70,11 +70,11 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
         baseAssets = baseManifest.get('assets')
         if keep_ref_entries:
             for key in assets:
-                if not baseAssets.has_key(key):
-                  continue
+                #if not baseAssets.has_key(key):
+                #  continue
                 asset     = assets.get(key)
                 baseAsset = baseAssets.get(key)
-                if baseAsset.get('md5') != asset.get('md5'):
+                if not baseAsset or baseAsset.get('md5') != asset.get('md5'):
                     baseAssets[key] = asset
             assets = baseAssets
         else:
