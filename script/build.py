@@ -157,8 +157,8 @@ class AssetBuilder():
         self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
         self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
-        self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets/master'
-        self.S3_INTERNAL_URL                = 's3://gree-kms-assets/master'
+        self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets'
+        self.S3_INTERNAL_URL                = 's3://gree-kms-assets'
         self.S3_CREDENTIALS_FILE            = '~/.aws/credentials'
         self.MASTER_DATA_ROW_START          = 3
 
