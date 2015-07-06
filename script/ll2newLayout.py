@@ -20,15 +20,21 @@ def ll2newLayout(master_asset_root, dst_asset_root):
     image_dir = "area/test1"
     with open(master_asset_root + "/master_derivatives/master_data.json", 'r') as f:
         master = json.loads(f.read(), object_pairs_hook=OrderedDict)
+        for item in master["areaPositionDeprecated"]:
+            area_id = item["areaId"]
+            result[str(area_id)] = {"areaId":area_id, "ground":[], "wall":[], "bg":[], "position":[]}
         for item in master["layoutDeprecated"]:
-            #print(item["name"] + "\t" + item["type"] + "\t" + "@(" + str(item["x"]) + "," + str(item["z"]) + ")")
+            area_id = item["mapID"]
+            result[str(area_id)] = {"areaId":area_id, "ground":[], "wall":[], "bg":[], "position":[]}
+
+        for item in master["areaPositionDeprecated"]:
+            result[str(item["areaId"])]["position"].append({"id":item["id"],"x":item["x"], "y":item["y"], "z":item["z"]})
+        for item in master["layoutDeprecated"]:
             name = item["name"]
             is_ground = item["type"] == "ground"
             is_bg = item["type"] == "bg"
             is_wall = item["type"] == "wall"
             area_id = str(item["mapID"])
-            if not area_id in result:
-                result[area_id] = {"areaId":item["mapID"], "ground":[], "wall":[], "bg":[]}
 
             origin_x = item["x"]
             origin_y = item["y"]
@@ -68,7 +74,7 @@ def ll2newLayout(master_asset_root, dst_asset_root):
     if not os.path.exists(dst_json_dir):
         os.makedirs(dst_json_dir)
 
-    dst_image_dir = dst_asset_root + "/contents/files/"
+    dst_image_dir = dst_asset_root + "/contents/files"
     src_image_dir = master_asset_root + "/contents/files/common/image"
     for area_id in result.keys():
         info = result[area_id]
@@ -76,7 +82,7 @@ def ll2newLayout(master_asset_root, dst_asset_root):
             j = json.dumps({"areaInfo_item":info}, ensure_ascii = False, indent = 4)
             f.write(j.encode("utf-8"))
     for src, dst in images.items():
-        d = os.path.dirname(dst)
+        d = os.path.dirname(dst_image_dir + "/" + dst)
         if not os.path.exists(d):
             os.makedirs(d)
         shutil.copyfile(src_image_dir + "/" + src, dst_image_dir + "/" + dst)
