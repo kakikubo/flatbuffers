@@ -19,11 +19,12 @@ from logging import info, warning, debug
 
 class AssetBuilder():
     def __init__(self, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, cdn_dir=None, git_dir=None):
-        self.target              = target or 'master'
-        self.is_master           = self.target == 'master'
+        self.target            = target or 'master'
+        self.is_master         = self.target == 'master'
 
-        self.asset_version       = asset_version or "%s %s" % (target, strftime('%Y-%m-%d %H:%M:%S'))
-        self.asset_version_dir   = 'ver1' if self.is_master else target
+        self.asset_version     = asset_version or target
+        self.asset_version_dir = asset_version or target
+        self.timestamp         = strftime('%Y-%m-%d %H:%M:%S')
 
         self_dir = os.path.dirname(os.path.abspath(__file__))
         for main_dir_default in (\
@@ -34,12 +35,21 @@ class AssetBuilder():
                 break
         self.org_main_dir = main_dir or main_dir_default
 
-        for master_dir_default in (\
-            os.path.normpath(os.curdir+'/kms_master_asset'), \
-            os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
-            os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))):
-            if os.path.exists(master_dir_default):
-                break
+        if target in ('hiroto.furuya'):
+            for master_dir_default in (\
+                os.path.normpath(os.curdir+'/asset'), \
+                git_dir, \
+                os.path.normpath(self_dir+'/../client/asset'), \
+                os.path.normpath(os.path.expanduser('~/kms/asset'))):
+                if master_dir_default and os.path.exists(master_dir_default):
+                    break
+        else:
+            for master_dir_default in (\
+                os.path.normpath(os.curdir+'/kms_master_asset'), \
+                os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
+                os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))):
+                if master_dir_default and os.path.exists(master_dir_default):
+                    break
         self.org_master_dir = master_dir or master_dir_default
 
         cdn_dir_default          = '/var/www/cdn'
@@ -77,8 +87,10 @@ class AssetBuilder():
         self.master_header_dir        = self.main_dir+'/master_header'
         self.user_class_dir           = self.main_dir+'/user_header'
         self.user_header_dir          = self.main_dir+'/user_header'
+        self.user_data_dir            = self.main_dir+'/contents/files/user_data'
         self.spine_dir                = self.main_dir+'/contents/files/spine'
         self.font_dir                 = self.main_dir+'/contents/files/font'
+        self.weapon_dir               = self.main_dir+'/contents/files/weapon'
 
         self.org_manifest_dir         = self.org_main_dir+'/manifests'
         self.org_master_schema_dir    = self.org_main_dir+'/master_derivatives'
@@ -88,8 +100,10 @@ class AssetBuilder():
         self.org_master_header_dir    = self.org_main_dir+'/master_header'
         self.org_user_class_dir       = self.org_main_dir+'/user_header'
         self.org_user_header_dir      = self.org_main_dir+'/user_header'
+        self.org_user_data_dir        = self.org_main_dir+'/contents/files/user_data'
         self.org_spine_dir            = self.org_main_dir+'/contents/files/spine'
         self.org_font_dir             = self.org_main_dir+'/contents/files/font'
+        self.org_weapon_dir           = self.org_main_dir+'/contents/files/weapon'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -107,32 +121,46 @@ class AssetBuilder():
         main_editor_schema = self.main_editor_schema_dir+'/editor_schema.json'
         self.editor_schema = main_editor_schema if os.path.exists(main_editor_schema) else self.master_editor_schema_dir+'/editor_schema.json'
 
-        self.manifest_bin         = self_dir+'/manifest_generate.py'
-        self.xls2json_bin         = self_dir+'/master_data_xls2json.py'
-        self.json2fbs_bin         = self_dir+'/json2fbs.py'
-        self.flatc_bin            = self_dir+'/flatc'
-        self.fbs2class_bin        = self_dir+'/fbs2class.py'
-        self.json2font_bin        = self_dir+'/json2font.py'
-        self.sort_master_json_bin = self_dir+'/sort-master-json.py'
-        self.delete_element_bin   = self_dir+'/delete-element.py'
+        self.manifest_bin           = self_dir+'/manifest_generate.py'
+        self.xls2json_bin           = self_dir+'/master_data_xls2json.py'
+        self.json2fbs_bin           = self_dir+'/json2fbs.py'
+        self.json2macro_bin         = self_dir+'/json2macro.py'
+        self.flatc_bin              = self_dir+'/flatc'
+        self.fbs2class_bin          = self_dir+'/fbs2class.py'
+        self.json2font_bin          = self_dir+'/json2font.py'
+        self.sort_master_json_bin   = self_dir+'/sort-master-json.py'
+        self.verify_master_json_bin = self_dir+'/verify_master_json.py'
+        self.verify_user_json_bin   = self_dir+'/verify_user_json.py'
+        self.delete_element_bin     = self_dir+'/delete-element.py'
+        self.make_atlas_bin         = self_dir+'/make_atlas.py'
         
-        self.PROJECT_MANIFEST_FILE   = 'dev.project.manifest'
-        self.VERSION_MANIFEST_FILE   = 'dev.version.manifest'
-        self.REFERENCE_MANIFEST_FILE = 'dev.reference.manifest'
-        self.MASTER_JSON_SCHEMA_FILE = 'master_schema.json'
-        self.MASTER_JSON_DATA_FILE   = 'master_data.json'
-        self.MASTER_FBS_FILE         = 'master_data.fbs'
-        self.MASTER_BIN_FILE         = 'master_data.bin'
-        self.MASTER_HEADER_FILE      = 'master_data_generated.h'
-        self.MASTER_FBS_ROOT_NAME    = 'MasterDataFBS'
-        self.MASTER_FBS_NAMESPACE    = 'kms.masterdata'
-        self.USER_FBS_FILE           = 'user_data.fbs'
-        self.USER_CLASS_FILE         = 'user_data.h'
-        self.USER_HEADER_FILE        = 'user_data_generated.h'
-        self.USER_FBS_ROOT_NAME      = 'UserDataFBS'
-        self.USER_FBS_NAMESPACE      = 'kms.userdata'
-        self.DEV_CDN_URL             = 'http://kms-dev.dev.gree.jp/cdn' # FIXME
-        self.MASTER_DATA_ROW_START   = 3
+        self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
+        self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
+        self.REFERENCE_MANIFEST_FILE        = 'dev.reference.manifest'
+        self.MASTER_JSON_SCHEMA_FILE        = 'master_schema.json'
+        self.MASTER_JSON_DATA_FILE          = 'master_data.json'
+        self.MASTER_MACRO_FILE              = 'MasterAccessors.h'
+        self.MASTER_FBS_FILE                = 'master_data.fbs'
+        self.MASTER_BIN_FILE                = 'master_data.bin'
+        self.MASTER_HEADER_FILE             = 'master_data_generated.h'
+        self.EDITOR_MASTER_JSON_SCHEMA_FILE = 'editor_master_schema.json'
+        self.EDITOR_MASTER_JSON_DATA_FILE   = 'editor_master_data.json'
+        self.EDITOR_MASTER_MACRO_FILE       = 'EditorMasterAccessors.h'
+        self.EDITOR_MASTER_FBS_FILE         = 'editor_master_data.fbs'
+        self.EDITOR_MASTER_BIN_FILE         = 'editor_master_data.bin'
+        self.EDITOR_MASTER_HEADER_FILE      = 'editor_master_data_generated.h'
+        self.MASTER_FBS_ROOT_NAME           = 'MasterDataFBS'
+        self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
+        self.USER_FBS_FILE                  = 'user_data.fbs'
+        self.USER_CLASS_FILE                = 'user_data.h'
+        self.USER_HEADER_FILE               = 'user_data_generated.h'
+        self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
+        self.USER_FBS_NAMESPACE             = 'kms.userdata'
+        self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
+        self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets'
+        self.S3_INTERNAL_URL                = 's3://gree-kms-assets'
+        self.S3_CREDENTIALS_FILE            = '~/.aws/credentials'
+        self.MASTER_DATA_ROW_START          = 3
 
     # prepare and isolate source data via box
     def prepare_dir(self, src, dest):
@@ -193,67 +221,32 @@ class AssetBuilder():
                     editor_path = os.path.join(dirpath, filename)
                     basename = os.path.basename(editor_path)
                     editor_files[basename] = editor_path
-                    print(editor_path)
         return editor_files.values()
 
-    # check modification of user editted files
-    def _check_modified(self, target, base):
-        timestamps = []
-        for f in (target, base):
-            ts = os.stat(f).st_mtime if os.path.exists(f) else 0
-            timestamps.append(ts)
-        return timestamps[0] > timestamps[1]
-
-    # create manifest json from
-    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None):
-        asset_version           = asset_version or self.asset_version
-        dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
-        dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
-        url_asset               = self.DEV_CDN_URL+'/'
-        
-        if self.is_master:
-            reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
-            url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
-            url_version_manifest  = self.DEV_CDN_URL+'/'+self.VERSION_MANIFEST_FILE
-            keep_ref_entries      = False
-        else:
-            reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-            url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
-            url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
-            keep_ref_entries      = True
-
-        info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
-        info("reference manifest: %s" % reference_manifest)
-
-        cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
-                   asset_version, url_project_manifest, url_version_manifest, url_asset,
-                   self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
-        if keep_ref_entries:
-          cmdline.append('--keep-ref-entries')
-        debug(' '.join(cmdline))
-        check_call(cmdline)
-        return True
-
     # cerate master data json from xlsx
-    def build_master_json(self, src_xlsxes=None, dest_schema=None, dest_data=None):
+    def build_master_json(self, src_xlsxes=None, dest_schema=None, dest_data=None, except_json=False):
         src_xlsxes  = src_xlsxes  or self._get_xlsxes()
         dest_schema = dest_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         dest_data   = dest_data   or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         info("build master json: %s + %s" % (os.path.basename(dest_schema), os.path.basename(dest_data)))
 
         cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data]
+        if except_json:
+            cmdline.append('--except-json') 
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
 
     # merge editor's json data into the master json data
     def merge_editor_file(self):
-
-        for master_file, editor_files in ((self.build_dir+'/'+self.MASTER_JSON_DATA_FILE, self._get_editor_files()), (self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, [self.editor_schema])):
+        for master_file, editor_files in \
+                ((self.build_dir+'/'+self.MASTER_JSON_DATA_FILE, self._get_editor_files()), \
+                (self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, [self.editor_schema])):
             with open(master_file, 'r') as f:
                 json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
             for editor_file in editor_files:
+                info("merge editor master file: %s + %s" % (os.path.basename(master_file), os.path.basename(editor_file)))
                 with open(editor_file, 'r') as f:
                     editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
                 for key in editor_json_data:
@@ -273,10 +266,22 @@ class AssetBuilder():
                 f.write(j.encode("utf-8"))
 
     # sort master json
-    def sort_master_json(self):
-        schema = self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
-        data = self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
-        cmdline = [self.sort_master_json_bin, schema, data, data]
+    def sort_master_json(self, src_schema=None, src_data=None):
+        src_schema = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        src_data   = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        info("sort master json: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
+
+        cmdline = [self.sort_master_json_bin, src_schema, src_data, src_data]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    def verify_master_json(self, src_schema=None, src_data=None):
+        src_schema = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        src_data   = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        info("verify master json: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
+
+        cmdline = [self.verify_master_json_bin, src_schema, src_data]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -290,6 +295,17 @@ class AssetBuilder():
         info("build master fbs: %s" % os.path.basename(dest_fbs))
 
         cmdline = [self.json2fbs_bin, src_json, dest_fbs, '--root-name', root_name, '--namespace', namespace]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    # create macro from json
+    def build_master_macro(self, src_json=None, dest_macro=None):
+        src_json   = src_json   or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        dest_macro = dest_macro or self.build_dir+'/'+self.MASTER_MACRO_FILE
+        info("build master macro: %s" % os.path.basename(dest_macro))
+
+        cmdline = [self.json2macro_bin, src_json, dest_macro]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -324,6 +340,8 @@ class AssetBuilder():
                   spine_file     = re.sub('Spine$', '.json', sheet_name)
                   src_spine_json = src_spine_dir+'/'+sheet_name+'/'+spine_file
                   dest_spine_dir = dest_dir+'/'+sheet_name
+                  if not os.path.exists(src_spine_json):
+                      continue
                   if not os.path.exists(dest_spine_dir):
                       os.makedirs(dest_spine_dir)
 
@@ -331,6 +349,29 @@ class AssetBuilder():
                   cmdline = [self.delete_element_bin, xlsx, sheet_name, str(self.MASTER_DATA_ROW_START), "hasTwinTail", src_spine_json, dest_spine_dir]
                   debug(' '.join(cmdline))
                   check_call(cmdline)
+        return True
+
+    # create weapon atlas from json
+    def build_weapon(self, src_xlsxes=None, src_weapon_dir=None, dest_dir=None):
+        src_xlsxes     = src_xlsxes     or self._get_xlsxes()
+        src_weapon_dir = src_weapon_dir or self.weapon_dir
+        dest_dir       = dest_dir       or self.build_dir
+
+        if not os.path.exists(src_weapon_dir):
+            return True
+
+        for xlsx in self._get_xlsxes():
+            sheets = self._get_xlsx_sheets(xlsx)
+            for sheet in sheets:
+                if sheet == "weapon":
+                    dest_weapon_dir = dest_dir+'/'+"weapon"
+                    if not os.path.exists(dest_weapon_dir):
+                        os.makedirs(dest_weapon_dir)
+
+                    info("build weapon atlas: %s:" % os.path.basename(xlsx))
+                    cmdline = [self.make_atlas_bin, xlsx, "weapon", str(self.MASTER_DATA_ROW_START), src_weapon_dir, dest_weapon_dir]
+                    debug(' '.join(cmdline))
+                    check_call(cmdline)
         return True
 
     # create class header from fbs
@@ -343,6 +384,15 @@ class AssetBuilder():
 
         info("build user class: %s" % os.path.basename(dest_class))
         cmdline = [self.fbs2class_bin, src_fbs, dest_class, '--namespace', namespace]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    def verify_user_json(self, src_user_data_dir=None):
+        src_user_data_dir = src_user_data_dir or self.user_data_dir
+
+        info("verify user data: %s" % src_user_data_dir)
+        cmdline = [self.verify_user_json_bin, src_user_data_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -362,7 +412,9 @@ class AssetBuilder():
     # create fnt+png from json
     def build_font(self, src_json=None, src_gd_dir=None, dest_font_dir=None):
         # check GDCL
-        if call(['GDCL'], stdout = open(os.devnull, 'w')) == 127:
+        try:
+            call(['GDCL'], stdout = open(os.devnull, 'w'))
+        except OSError:
             warning("GDCL is not installed. skip to build font")
             return False
 
@@ -379,13 +431,14 @@ class AssetBuilder():
     def install_list(self, list, build_dir=None):
         build_dir = build_dir or self.build_dir
         for filename, dest1, dest2 in list:
-            if os.path.exists(build_dir+'/'+filename):
+            src = build_dir+'/'+filename
+            if os.path.exists(src):
                 info("install if updated: %s" % filename)
                 for dest_dir in (dest1, dest2):
-                    src  = build_dir + '/' + filename
-                    dest = dest_dir + '/' + filename
-                    if not os.path.exists(dest_dir):
-                        os.makedirs(dest_dir)
+                    dest = dest_dir+'/'+filename
+                    info("install debug : %s -> %s" % (src, dest))
+                    if not os.path.exists(os.path.dirname(dest)):
+                        os.makedirs(os.path.dirname(dest))
                     if call(['cmp', '--quiet', src, dest]) == 0:
                         continue
                     if os.path.exists(dest):
@@ -398,13 +451,20 @@ class AssetBuilder():
         build_dir = build_dir or self.build_dir
         # fixed pathes
         list = [
-            (self.MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
-            (self.MASTER_JSON_DATA_FILE,   self.master_data_dir, self.org_master_data_dir),
-            (self.MASTER_FBS_FILE,         self.master_fbs_dir, self.org_master_fbs_dir),
-            (self.MASTER_BIN_FILE,         self.master_bin_dir, self.org_master_bin_dir),
-            (self.MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
-            (self.USER_CLASS_FILE,         self.user_class_dir, self.org_user_class_dir),
-            (self.USER_HEADER_FILE,        self.user_header_dir, self.org_user_class_dir),
+            (self.MASTER_JSON_SCHEMA_FILE,        self.master_schema_dir, self.org_master_schema_dir),
+            (self.MASTER_JSON_DATA_FILE,          self.master_data_dir,   self.org_master_data_dir),
+            (self.MASTER_MACRO_FILE,              self.master_header_dir, self.org_master_header_dir),
+            (self.MASTER_FBS_FILE,                self.master_fbs_dir,    self.org_master_fbs_dir),
+            (self.MASTER_BIN_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
+            (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
+            (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
+            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir,   self.org_master_data_dir),
+            (self.EDITOR_MASTER_MACRO_FILE,       self.master_header_dir, self.org_master_header_dir),
+            (self.EDITOR_MASTER_FBS_FILE,         self.master_fbs_dir,    self.org_master_fbs_dir),
+            (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
+            (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
+            (self.USER_CLASS_FILE,                self.user_class_dir,    self.org_user_class_dir),
+            (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_class_dir),
         ]
         # spine
         for spine_path in glob("%s/*Spine/*.json" % build_dir):
@@ -414,8 +474,16 @@ class AssetBuilder():
         for font_path in glob("%s/*.fnt" % build_dir):
             font_path = re.sub('^'+build_dir+'/', '', font_path)
             png_path  = re.sub('.fnt$', '.png', font_path)
-            list.append((font_path, self.font_dir, self.org_font_dir))
-            list.append((png_path,  self.font_dir, self.org_font_dir))
+            list.append((font_path, self.font_dir, self.font_dir)) # self.org_font_dir
+            list.append((png_path,  self.font_dir, self.font_dir)) # self.org_font_dir
+        # weapon
+        for weapon_path in glob("%s/weapon/*.atlas" % build_dir):
+            weapon_path = re.sub('^'+build_dir+'/', '', weapon_path)
+            png_path  = re.sub('.atlas$', '.png', weapon_path)
+            dest_weapon_dir1 = re.sub('/weapon', '', self.weapon_dir)
+            dest_weapon_dir2 = re.sub('/weapon', '', self.org_weapon_dir)
+            list.append((weapon_path, dest_weapon_dir1, dest_weapon_dir2))
+            list.append((png_path,  dest_weapon_dir1, dest_weapon_dir2))
         return self.install_list(list, build_dir)
 
     def install_manifest(self, build_dir=None):
@@ -433,15 +501,50 @@ class AssetBuilder():
         cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
         info(' '.join(cmdline))
         check_call(cmdline)
+        return True
+
+    # create manifest json from
+    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None):
+        asset_version           = asset_version or self.asset_version
+        dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        url_asset               = self.DEV_CDN_URL+'/'
+        
+        url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
+        url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
+        if self.is_master:
+            reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
+            keep_ref_entries      = False
+        else:
+            reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
+            keep_ref_entries      = True
+
+        info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
+        info("reference manifest: %s" % reference_manifest)
+
+        cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
+                   asset_version, url_project_manifest, url_version_manifest, url_asset,
+                   self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
+        if keep_ref_entries:
+          cmdline.append('--keep-ref-entries')
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
 
     def deploy_dev_cdn(self):
         list_file = self.cdn_dir+"/dev.asset_list.json"
-        with open(list_file, 'a+') as f:
-            f.seek(0)
-            usernames = json.load(f)
-            if not self.target in usernames and self.target != 'master':
+        if not os.path.exists(list_file):
+            with open(list_file, 'w') as f:
+                json.dump([], f)
+        with open(list_file, 'r+') as f:
+            try:
+                usernames = json.load(f, object_pairs_hook=OrderedDict)
+            except ValueError:
+                usernames = []
+            if not self.target in usernames:
                 usernames.append(self.target)
             info("available users = "+", ".join(usernames))
+            f.seek(0)
             f.truncate(0)
             json.dump(usernames, f, sort_keys=True, indent=2)
         os.chmod(list_file, 0664)
@@ -450,7 +553,7 @@ class AssetBuilder():
         version_file = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
 
         with open(project_file, 'r') as f:
-            manifest = json.load(f)
+            manifest = json.load(f, object_pairs_hook=OrderedDict)
         assets = manifest.get('assets')
         keep_files = []
         for key, asset in assets.iteritems():
@@ -461,9 +564,19 @@ class AssetBuilder():
             for file in files:
                 key = root.replace(self.main_dir+'/contents', self.remote_dir_asset)+'/'+file
                 if not key in keep_files:
+                    info("except from cdn: %s" % key)
                     os.remove(root+'/'+file)
 
-        rsync = ['rsync', '-crltvO']
+        for manifest_file in (project_file, version_file):
+            with open(manifest_file, 'r+') as f:
+                manifest = json.load(f, object_pairs_hook=OrderedDict)
+                manifest["version"] += " "+self.timestamp
+                f.seek(0)
+                f.truncate(0)
+                json.dump(manifest, f, indent=2)
+
+        rsync = ['rsync', '-a']
+        #rsync = ['rsync', '-crltvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
         rsync.extend(['--exclude', '.DS_Store'])
 
@@ -472,56 +585,92 @@ class AssetBuilder():
             os.makedirs(dest_dir)
         info("deploy to dev cdn: %s -> %s: " % (self.main_dir, dest_dir))
 
-        if self.is_master:
-            dest_version_manifest = self.cdn_dir+'/'+self.VERSION_MANIFEST_FILE
-        else:
-            dest_version_manifest = dest_dir+"/"+self.VERSION_MANIFEST_FILE
-
         check_call("find " + self.main_dir+'/contents' + " -type f -print | xargs chmod 664", shell=True)
         check_call("find " + self.main_dir+'/contents' + " -type d -print | xargs chmod 775", shell=True)
         info("deploy %s" % self.main_dir+'/contents/')
         check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
         check_call(['chmod', '775', dest_dir+"/contents"])
-        info("deploy %s" % version_file)
-        check_call(rsync + [version_file, dest_version_manifest])
-        info("deploy %s" % project_file)
-        check_call(rsync + [project_file, dest_dir+'/'+self.PROJECT_MANIFEST_FILE])
+        info("deploy %s + %s" % (project_file, version_file))
+        check_call(rsync + [project_file, version_file, dest_dir+"/"])
         info("deploy to dev cdn: done")
+        return True
+
+    def deploy_s3_cdn(self):
+        if not os.path.exists(os.path.normpath(os.path.expanduser(self.S3_CREDENTIALS_FILE))):
+            warning("aws credentials file is not found")
+            return False
+
+        project_file = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        version_file = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+
+        for manifest_file in (project_file, version_file):
+            with open(manifest_file, 'r+') as f:
+                manifest = json.load(f, object_pairs_hook=OrderedDict)
+                prevUrl = manifest["packageUrl"]
+                manifest["packageUrl"] = self.S3_CDN_URL+'/'
+                manifest["remoteManifestUrl"] = re.sub('^'+prevUrl, self.S3_CDN_URL+'/', manifest["remoteManifestUrl"])
+                manifest["remoteVersionUrl"]  = re.sub('^'+prevUrl, self.S3_CDN_URL+'/', manifest["remoteVersionUrl"])
+                f.seek(0)
+                f.truncate(0)
+                json.dump(manifest, f, indent=2)
+
+        info("deploy to s3 cdn: %s -> %s: %s" % (self.main_dir, self.S3_INTERNAL_URL, self.S3_CDN_URL))
+
+        aws_s3 = ['aws', 's3']
+        s3_internal_url = self.S3_INTERNAL_URL+'/'+self.asset_version_dir
+        info("deploy %s" % self.main_dir+'/contents/')
+        check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/contents/', s3_internal_url+'/contents'])
+        info("deploy %s" % project_file)
+        check_call(aws_s3 + ['cp', project_file, s3_internal_url+'/'])
+        info("deploy %s" % version_file)
+        check_call(aws_s3 + ['cp', version_file, s3_internal_url+'/'])
+        info("deploy to s3 cdn: done")
+        return True
 
     # do all processes
     def build_all(self, check_modified=True):
-        # check modified
-        """
-        build_depends = self._get_xlsxes() + self._get_editor_files() + [ self.editor_schema, self.main_schema_dir+'/'+self.USER_FBS_FILE ]
-        modified = False
-        if check_modified:
-            timestamp_base_file = self.master_bin_dir+'/'+self.MASTER_BIN_FILE
-            for src in build_depends:
-                if self._check_modified(src, timestamp_base_file):
-                    modified = True
-                    break
-            if not modified:
-                info("source files of auto generated data are not modified")
-        """
-        modified = True
-
         # main process
         try:
             self.setup_dir()
-            if not check_modified or modified:
-                self.build_master_json()
-                self.merge_editor_file()
-                self.sort_master_json()
-                self.build_master_fbs()
-                self.build_master_bin()
-                self.build_spine()
-                self.build_font()
-                self.build_user_class()
-                self.install_generated()
+
+            # for standard master data
+            self.build_master_json()
+            self.merge_editor_file()
+            self.sort_master_json()
+            self.verify_master_json()
+            #self.build_master_macro()
+            self.build_master_fbs()
+            self.build_master_bin()
+
+            # for editor master data
+            editor_schema_file = self.build_dir+'/'+self.EDITOR_MASTER_JSON_SCHEMA_FILE
+            editor_data_file   = self.build_dir+'/'+self.EDITOR_MASTER_JSON_DATA_FILE
+            editor_macro_file  = self.build_dir+'/'+self.EDITOR_MASTER_MACRO_FILE
+            editor_fbs_file    = self.build_dir+'/'+self.EDITOR_MASTER_FBS_FILE
+            editor_bin_file    = self.build_dir+'/'+self.EDITOR_MASTER_BIN_FILE
+            editor_header_file = self.build_dir+'/'+self.EDITOR_MASTER_HEADER_FILE
+            self.build_master_json(dest_schema=editor_schema_file, dest_data=editor_data_file, except_json=True)
+            self.sort_master_json(src_schema=editor_schema_file, src_data=editor_data_file)
+            self.build_master_macro(src_json=editor_data_file, dest_macro=editor_macro_file)
+            self.build_master_fbs(src_json=editor_schema_file, dest_fbs=editor_fbs_file)
+            self.build_master_bin(src_json=editor_data_file, src_fbs=editor_fbs_file, dest_bin=editor_bin_file, dest_header=editor_header_file)
+
+            # user data
+            self.build_user_class()
+            self.verify_user_json()
+
+            # asset
+            self.build_spine()
+            self.build_weapon()
+            self.build_font()
+
+            # install and deploy
+            self.install_generated()
             self.deploy_git_repo()
             self.build_manifest()
             self.install_manifest()
             self.deploy_dev_cdn()
+            self.deploy_s3_cdn()
         finally:
             if self.auto_cleanup:
                 self.cleanup()
@@ -548,6 +697,7 @@ commands:
   build-user-class   generate user_header/*.h from user_data.fbs
   build-user-header  generate user_header/*_generated.h from user_data.fbs
   build-spine        generate spine animation patterns
+  build-weapon       generate weapon atlas
   build-font         generate bitmap font from master_data.json
   deploy-dev         deploy asset files to cdn directory
   install            install files from build dir
@@ -596,6 +746,8 @@ examples:
         asset_builder.build_master_bin()
     elif args.command == 'build-spine':
         asset_builder.build_spine()
+    elif args.command == 'build-weapon':
+        asset_builder.build_weapon()
     elif args.command == 'build-user-class':
         asset_builder.build_user_class()
     elif args.command == 'build-user-header':
