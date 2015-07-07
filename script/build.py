@@ -86,6 +86,7 @@ class AssetBuilder():
         self.master_bin_dir           = self.main_dir+'/contents/master'
         self.master_header_dir        = self.main_dir+'/master_header'
         self.user_class_dir           = self.main_dir+'/user_header'
+        self.user_schema_dir          = self.main_dir+'/user_header'
         self.user_header_dir          = self.main_dir+'/user_header'
         self.user_data_dir            = self.main_dir+'/contents/files/user_data'
         self.spine_dir                = self.main_dir+'/contents/files/spine'
@@ -99,6 +100,7 @@ class AssetBuilder():
         self.org_master_bin_dir       = self.org_main_dir+'/contents/master'
         self.org_master_header_dir    = self.org_main_dir+'/master_header'
         self.org_user_class_dir       = self.org_main_dir+'/user_header'
+        self.org_user_schema_dir      = self.org_main_dir+'/user_header'
         self.org_user_header_dir      = self.org_main_dir+'/user_header'
         self.org_user_data_dir        = self.org_main_dir+'/contents/files/user_data'
         self.org_spine_dir            = self.org_main_dir+'/contents/files/spine'
@@ -153,6 +155,7 @@ class AssetBuilder():
         self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
         self.USER_FBS_FILE                  = 'user_data.fbs'
         self.USER_CLASS_FILE                = 'user_data.h'
+        self.USER_JSON_SCHEMA_FILE          = 'user_schema.json'
         self.USER_HEADER_FILE               = 'user_data_generated.h'
         self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
@@ -375,15 +378,16 @@ class AssetBuilder():
         return True
 
     # create class header from fbs
-    def build_user_class(self, src_fbs=None, dest_class=None, namespace=None):
-        src_fbs    = src_fbs    or self.main_schema_dir+'/'+self.USER_FBS_FILE
-        dest_class = dest_class or self.build_dir+'/'+self.USER_CLASS_FILE
-        namespace  = namespace  or self.USER_FBS_NAMESPACE
+    def build_user_class(self, src_fbs=None, dest_class=None, dest_schema=None, namespace=None):
+        src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
+        dest_class  = dest_class  or self.build_dir+'/'+self.USER_CLASS_FILE
+        dest_schema = dest_schema or self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE
+        namespace   = namespace   or self.USER_FBS_NAMESPACE
         if not os.path.exists(src_fbs):
             return False
 
-        info("build user class: %s" % os.path.basename(dest_class))
-        cmdline = [self.fbs2class_bin, src_fbs, dest_class, '--namespace', namespace]
+        info("build user class: %s + %s" % (os.path.basename(dest_class), os.path.basename(dest_schema)))
+        cmdline = [self.fbs2class_bin, src_fbs, dest_class, dest_schema, '--namespace', namespace]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -464,7 +468,8 @@ class AssetBuilder():
             (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
             (self.USER_CLASS_FILE,                self.user_class_dir,    self.org_user_class_dir),
-            (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_class_dir),
+            (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
+            (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
         ]
         # spine
         for spine_path in glob("%s/*Spine/*.json" % build_dir):
@@ -597,7 +602,7 @@ class AssetBuilder():
 
     def deploy_s3_cdn(self):
         if not os.path.exists(os.path.normpath(os.path.expanduser(self.S3_CREDENTIALS_FILE))):
-            warning("aws credentials file is not found")
+            warning("aws credentials file is not found. skip deploy to s3")
             return False
 
         project_file = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
