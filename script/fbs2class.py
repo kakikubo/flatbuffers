@@ -219,7 +219,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += "  }\n"
                 else:
                     s += "  void assign" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value, const " + item["cpp_type"] + "& defaultValue) {\n"
-                    s += "    if (_" + item_name + ".capacity() >= pos) {\n"
+                    s += "    if (_" + item_name + ".capacity() <= pos) {\n"
                     s += "      _" + item_name + ".resize(pos + 1, defaultValue);\n"
                     s += "    }\n"
                     s += "    _" + item_name + ".assign(pos, value);\n"
