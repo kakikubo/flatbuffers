@@ -415,13 +415,6 @@ class AssetBuilder():
 
     # create fnt+png from json
     def build_font(self, src_json=None, src_gd_dir=None, dest_font_dir=None):
-        # check GDCL
-        try:
-            call(['GDCL'], stdout = open(os.devnull, 'w'))
-        except OSError:
-            warning("GDCL is not installed. skip to build font")
-            return False
-
         # build font by GDCL
         src_json      = src_json      or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         src_gd_dir    = src_gd_dir    or self.master_gd_dir
