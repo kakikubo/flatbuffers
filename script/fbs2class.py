@@ -210,13 +210,21 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             s += "  // setter for " + item_name + "\n"
             if item["is_vector"]:
                 range_key = get_item_range_key(item, fbs_data, table_property)
-                s += "  void assign" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value) {\n"
                 if range_key:
+                    s += "  void assign" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value) {\n"
                     s += "    if (_" + item_name + "[pos]) _" + item_name + "Map.erase(_" + item_name + "[pos]->" + range_key["name"] + "());\n"
                     s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
-                s += "    _" + item_name + ".assign(pos, value);\n"
-                s += "    __dirty = true;\n"
-                s += "  }\n"
+                    s += "    _" + item_name + ".assign(pos, value);\n"
+                    s += "    __dirty = true;\n"
+                    s += "  }\n"
+                else:
+                    s += "  void assign" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value, const " + item["cpp_type"] + "& defaultValue) {\n"
+                    s += "    if (_" + item_name + ".capacity() >= pos) {\n"
+                    s += "      _" + item_name + ".resize(pos + 1, defaultValue);\n"
+                    s += "    }\n"
+                    s += "    _" + item_name + ".assign(pos, value);\n"
+                    s += "    __dirty = true;\n"
+                    s += "  }\n"
                 s += "  void insert" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
                 s += "    _" + item_name + ".insert(pos, value);\n"
                 if range_key:
