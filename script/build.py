@@ -139,6 +139,7 @@ class AssetBuilder():
         self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
         self.REFERENCE_MANIFEST_FILE        = 'dev.reference.manifest'
+        self.ASSET_LIST_FILE                = 'dev.asset_list.json'
         self.MASTER_JSON_SCHEMA_FILE        = 'master_schema.json'
         self.MASTER_JSON_DATA_FILE          = 'master_data.json'
         self.MASTER_MACRO_FILE              = 'MasterAccessors.h'
@@ -488,8 +489,25 @@ class AssetBuilder():
         list = [
             (self.PROJECT_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
             (self.VERSION_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
+            (self.ASSET_LIST_FILE,       self.manifest_dir, self.org_manifest_dir),
         ]
         return self.install_list(list, build_dir)
+
+    def build_asset_list(self, src_list_file=None, dest_list_file=None):
+        src_list_file  = src_list_file  or self.manifest_dir+'/'+self.ASSET_LIST_FILE
+        dest_list_file = dest_list_file or self.build_dir+'/'+self.ASSET_LIST_FILE
+
+        asset_list = OrderedDict()
+        with open(src_list_file, 'r') as f:
+            asset_list = json.load(f, object_pairs_hook=OrderedDict)
+            if not self.target in asset_list:
+                asset_list.append(self.target)
+
+        info("available asset versions = "+", ".join(asset_list))
+        with open(dest_list_file, 'w') as f:
+            json.dump(asset_list, f, indent=2)
+        os.chmod(dest_list_file, 0664)
+        return True
 
     def deploy_git_repo(self):
         if not self.is_master or not self.git_dir:
@@ -530,25 +548,9 @@ class AssetBuilder():
         return True
 
     def deploy_dev_cdn(self):
-        list_file = self.cdn_dir+"/dev.asset_list.json"
-        if not os.path.exists(list_file):
-            with open(list_file, 'w') as f:
-                json.dump([], f)
-        with open(list_file, 'r+') as f:
-            try:
-                usernames = json.load(f, object_pairs_hook=OrderedDict)
-            except ValueError:
-                usernames = []
-            if not self.target in usernames:
-                usernames.append(self.target)
-            info("available users = "+", ".join(usernames))
-            f.seek(0)
-            f.truncate(0)
-            json.dump(usernames, f, sort_keys=True, indent=2)
-        os.chmod(list_file, 0664)
-
-        project_file = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
-        version_file = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        project_file    = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        version_file    = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        asset_list_file = self.build_dir+'/'+self.ASSET_LIST_FILE
 
         with open(project_file, 'r') as f:
             manifest = json.load(f, object_pairs_hook=OrderedDict)
@@ -587,9 +589,11 @@ class AssetBuilder():
         check_call("find " + self.main_dir+'/contents' + " -type d -print | xargs chmod 775", shell=True)
         info("deploy %s" % self.main_dir+'/contents/')
         check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
-        check_call(['chmod', '775', dest_dir+"/contents"])
+        check_call(['chmod', '775', dest_dir+'/contents'])
         info("deploy %s + %s" % (project_file, version_file))
-        check_call(rsync + [project_file, version_file, dest_dir+"/"])
+        check_call(rsync + [project_file, version_file, dest_dir+'/'])
+        info("deploy %s" % asset_list_file)
+        check_call(rsync + [asset_list_file, self.cdn_dir+'/'])
         info("deploy to dev cdn: done")
         return True
 
@@ -598,8 +602,9 @@ class AssetBuilder():
             warning("aws credentials file is not found. skip deploy to s3")
             return False
 
-        project_file = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
-        version_file = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        project_file    = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
+        version_file    = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        asset_list_file = self.build_dir+'/'+self.ASSET_LIST_FILE
 
         for manifest_file in (project_file, version_file):
             with open(manifest_file, 'r+') as f:
@@ -622,6 +627,8 @@ class AssetBuilder():
         check_call(aws_s3 + ['cp', project_file, s3_internal_url+'/'])
         info("deploy %s" % version_file)
         check_call(aws_s3 + ['cp', version_file, s3_internal_url+'/'])
+        info("deploy %s" % asset_list_file)
+        check_call(aws_s3 + ['cp', asset_list_file, self.S3_INTERNAL_URL+'/'])
         info("deploy to s3 cdn: done")
         return True
 
@@ -664,6 +671,7 @@ class AssetBuilder():
 
             # install and deploy
             self.install_generated()
+            self.build_asset_list()
             self.deploy_git_repo()
             self.build_manifest()
             self.install_manifest()
