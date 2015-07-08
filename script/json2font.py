@@ -30,6 +30,9 @@ def load_char_map(input_json):
             font_name = fc['font']
             if not char_map.has_key(font_name):
                 char_map[font_name] = OrderedDict()
+            if not d.has_key(fc['field']):
+                #raise Exception("field %s:%s not found: %s" % (fc['sheet'], fc['field'], d))
+                continue
             for char in d[fc['field']].split():
                 if not char_map[font_name].has_key(char):
                     char_map[font_name][char] = 0
