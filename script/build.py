@@ -494,7 +494,7 @@ class AssetBuilder():
         return self.install_list(list, build_dir)
 
     def build_asset_list(self, src_list_file=None, dest_list_file=None):
-        src_list_file  = src_list_file  or self.manifest_dir+'/'+self.ASSET_LIST_FILE
+        src_list_file  = src_list_file  or self.master_manifest_dir+'/'+self.ASSET_LIST_FILE
         dest_list_file = dest_list_file or self.build_dir+'/'+self.ASSET_LIST_FILE
 
         asset_list = OrderedDict()
