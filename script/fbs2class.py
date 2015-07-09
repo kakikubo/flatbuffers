@@ -364,7 +364,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             s += "    return _" + hash_key + ";\n"
             s += "  }\n"
             s += "  long setHashKey(long v) {\n"
-            s += "    if (!_" + hash_key + ") {\n"
+            s += "    if (v != _" + hash_key + ") {\n"
             s += "      _" + hash_key + " = v;\n" 
             s += "      __dirty = true;\n"
             s += "    }\n"
