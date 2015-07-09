@@ -5,8 +5,8 @@ export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python2.7
 
 target=`echo $WATCHMAN_ROOT | sed -e 's!.*/kms_\([^_]*\)_asset/.*!\1!'` # asset name
 [ "$target" = "$WATCHMAN_ROOT" ] && target=unknown
-jenkins_url="http://127.0.0.1:8081/job/102_KMS_UserAsset_Update/build"
-jenkins_url_global="http://kms-dev.dev.gree.jp:8081/job/102_KMS_UserAsset_Update/build"
+jenkins_url="http://127.0.0.1:8081/jenkins/job/102_KMS_UserAsset_Update/build"
+jenkins_url_global="http://dev-kms.dev.gree.jp/jenkins/job/102_KMS_UserAsset_Update/build"
 tool_dir=`dirname $0`/..
 
 # logging
