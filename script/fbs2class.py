@@ -113,7 +113,9 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
     s += '#include <iomanip>\n'
     s += '#include <sstream>\n'
     s += '#include <jansson.h>\n'
+    s += '#include <format.h>\n'
     s += '#include <openssl/md5.h>\n'
+    s += '#include <cocos2d.h>\n'
     if with_msgpack:
         s += '#include <msgpack.hpp>\n'
     if with_fbs:
@@ -228,18 +230,21 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += "  void emplace" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
                 s += "    _" + item_name + ".emplace(pos, value);\n"
                 if range_key:
+                    s += '    CCASSERT(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end(), fmt::format("duplicated range key in ' + item_name + ': {}", value->' + range_key["name"] + '()).c_str());\n'
                     s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
                 s += "    __dirty = true;\n"
                 s += "  }\n"
                 s += "  void insert" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
                 s += "    _" + item_name + ".insert(pos, value);\n"
                 if range_key:
+                    s += '    CCASSERT(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end(), fmt::format("duplicated range key in ' + item_name + ': {}", value->' + range_key["name"] + '()).c_str());\n'
                     s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
                 s += "    __dirty = true;\n"
                 s += "  }\n"
                 s += "  void pushBack" + upper_camel_case(item_name) + "(const " + item["cpp_type"] + "& value) {\n"
                 s += "    _" + item_name + ".push_back(value);\n"
                 if range_key:
+                    s += '    CCASSERT(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end(), fmt::format("duplicated range key in ' + item_name + ': {}", value->' + range_key["name"] + '()).c_str());\n'
                     s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
                 s += "    __dirty = true;\n"
                 s += "  }\n"
@@ -458,7 +463,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                         s += "        pushBack" + upper_camel_case(item_name) + "(json_boolean_value(v));\n"
                     else:
                         s += "        pushBack" + upper_camel_case(item_name) + "(std::make_shared<" + item["item_type"] + " >(v));\n"
-                    s += "    }\n"
+                    s += "      }\n"
                 elif item_type in ('string'):
                     s += "      set" + upper_camel_case(item_name) + '(json_string_value(__' + item_name + '));\n'
                 elif item_type in ('int', 'long'):
@@ -558,7 +563,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += "      json_array_foreach(json, i, v) {\n"
                     s += "        auto __" + item_name + " = std::make_shared<" + item["item_type"] + ">();\n"
                     s += "        __" + item_name + "->fromJson(v);\n"
-                    s += "        _" + item_name + ".push_back(__" + item_name + ");\n"
+                    s += "        pushBack" + upper_camel_case(item_name) + "(__" + item_name + ");\n"
                     s += '      }\n'
                 else:
                     s += '      _' + item_name + '->fromJson(json);\n'
@@ -588,7 +593,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += '      for (msgpack::object* p(obj.via.array.ptr), * const pend(obj.via.array.ptr + obj.via.array.size); p < pend; ++p) {\n'
                     s += '        auto __' + item_name + ' = std::make_shared<' + item["item_type"] + '>();\n'
                     s += '        __' + item_name + '->fromMsgpack(*p);\n'
-                    s += '        _' + item_name + '.push_back(__' + item_name +');\n'
+                    s += "        pushBack" + upper_camel_case(item_name) + "(__" + item_name + ");\n"
                     s += '      }\n'
                 else:
                     s += '      _' + item_name + '->fromMsgpack(obj);\n'
@@ -603,16 +608,16 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             for item_name, item in table.iteritems():
                 if item["is_vector"]:
                     s += "    // vector of " + item_name + "\n";
-                    s += "    std::vector<" + item["cpp_type"] + " v_" + item_name + ";\n"
+                    s += "    std::vector<" + item["cpp_type"] + " __" + item_name + ";\n"
                     s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
                     if item["item_type"] == 'string':
-                        s += "      v_" + item_name + "->push_back(fbb->CreateString(*it));\n"
+                        s += "      __" + item_name + "->pushBack" + upper_camel_case(item_name) + "(fbb->CreateString(*it));\n"
                     elif item["is_default_type"]:
-                        s += "      v_" + item_name + "->push_back(*it);\n"
+                        s += "      __" + item_name + "->pushBack" + upper_camel_case(item_name) + "(*it);\n"
                     else:
-                        s += "      v_" + item_name + "->push_back((*it)->to_flatbuffers(fbb));\n"
+                        s += "      __" + item_name + "->pushBack" + upper_camel_case(item_name) + "((*it)->to_flatbuffers(fbb));\n"
                     s += "    }\n"
-                    s += "    auto fb_" + item_name + " = fbb->CreateVector(v_" + item_name + ");\n"
+                    s += "    auto fb_" + item_name + " = fbb->CreateVector(__" + item_name + ");\n"
                 elif item["item_type"] == 'string':
                     s += "    auto fb_" + item_name + " = fbb->CreateString(_" + item_name + ");\n"
                 elif item["is_default_type"]:
