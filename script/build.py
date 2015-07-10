@@ -285,7 +285,7 @@ class AssetBuilder():
         src_data   = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         info("verify master json: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
 
-        cmdline = [self.verify_master_json_bin, src_schema, src_data]
+        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir', self.org_main_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
