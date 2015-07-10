@@ -23,6 +23,24 @@ from xlrd.biffh import (
 )
 # error_text_from_code[value] 
 
+def parse_type(type_str):
+    schema = OrderedDict()
+    m = re.match("([^\(\)]+)\s*\((.*)\)", type_str)
+    if m == None:
+        schema['type'] = type_str
+        schema['attribute'] = None
+    else:
+        attribute_map = OrderedDict()
+        for attr_str in re.split('[,\s]+', m.group(2)):
+            attr = re.split('[:\s]+', attr_str)
+            if len(attr) > 1:
+                attribute_map[attr[0]] = ':'.join(attr[1:])
+            else:
+                attribute_map[attr[0]] = True
+        schema['type'] = m.group(1)
+        schema['attribute'] = attribute_map if attribute_map else None
+    return schema
+
 def parse_xls(xls_path, except_sheets=[]):
     data = OrderedDict()
     schema = OrderedDict()
@@ -40,13 +58,13 @@ def parse_xls(xls_path, except_sheets=[]):
         sheet_schema = OrderedDict()
         for i, key in enumerate(keys):
             key = key.value
-            sheet_schema[key] = {
-                'name': key,
-                'type': types[i].value,
-                'description': descs[i].value,
-                'file': os.path.basename(xls_path),
-                'sheet': sheet.name
-            }
+            sheet_schema[key] = OrderedDict(
+                name = key,
+                description = descs[i].value,
+                file = os.path.basename(xls_path),
+                sheet = sheet.name
+            )
+            sheet_schema[key].update(parse_type(types[i].value))
         schema[sheet.name] = sheet_schema
   
         sheet_data = []
