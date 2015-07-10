@@ -36,7 +36,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
 
   # git git push
   git pull --rebase origin $branch || exit $?
-  git push origin master || exit_code=$?
+  git push origin $branch || exit_code=$?
   echo "automatic sync with git is done: $exit_code"
 
   # log
