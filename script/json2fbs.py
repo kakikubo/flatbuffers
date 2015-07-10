@@ -33,7 +33,6 @@ def generate_fbs(rootName, nameSpace, jsonData):
     s += "namespace {0};\n".format(nameSpace)
 
     # output tables
-    s = ""
     attribute_map = OrderedDict()
     for table_name in jsonData:
         if table_name == "_meta":
