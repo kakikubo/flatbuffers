@@ -33,7 +33,7 @@ def verify_record(table, i, d, id_map, meta, schema, reference, file_reference):
                 raise Exception("referenced file does not exists: %s[%d](%s).%s -> %s in %s" % (table, i, d[pkey], k, v, fref))
     return True
 
-def verify_master_json(src_schema, src_data):
+def verify_master_json(src_schema, src_data, asset_dir):
     with open(src_schema, 'r') as f:
         master_schema = json.load(f, object_pairs_hook=OrderedDict)
     with open(src_data, 'r') as f:
@@ -115,10 +115,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'verify master data json')
     parser.add_argument('input_schema', metavar = 'input.schema', help = 'input master data schema json file')
     parser.add_argument('input_data',   metavar = 'input.data',   help = 'input master data json file')
+    parser.add_argument('--asset-dir', default = '.', help = 'asset dir root default: .')
     args = parser.parse_args()
 
     info("input schema = %s" % args.input_schema)
     info("input data = %s" % args.input_data)
-    verify_master_json(args.input_schema, args.input_data)
+    info("asset dir = %s", args.asset_dir)
+    verify_master_json(args.input_schema, args.input_data, args.asset_dir)
     info("no error is detected")
     exit(0)
