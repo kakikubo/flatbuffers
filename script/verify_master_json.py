@@ -13,7 +13,7 @@ from collections import OrderedDict
 from glob import glob
 
 def verify_record(table, i, d, id_map, meta, schema, reference, file_reference):
-    pkey = meta['primaryKey']
+    hkey = meta['hashKey']
     for k, v in d.iteritems():
         sch  = schema[k]
         ref  = reference[k] if reference and reference.has_key(k) else None
@@ -25,12 +25,12 @@ def verify_record(table, i, d, id_map, meta, schema, reference, file_reference):
                 raise Exception("no reference target table: %s.%s -> %s" % (table, k, ref[0]))
             ref_data = id_map[ref[0]]
             if not ref_data.has_key(v):
-                raise Exception("no reference data: %s[%d](%s).%s -> %s(%s)" % (table, i, d[pkey], k, ref[0], v))
+                raise Exception("no reference data: %s[%d](%s).%s -> %s(%s)" % (table, i, d[hkey], k, ref[0], v))
         # check file reference
         if fref:
             path = ("kms_master_asset/"+fref).replace('{}', v)
             if not os.path.exists(path):
-                raise Exception("referenced file does not exists: %s[%d](%s).%s -> %s in %s" % (table, i, d[pkey], k, v, fref))
+                raise Exception("referenced file does not exists: %s[%d](%s).%s -> %s in %s" % (table, i, d[hkey], k, v, fref))
     return True
 
 def verify_master_json(src_schema, src_data, asset_dir):
@@ -77,12 +77,12 @@ def verify_master_json(src_schema, src_data, asset_dir):
     for table, data in master_data.iteritems():
         meta = meta_map[table]
         if meta['type'].find('array') >= 0:
-            pkey = meta['primaryKey']
+            hkey = meta['hashKey']
             id_map[table] = OrderedDict()
             for i, d in enumerate(data):
-                if id_map[table].has_key(d[pkey]):
-                    raise Exception("duplicated id: %s[%d](%s)", table, i, d[pkey])
-                id_map[table][d[pkey]] = d
+                if id_map[table].has_key(d[hkey]):
+                    raise Exception("duplicated id: %s[%d](%s)", table, i, d[hkey])
+                id_map[table][d[hkey]] = d
 
     # check master data main
     for table, data in master_data.iteritems():
