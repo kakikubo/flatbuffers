@@ -7,20 +7,6 @@ import re
 from collections import OrderedDict
 from pprint import pprint
 
-def split_type(str):
-    m = re.match("([^\(\)]+)\s*\((.*)\)", str)
-    if m == None:
-        n = str
-        attrs = []
-    else:
-        n = m.group(1)
-        attrs = m.group(2).split(" ")
-    m = re.match("\s*\[([^\[\]+]+)\]\s*", n)
-    if m == None:
-        return (n, attrs, False)
-    else:
-        return (m.group(1), attrs, True)
-
 def sort_master_json(schema, data, type_name = "_meta"):
     if not isinstance(data, dict):
         if isinstance(data, list):
@@ -32,29 +18,33 @@ def sort_master_json(schema, data, type_name = "_meta"):
         entry_keys = [x for x in schema[type_name] if x["name"] == key]
         if not entry_keys:
             continue
+
+        entry_is_array = False
         entry_type_str = entry_keys[0]["type"]
-        entry_type_name, entry_attributes, entry_is_array = split_type(entry_type_str)
+        m = re.match('\[(.*)\]', entry_type_str)
+        if m:
+            entry_is_array = True
+            entry_type_str = m.group(1)
+
         if type_name == "_meta":
-            if entry_type_name == "json_array" or entry_type_name == "array":
+            if entry_type_str.find('array') >= 0:
                 entry_is_array = True
-            entry_type_name = key
+            name = key
         else:
-            entry_type_name = entry_type_name[0].lower() + entry_type_name[1:]
+            name = entry_type_str[0].lower() + entry_type_str[1:]
 
         if entry_is_array:
             a = entry
-            for entry_schema in schema[entry_type_name]:
-                child_type_name, child_attributes, child_is_array = split_type(entry_schema["type"])
-                child_type_name = child_type_name[0].lower() + child_type_name[1:]
-                if "key" in child_attributes:
+            for entry_schema in schema[name]:
+                if entry_schema["attribute"] and "key" in entry_schema["attribute"]:
                     n = entry_schema["name"]
                     a = sorted(entry, cmp=lambda x, y:cmp(x[n], y[n])) 
                     break
             result[key] = []
             for i in a:
-                result[key].append(sort_master_json(schema, i, entry_type_name))
+                result[key].append(sort_master_json(schema, i, name))
         else:
-            result[key] = sort_master_json(schema, entry, entry_type_name)
+            result[key] = sort_master_json(schema, entry, name)
     return result
 
 if __name__ == '__main__':
