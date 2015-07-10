@@ -448,10 +448,13 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += "    json_t* v;\n"
             for item_name, item in table.iteritems():
                 item_type = item["item_type"]
+                range_key = get_item_range_key(item, fbs_data, table_property)
                 s += '    auto __' + item_name + ' = json_object_get(json, "' + item_name + '");\n'
                 s += '    if (__' + item_name + ') {\n'
                 if item["is_vector"]:
                     s += "      _" + item_name + ".clear();\n"
+                    if range_key:
+                        s += "      _" + item_name + "Map.clear();\n"
                     s += '      json_array_foreach(__' + item_name + ', i, v) {\n'
                     if item_type in ('string'):
                         s += "        pushBack" + upper_camel_case(item_name) + "(json_string_value(v));\n"
@@ -510,10 +513,13 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             s += "  void fromMsgpack(msgpack::object& obj) {\n"
             s += "    std::map<std::string, msgpack::object> __map = obj.as<std::map<std::string, msgpack::object> >();\n"
             for item_name, item in table.iteritems():
+                range_key = get_item_range_key(item, fbs_data, table_property)
                 s += '    auto __v_' + item_name + ' = __map.find("' + item_name + '");\n'
                 s += '    if (__v_' + item_name + ' != __map.end()) {\n'
                 if item["is_vector"]:
                     s += "      _" + item_name + ".clear();\n"
+                    if range_key:
+                        s += "      _" + item_name + "Map.clear();\n"
                     s += '      auto __' + item_name + ' = __v_' + item_name + '->second.as<msgpack::object>();\n';
                     s += '      for (msgpack::object* p(__' + item_name + '.via.array.ptr), * const pend(__' + item_name + '.via.array.ptr + __' + item_name + '.via.array.size); p < pend; ++p) {\n'
                     if item["is_default_type"]:
