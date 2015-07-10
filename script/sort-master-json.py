@@ -44,13 +44,8 @@ def sort_master_json(schema, data, type_name = "_meta"):
         if entry_is_array:
             a = entry
             for entry_schema in schema[entry_type_name]:
-                if entry_type_name == "areaInfo":
-                    pprint(entry_schema)
                 child_type_name, child_attributes, child_is_array = split_type(entry_schema["type"])
                 child_type_name = child_type_name[0].lower() + child_type_name[1:]
-                if child_type_name == "areaInfo":
-                    #print(child_type_name)
-                    pprint(child_attributes)
                 if "key" in child_attributes:
                     n = entry_schema["name"]
                     a = sorted(entry, cmp=lambda x, y:cmp(x[n], y[n])) 
