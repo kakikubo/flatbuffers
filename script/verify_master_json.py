@@ -12,7 +12,7 @@ from logging import info, warning, error
 from collections import OrderedDict
 from glob import glob
 
-def verify_record(table, i, d, id_map, meta, schema, reference, file_reference):
+def verify_record(table, i, d, id_map, meta, schema, reference, file_reference, asset_dir):
     hkey = meta['hashKey']
     for k, v in d.iteritems():
         sch  = schema[k]
@@ -20,17 +20,21 @@ def verify_record(table, i, d, id_map, meta, schema, reference, file_reference):
         fref = file_reference[k] if file_reference and file_reference.has_key(k) else None
 
         # check reference
-        if ref:
+        if ref and int(v) > 0:
             if not id_map.has_key(ref[0]):
                 raise Exception("no reference target table: %s.%s -> %s" % (table, k, ref[0]))
             ref_data = id_map[ref[0]]
             if not ref_data.has_key(v):
                 raise Exception("no reference data: %s[%d](%s).%s -> %s(%s)" % (table, i, d[hkey], k, ref[0], v))
         # check file reference
-        if fref:
-            path = ("kms_master_asset/"+fref).replace('{}', v)
-            if not os.path.exists(path):
-                raise Exception("referenced file does not exists: %s[%d](%s).%s -> %s in %s" % (table, i, d[hkey], k, v, fref))
+        if fref and asset_dir:
+            found = False
+            for dir in asset_dir:
+                path = (dir+"/"+fref).replace('{}', v)
+                if os.path.exists(path):
+                    found = True
+            if not found:
+                raise Exception("referenced file does not exists: %s[%d](%s).%s -> %s" % (table, i, d[hkey], k, v))
     return True
 
 def verify_master_json(src_schema, src_data, asset_dir):
@@ -80,6 +84,8 @@ def verify_master_json(src_schema, src_data, asset_dir):
             hkey = meta['hashKey']
             id_map[table] = OrderedDict()
             for i, d in enumerate(data):
+                if d[hkey] <= 0:
+                    continue
                 if id_map[table].has_key(d[hkey]):
                     raise Exception("duplicated id: %s[%d](%s)", table, i, d[hkey])
                 id_map[table][d[hkey]] = d
@@ -92,10 +98,10 @@ def verify_master_json(src_schema, src_data, asset_dir):
         file_reference = file_reference_map[table]
         try:
             if meta['type'].find('array') < 0:
-                verify_record(table, 0, data, id_map, meta, schema, reference, file_reference)
+                verify_record(table, 0, data, id_map, meta, schema, reference, file_reference, asset_dir)
             else:
                 for i, d in enumerate(data):
-                    verify_record(table, i, d, id_map, meta, schema, reference, file_reference)
+                    verify_record(table, i, d, id_map, meta, schema, reference, file_reference, asset_dir)
         except Exception, e:
             print('=======================')
             print('  MASTER DATA ERROR    ')
@@ -115,12 +121,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'verify master data json')
     parser.add_argument('input_schema', metavar = 'input.schema', help = 'input master data schema json file')
     parser.add_argument('input_data',   metavar = 'input.data',   help = 'input master data json file')
-    parser.add_argument('--asset-dir', default = '.', help = 'asset dir root default: .')
+    parser.add_argument('--asset-dir', default = [], nargs='*', help = 'asset dir root default: .')
     args = parser.parse_args()
 
     info("input schema = %s" % args.input_schema)
     info("input data = %s" % args.input_data)
-    info("asset dir = %s", args.asset_dir)
+    info("asset dir = %s", ', '.join(args.asset_dir))
     verify_master_json(args.input_schema, args.input_data, args.asset_dir)
     info("no error is detected")
     exit(0)
