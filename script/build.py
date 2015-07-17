@@ -168,6 +168,14 @@ class AssetBuilder():
 
     # prepare and isolate source data via box
     def prepare_dir(self, src, dest):
+        for root, dirnames, filenames, in os.walk(src):
+            for dir in dirnames:
+                if re.search('[^\w\.-]', dir):
+                    raise Exception("invalid dirname is detected: "+root+'/'+dir)
+            for file in filenames:
+                if re.search('[^\w\.-]', file):
+                    raise Exception("invalid filename is detected: "+root+'/'+file)
+
         if  os.path.exists(dest):
             rmtree(dest)
         info("copytree '%s' -> '%s'" % (src, dest))
