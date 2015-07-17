@@ -55,6 +55,13 @@ def parse_table(line):
     global state
     global fbs_data
 
+    name = None
+    type = None
+    is_vector = None
+    is_hash_key = None
+    is_range_key = None
+    attribute = None
+
     # preprocess in comment
     is_hash_key  = re.search('<hash.key>', line)
     is_range_key = re.search('<range.key>', line)
@@ -65,19 +72,42 @@ def parse_table(line):
     if m != None:
         state = "default"
         return
-    m = re.search('\s*([^:]+):\[([^;]+)\];', line)
+    m = re.search('\s*([^:]+):\s*\[([^;]+)\];', line)
     if m != None:
         name = m.group(1)
-        item = {'is_vector':True, 'item_type':m.group(2)}
+        type = m.group(2)
+        is_vector = True
     else:
-        m = re.search('\s*([^:]+):([^;]+);', line)
+        m = re.search('\s*([^:]+):\s*([^;]+);', line)
         if m == None:
             return
         name = m.group(1)
-        item = {'is_vector':False, 'item_type':m.group(2)}
-    item['name']         = name
-    item['is_hash_key']  = is_hash_key
-    item['is_range_key'] = is_range_key
+        type = m.group(2)
+        is_vector = False
+    m = re.search('([^\s\(]+)\s*\(([^\)]+)\)\s*', type)
+    if m:
+        type = m.group(1)
+        attribute = OrderedDict()
+        for attr_str in re.split('[,\s]+', m.group(2)):
+            attr = re.split('[:\s]+', attr_str)
+            if len(attr) > 1:
+                attribute[attr[0]] = ':'.join(attr[1:])
+            else:
+                attribute[attr[0]] = True
+            if attr == 'hash':
+                is_hash_key = True
+            elif attr == 'key':
+                is_range_key = True
+
+    item = OrderedDict(
+        name = name,
+        type = type,
+        item_type = type,
+        attribute = attribute,
+        is_vector = is_vector,
+        is_hash_key = is_hash_key,
+        is_range_key = is_range_key
+    )
 
     table_name = next(reversed(fbs_data))
     fbs_data[table_name][name] = item
@@ -687,8 +717,9 @@ def generate_schema():
         schemas[table_name] = []
         for item_name, item in table.iteritems():
             s = OrderedDict()
-            s['name'] = item_name
-            s['type'] = item['item_type']
+            s['name']         = item_name
+            s['type']         = item['item_type']
+            s['attribute']    = item['attribute']
             s['is_hash_key']  = True if item['is_hash_key']  else False
             s['is_range_key'] = True if item['is_range_key'] else False
             s['is_vector']    = True if item['is_vector']    else False

@@ -119,6 +119,7 @@ class AssetBuilder():
         self.master_editor_dir        = self.master_dir+'/editor'
         self.master_editor_schema_dir = self.master_dir+'/editor_schema'
         self.master_gd_dir            = self.master_dir+'/glyph_designer'
+        self.master_user_data_dir     = self.master_dir+'/contents/files/user_data'
 
         main_editor_schema = self.main_editor_schema_dir+'/editor_schema.json'
         self.editor_schema = main_editor_schema if os.path.exists(main_editor_schema) else self.master_editor_schema_dir+'/editor_schema.json'
@@ -132,7 +133,6 @@ class AssetBuilder():
         self.json2font_bin          = self_dir+'/json2font.py'
         self.sort_master_json_bin   = self_dir+'/sort-master-json.py'
         self.verify_master_json_bin = self_dir+'/verify_master_json.py'
-        self.verify_user_json_bin   = self_dir+'/verify_user_json.py'
         self.delete_element_bin     = self_dir+'/delete-element.py'
         self.make_atlas_bin         = self_dir+'/make_atlas.py'
         
@@ -176,7 +176,7 @@ class AssetBuilder():
                 if re.search('[^\w\.-]', file):
                     raise Exception("invalid filename is detected: "+root+'/'+file)
 
-        if  os.path.exists(dest):
+        if os.path.exists(dest):
             rmtree(dest)
         info("copytree '%s' -> '%s'" % (src, dest))
         copytree(src, dest)
@@ -288,12 +288,15 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
-    def verify_master_json(self, src_schema=None, src_data=None):
-        src_schema = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
-        src_data   = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
-        info("verify master json: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
+    def verify_master_json(self, src_schema=None, src_data=None, asset_dirs=None, src_user_schema=None, src_user_dirs=None):
+        src_schema      = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        src_data        = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        asset_dirs      = asset_dirs or [self.org_main_dir, self.org_master_dir]
+        src_user_schema = src_user_schema or self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE
+        src_user_dirs   = src_user_dirs or [self.user_data_dir, self.master_user_data_dir]
+        info("verify master data: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
 
-        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir', self.org_main_dir, self.org_master_dir]
+        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-dir'] + src_user_dirs
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -397,15 +400,6 @@ class AssetBuilder():
 
         info("build user class: %s + %s" % (os.path.basename(dest_class), os.path.basename(dest_schema)))
         cmdline = [self.fbs2class_bin, src_fbs, dest_class, dest_schema, '--namespace', namespace]
-        debug(' '.join(cmdline))
-        check_call(cmdline)
-        return True
-
-    def verify_user_json(self, src_user_data_dir=None):
-        src_user_data_dir = src_user_data_dir or self.user_data_dir
-
-        info("verify user data: %s" % src_user_data_dir)
-        cmdline = [self.verify_user_json_bin, src_user_data_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -650,7 +644,6 @@ class AssetBuilder():
             self.build_master_json()
             self.merge_editor_file()
             self.sort_master_json()
-            self.verify_master_json()
             #self.build_master_macro()
             self.build_master_fbs()
             self.build_master_bin()
@@ -670,7 +663,9 @@ class AssetBuilder():
 
             # user data
             self.build_user_class()
-            self.verify_user_json()
+
+            # verify
+            self.verify_master_json()
 
             # asset
             self.build_spine()
