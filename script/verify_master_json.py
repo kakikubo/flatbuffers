@@ -92,7 +92,7 @@ class MasterDataVerifier():
                 if d[hkey] <= 0:
                     continue
                 if id_map[table].has_key(d[hkey]):
-                    raise Exception("duplicated id: %s[%d](%s)", table, i, d[hkey])
+                    raise Exception("duplicated id: %s[%d](%s)" % (table, i, d[hkey]))
                 id_map[table][d[hkey]] = d
 
         return (meta_map, schema_map, reference_map, file_reference_map, id_map)
