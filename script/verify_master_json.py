@@ -61,8 +61,8 @@ class MasterDataVerifier():
                             # id reference
                             ref = k.split('.')
                             if len(ref) > 1:
-                                if len(ref) > 2:
-                                    raise Exception("invalid reference: "+k)
+                                #if len(ref) > 2:
+                                #    raise Exception("invalid reference: "+k)
                                 reference_map[table][name] = ref
 
         # create id map
@@ -204,13 +204,20 @@ class MasterDataVerifier():
             if isinstance(v, OrderedDict) or isinstance(v, list):
                 continue    # FIXME recursive
 
-            # check reference
+            # check master datareference
             if ref and int(v) > 0:
-                if not self.id_map.has_key(ref[0]):
-                    raise Exception("no reference target table: %s.%s -> %s" % (table, k, ref[0]))
-                ref_data = self.id_map[ref[0]]
-                if not ref_data.has_key(v):
-                    raise Exception("no reference data: %s[%d](%s).%s -> %s(%s)" % (table, i, d[hkey], k, ref[0], v))
+                if ref[0] == 'UserDataFBS':
+                    if not self.user_id_map.has_key(ref[1]):
+                        raise Exception("no reference target table: %s.%s -> %s.%s" % (table, k, ref[0], ref[1]))
+                    ref_data = self.user_id_map[ref[1]]
+                    if not ref_data.has_key(v):
+                        raise Exception("no reference data: %s[%d](%s).%s -> %s.%s(%s)" % (table, i, d[hkey], k, ref[0], ref[1], v))
+                else:
+                    if not self.id_map.has_key(ref[0]):
+                        raise Exception("no reference target table: %s.%s -> %s" % (table, k, ref[0]))
+                    ref_data = self.id_map[ref[0]]
+                    if not ref_data.has_key(v):
+                        raise Exception("no reference data: %s[%d](%s).%s -> %s(%s)" % (table, i, d[hkey], k, ref[0], v))
             # check file reference
             if fref and self.asset_dirs:
                 found = False
