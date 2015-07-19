@@ -70,23 +70,20 @@ class MasterDataVerifier():
         for table, datum in data.iteritems():
             if re.match('^_', table):
                 continue
-            hash_key = range_key = None
+            hkey = range_key = None
             if meta_map.has_key(table):
                 meta = meta_map[table]
                 if meta['type'].find('array') >= 0:
-                    hash_key = meta['hashKey'] # FIXME deprecated
+                    hkey = meta['hashKey'] # FIXME deprecated
                 elif meta.has_key('is_vector') and meta['is_vector']:
                     table_type = meta['type']
                     if schema_map.has_key(table_type):
                         schema = schema_map[table_type]
                         for key, sch in schema.iteritems():
-                            if sch['attribute'] and sch['attribute'].has_key('key'): # key = hashKey
-                                hash_key = sch['name']
-                            elif sch['attribute'] and sch['attribute'].has_key('rangeKey'):
-                                range_key = sch['name']
-            if not (hash_key or range_key):
+                            if sch['attribute'] and sch['attribute'].has_key('key'): # key = rangeKey
+                                hkey = sch['name']
+            if not hkey:
                 continue
-            hkey = range_key if range_key else hash_key # rangeKey is prior to check key
 
             id_map[table] = OrderedDict()
             for i, d in enumerate(datum):
