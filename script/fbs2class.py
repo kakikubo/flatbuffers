@@ -89,14 +89,15 @@ def parse_table(line):
         type = m.group(1)
         attribute = OrderedDict()
         for attr_str in re.split('[,\s]+', m.group(2)):
-            attr = re.split('[:\s]+', attr_str)
-            if len(attr) > 1:
-                attribute[attr[0]] = ':'.join(attr[1:])
+            attrs = re.split('[:\s]+', attr_str)
+            print(attrs)
+            if len(attrs) > 1:
+                attribute[attrs[0]] = ':'.join(attrs[1:])
             else:
-                attribute[attr[0]] = True
-            if attr == 'hash':
+                attribute[attrs[0]] = True
+            if 'hash' in attrs:
                 is_hash_key = True
-            elif attr == 'key':
+            elif 'key' in attrs:
                 is_range_key = True
 
     item = OrderedDict(
