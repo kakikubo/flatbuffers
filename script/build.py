@@ -298,6 +298,7 @@ class AssetBuilder():
             for user_schema in (self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE, self.master_user_schema_dir+'/'+self.USER_JSON_SCHEMA_FILE):
                 if os.path.exists(user_schema):
                     src_user_schema = user_schema
+                    break
         info("verify master data: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
 
         cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-dir'] + src_user_dirs

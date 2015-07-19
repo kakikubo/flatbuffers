@@ -39,6 +39,7 @@ def parse_type(type_str):
                 attribute_map[attr[0]] = True
         schema['type'] = m.group(1)
         schema['attribute'] = attribute_map if attribute_map else None
+    schema['is_vector'] = False
     return schema
 
 def parse_xls(xls_path, except_sheets=[]):
@@ -60,12 +61,12 @@ def parse_xls(xls_path, except_sheets=[]):
         sheet_schema = OrderedDict()
         for i, key in enumerate(keys):
             key = key.value
-            sheet_schema[key] = OrderedDict(
-                name = key,
-                description = descs[i].value,
-                file = os.path.basename(xls_path),
-                sheet = sheet.name
-            )
+            sch = OrderedDict()
+            sch['name'] = key
+            sch['description'] = descs[i].value
+            sch['file']  = os.path.basename(xls_path)
+            sch['sheet'] = sheet.name
+            sheet_schema[key] = sch
             sheet_schema[key].update(parse_type(types[i].value))
         schema[sheet.name] = sheet_schema
   
@@ -109,9 +110,9 @@ def parse_xls(xls_path, except_sheets=[]):
 def check_data(data):
     errors = []
     for sheet in data['sheet']:
-        if sheet['type'].find('ignore') >= 0:
+        if sheet['srcType'].find('ignore') >= 0:
             continue
-        if sheet['type'].find('json') < 0:
+        if sheet['srcType'].find('json') < 0:
             if not data.has_key(sheet['name']):
                 errors.append("no data in sheet %s: %s" % (sheet['name'], ", ".join(data.keys())))
                 continue
@@ -131,21 +132,22 @@ def normalize_schema(schema, sheets):
     normalized = OrderedDict()
     meta = []
     for sheet in sheets:
-        if sheet['type'].find('ignore') >= 0:
+        if sheet['srcType'].find('ignore') >= 0:
             continue
 
         sheet_name = sheet['name']
-        if sheet['type'].find('json') >= 0:
+        sheet['is_vector'] = sheet['srcType'].find('array') >= 0
+        sheet['attribute'] = None
+        sheet['type'] = sheet_name[0].upper() + sheet_name[1:]
+        if sheet['srcType'].find('json') >= 0:
             normalized[sheet_name] = "swapped later"
         else:
             filtered = []
-            for name in schema[sheet_name]:
-                d = schema[sheet_name][name]
+            for name, d in schema[sheet_name].iteritems():
                 if d['type'].find('ignore') >= 0 or \
                    re.match('^_', d['name']):
                     continue
                 filtered.append(d)
-
             normalized[sheet_name] = filtered
         meta.append(sheet)
     normalized["_meta"] = meta
@@ -154,10 +156,10 @@ def normalize_schema(schema, sheets):
 def normalize_data(data):
     normalized = OrderedDict()
     for sheet in data['sheet']:
-        if sheet['type'].find('ignore') >= 0:
+        if sheet['srcType'].find('ignore') >= 0:
             continue
         filtered = []
-        if sheet['type'].find('json') < 0:
+        if sheet['srcType'].find('json') < 0:
             id_mapping = OrderedDict()
             for d in data[sheet['name']]:
                 # filter by primary key
@@ -180,7 +182,7 @@ def normalize_data(data):
             for id in id_mapping:
                 filtered.append(id_mapping[id])
       
-            if sheet['type'].find('object') >= 0:
+            if sheet['srcType'].find('array') < 0:
                 filtered = filtered[0] # by object, not object array
         normalized[sheet['name']] = filtered
     return normalized
@@ -193,7 +195,7 @@ if __name__ == '__main__':
     parser.add_argument('--schema-json',   metavar = 'schema.json', help = 'output schema json file. default:  master_schema.json')
     parser.add_argument('--data-json',     metavar = 'data.json',   help = 'output data json file. default:  master_data.json')
     parser.add_argument('--except-sheets', default = '',            help = 'except sheets (, separated list) default: ')
-    parser.add_argument('--except-json',   default = False, action = 'store_true', help = 'except json master data (type = json, json_array)')
+    parser.add_argument('--except-json',   default = False, action = 'store_true', help = 'except json master data (srcType = json, json_array)')
     args = parser.parse_args()
     schema_json_file = args.schema_json or 'master_schema.json'
     data_json_file   = args.data_json   or 'master_data.json'
@@ -216,7 +218,7 @@ if __name__ == '__main__':
     if args.except_json:
         sheet = []
         for t in data['sheet']:
-            if not re.match('json', t['type']):
+            if not re.match('json', t['srcType']):
                 sheet.append(t)
         data['sheet'] = sheet
     for t in data['sheet']:
