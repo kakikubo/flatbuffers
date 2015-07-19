@@ -54,6 +54,8 @@ def parse_xls(xls_path, except_sheets=[]):
             descs = sheet.row(2)
         except:
             raise Exception("Empty sheet: %s" % sheet.name)
+        if not sheet.nrows > 3:
+            raise Exception("Empty data: %s" % sheet.name)
   
         sheet_schema = OrderedDict()
         for i, key in enumerate(keys):
