@@ -119,6 +119,7 @@ class AssetBuilder():
         self.master_editor_dir        = self.master_dir+'/editor'
         self.master_editor_schema_dir = self.master_dir+'/editor_schema'
         self.master_gd_dir            = self.master_dir+'/glyph_designer'
+        self.master_user_schema_dir   = self.master_dir+'/user_derivatives'
         self.master_user_data_dir     = self.master_dir+'/contents/files/user_data'
 
         main_editor_schema = self.main_editor_schema_dir+'/editor_schema.json'
@@ -292,8 +293,11 @@ class AssetBuilder():
         src_schema      = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         src_data        = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         asset_dirs      = asset_dirs or [self.org_main_dir, self.org_master_dir]
-        src_user_schema = src_user_schema or self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE
         src_user_dirs   = src_user_dirs or [self.user_data_dir, self.master_user_data_dir]
+        if not src_user_schema:
+            for user_schema in (self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE, self.master_user_schema_dir+'/'+self.USER_JSON_SCHEMA_FILE):
+                if os.path.exists(user_schema):
+                    src_user_schema = user_schema
         info("verify master data: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
 
         cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-dir'] + src_user_dirs
