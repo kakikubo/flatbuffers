@@ -18,11 +18,8 @@ def sort_master_json(schema, data, type_name = "_meta"):
         if not sch:
             continue
         sch = sch[0]
-        entry_type_str = sch["type"]
-        if type_name == "_meta":
-            name = key
-        else:
-            name = entry_type_str[0].lower() + entry_type_str[1:]
+        type_str = sch["type"]
+        name = type_str[0].lower() + type_str[1:]  # FIXME deprecated EnemyGroup -> enemyGroup
 
         if sch['is_vector']:
             a = entry

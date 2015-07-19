@@ -33,6 +33,21 @@ class MasterDataVerifier():
         self.user_file_reference_map = None
         self.user_id_map             = None
 
+    def get_hash_key(self, meta, schema_map):
+        if not meta['is_vector']:
+            return None
+        if schema_map.has_key(meta['name']):
+            schema = schema_map[meta['name']] # mater data is member name
+        elif schema_map.has_key(meta['type']):
+            schema = schema_map[meta['type']] # user data is table type
+        if not schema:
+            return None
+
+        for key, sch in schema.iteritems():
+            if sch['attribute'] and sch['attribute'].has_key('key'): # key = rangeKey
+                return sch['name']
+        return None
+
     def setup_data(self, schemas, data, meta_table_name):
         meta_map           = OrderedDict()
         schema_map         = OrderedDict()
@@ -43,6 +58,7 @@ class MasterDataVerifier():
                 # create meta_map
                 for sch in schema:
                     meta_map[sch['name']] = sch
+                    meta_map[sch['type']] = sch
             else:
                 schema_map[table] = OrderedDict()
                 reference_map[table] = OrderedDict()
@@ -61,8 +77,8 @@ class MasterDataVerifier():
                             # id reference
                             ref = k.split('.')
                             if len(ref) > 1:
-                                #if len(ref) > 2:
-                                #    raise Exception("invalid reference: "+k)
+                                if len(ref) > 3:
+                                    raise Exception("invalid reference: "+k)
                                 reference_map[table][name] = ref
 
         # create id map
@@ -70,18 +86,10 @@ class MasterDataVerifier():
         for table, datum in data.iteritems():
             if re.match('^_', table):
                 continue
-            hkey = range_key = None
-            if meta_map.has_key(table):
-                meta = meta_map[table]
-                if meta['type'].find('array') >= 0:
-                    hkey = meta['hashKey'] # FIXME deprecated
-                elif meta.has_key('is_vector') and meta['is_vector']:
-                    table_type = meta['type']
-                    if schema_map.has_key(table_type):
-                        schema = schema_map[table_type]
-                        for key, sch in schema.iteritems():
-                            if sch['attribute'] and sch['attribute'].has_key('key'): # key = rangeKey
-                                hkey = sch['name']
+            if not meta_map.has_key(table):
+                continue
+
+            hkey = self.get_hash_key(meta_map[table], schema_map)
             if not hkey:
                 continue
 
@@ -92,7 +100,7 @@ class MasterDataVerifier():
                 if d[hkey] <= 0:
                     continue
                 if id_map[table].has_key(d[hkey]):
-                    raise Exception("duplicated id: %s[%d](%s)" % (table, i, d[hkey]))
+                    raise Exception("duplicated id: %s[%d].%s(%s)" % (table, i, hkey, d[hkey]))
                 id_map[table][d[hkey]] = d
 
         return (meta_map, schema_map, reference_map, file_reference_map, id_map)
@@ -109,6 +117,7 @@ class MasterDataVerifier():
         return True
 
     def verify_master_record(self, table, i, d, schema, reference, file_reference):
+        hkey = self.get_hash_key(self.meta_map[table], self.schema_map)
         for k, v in d.iteritems():
             sch  = schema[k]
             ref  = reference[k] if reference and reference.has_key(k) else None
@@ -140,7 +149,7 @@ class MasterDataVerifier():
             reference      = self.reference_map[table]
             file_reference = self.file_reference_map[table]
             try:
-                if meta['type'].find('array') < 0:
+                if not meta['is_vector']:
                     self.verify_master_record(table, 0, data, schema, reference, file_reference)
                 else:
                     for i, d in enumerate(data):
@@ -191,6 +200,7 @@ class MasterDataVerifier():
         return True
 
     def verify_user_record(self, table, i, d, schema, reference, file_reference):
+        hkey = self.get_hash_key(self.user_meta_map[table], self.user_schema_map)
         for k, v in d.iteritems():
             if re.match('^_', k):
                 continue

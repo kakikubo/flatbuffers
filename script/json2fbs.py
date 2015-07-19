@@ -36,18 +36,12 @@ def generate_fbs(rootName, nameSpace, jsonData):
     for table_name in jsonData:
         if table_name == "_meta":
             s += 'table ' + rootName[0:1].upper() + rootName[1:] + " {\n"
-            for item in jsonData[table_name]:
-                name = item["name"]
-                table_name = name[0:1].upper() + name[1:]
-                type_str = '['+table_name+']' if item['is_vector'] else table_name;
-                s += "    " + name + ":" + type_str + attribute_str(item["attribute"]) + ";\n"
-            s += "}\n\n"
         else:
             s += 'table ' + table_name[0:1].upper() + table_name[1:] + " {\n"
-            for item in jsonData[table_name]:
-                type_str = '['+item['type']+']' if item['is_vector'] else item['type'];
-                s += "    " + item["name"] + ":" + type_str + attribute_str(item["attribute"]) + ";\n"
-            s += "}\n\n"
+        for item in jsonData[table_name]:
+            type_str = '['+item["type"]+']' if item['is_vector'] else item["type"];
+            s += "    " + item["name"] + ":" + type_str + attribute_str(item["attribute"]) + ";\n"
+        s += "}\n\n"
 
     # output root_type
     s += 'root_type {0};'.format(rootName)+"\n"

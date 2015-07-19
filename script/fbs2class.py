@@ -711,15 +711,15 @@ def generate_schema():
     global fbs_data
 
     schemas = OrderedDict()
-    for table_name, table in fbs_data.iteritems():
-        schemas[table_name] = []
+    for table_type, table in fbs_data.iteritems():
+        schemas[table_type] = []
         for item_name, item in table.iteritems():
             s = OrderedDict()
             s['name']      = item_name
             s['type']      = item['item_type']
             s['attribute'] = item['attribute']
             s['is_vector'] = True if item['is_vector'] else False
-            schemas[table_name].append(s)
+            schemas[table_type].append(s)
     return json.dumps(schemas, indent=2)
 
 # ---
