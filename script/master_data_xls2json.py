@@ -39,6 +39,7 @@ def parse_type(type_str):
                 attribute_map[attr[0]] = True
         schema['type'] = m.group(1)
         schema['attribute'] = attribute_map if attribute_map else None
+    schema['is_vector'] = False
     return schema
 
 def parse_xls(xls_path, except_sheets=[]):
@@ -60,12 +61,12 @@ def parse_xls(xls_path, except_sheets=[]):
         sheet_schema = OrderedDict()
         for i, key in enumerate(keys):
             key = key.value
-            sheet_schema[key] = OrderedDict(
-                name = key,
-                description = descs[i].value,
-                file = os.path.basename(xls_path),
-                sheet = sheet.name
-            )
+            sch = OrderedDict()
+            sch['name'] = key
+            sch['description'] = descs[i].value
+            sch['file']  = os.path.basename(xls_path)
+            sch['sheet'] = sheet.name
+            sheet_schema[key] = sch
             sheet_schema[key].update(parse_type(types[i].value))
         schema[sheet.name] = sheet_schema
   
@@ -135,17 +136,17 @@ def normalize_schema(schema, sheets):
             continue
 
         sheet_name = sheet['name']
+        sheet['is_vector'] = sheet['type'].find('array') >= 0
+        sheet['attribute'] = None
         if sheet['type'].find('json') >= 0:
             normalized[sheet_name] = "swapped later"
         else:
             filtered = []
-            for name in schema[sheet_name]:
-                d = schema[sheet_name][name]
+            for name, d in schema[sheet_name].iteritems():
                 if d['type'].find('ignore') >= 0 or \
                    re.match('^_', d['name']):
                     continue
                 filtered.append(d)
-
             normalized[sheet_name] = filtered
         meta.append(sheet)
     normalized["_meta"] = meta
@@ -180,7 +181,7 @@ def normalize_data(data):
             for id in id_mapping:
                 filtered.append(id_mapping[id])
       
-            if sheet['type'].find('object') >= 0:
+            if sheet['type'].find('array') < 0:
                 filtered = filtered[0] # by object, not object array
         normalized[sheet['name']] = filtered
     return normalized

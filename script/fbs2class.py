@@ -90,25 +90,22 @@ def parse_table(line):
         attribute = OrderedDict()
         for attr_str in re.split('[,\s]+', m.group(2)):
             attrs = re.split('[:\s]+', attr_str)
-            print(attrs)
             if len(attrs) > 1:
                 attribute[attrs[0]] = ':'.join(attrs[1:])
             else:
                 attribute[attrs[0]] = True
             if 'hash' in attrs:
-                is_hash_key = True
+                is_hash_key = attribute['hash'] = True
             elif 'key' in attrs:
-                is_range_key = True
+                is_range_key = attribute['key'] = True
 
-    item = OrderedDict(
-        name = name,
-        type = type,
-        item_type = type,
-        attribute = attribute,
-        is_vector = is_vector,
-        is_hash_key = is_hash_key,
-        is_range_key = is_range_key
-    )
+    item = OrderedDict()
+    item['name'] = name
+    item['type'] = item['item_type'] = type
+    item['is_vector'] = is_vector
+    item['is_hash_key'] = is_hash_key
+    item['is_range_key'] = is_range_key
+    item['attribute'] = attribute
 
     table_name = next(reversed(fbs_data))
     fbs_data[table_name][name] = item
@@ -718,12 +715,10 @@ def generate_schema():
         schemas[table_name] = []
         for item_name, item in table.iteritems():
             s = OrderedDict()
-            s['name']         = item_name
-            s['type']         = item['item_type']
-            s['attribute']    = item['attribute']
-            s['is_hash_key']  = True if item['is_hash_key']  else False
-            s['is_range_key'] = True if item['is_range_key'] else False
-            s['is_vector']    = True if item['is_vector']    else False
+            s['name']      = item_name
+            s['type']      = item['item_type']
+            s['attribute'] = item['attribute']
+            s['is_vector'] = True if item['is_vector'] else False
             schemas[table_name].append(s)
     return json.dumps(schemas, indent=2)
 
