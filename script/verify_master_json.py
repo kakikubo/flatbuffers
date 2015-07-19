@@ -87,6 +87,8 @@ class MasterDataVerifier():
 
             id_map[table] = OrderedDict()
             for i, d in enumerate(datum):
+                if not d.has_key(hkey):
+                    raise KeyError("%s(%d) : %s" % (table, i, json.dumps(d)))
                 if d[hkey] <= 0:
                     continue
                 if id_map[table].has_key(d[hkey]):
