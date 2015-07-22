@@ -145,9 +145,10 @@ class MasterDataVerifier():
         # check master data main
         for table, data in self.master_data.iteritems():
             meta           = self.meta_map[table]
-            schema         = self.schema_map[table]
-            reference      = self.reference_map[table]
-            file_reference = self.file_reference_map[table]
+            table_type     = meta['type']
+            schema         = self.schema_map[table_type]
+            reference      = self.reference_map[table_type]
+            file_reference = self.file_reference_map[table_type]
             try:
                 if not meta['is_vector']:
                     self.verify_master_record(table, 0, data, schema, reference, file_reference)

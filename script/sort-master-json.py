@@ -14,25 +14,25 @@ def sort_master_json(schema, data, type_name = "_meta"):
     result =  OrderedDict()
     currentSchema = schema[type_name]
     for key, entry in data.items():
-        sch = [x for x in schema[type_name] if x["name"] == key]
+        name = key[0].lower() + key[1:]  # FIXME deprecated EnemyGroup -> enemyGroup
+        sch = [x for x in schema[type_name] if x["name"] == name]
         if not sch:
             continue
         sch = sch[0]
         type_str = sch["type"]
-        name = type_str[0].lower() + type_str[1:]  # FIXME deprecated EnemyGroup -> enemyGroup
 
         if sch['is_vector']:
             a = entry
-            for entry_schema in schema[name]:
+            for entry_schema in schema[type_str]:
                 if entry_schema["attribute"] and "key" in entry_schema["attribute"]:
                     n = entry_schema["name"]
                     a = sorted(entry, cmp=lambda x, y:cmp(x[n], y[n])) 
                     break
             result[key] = []
             for i in a:
-                result[key].append(sort_master_json(schema, i, name))
+                result[key].append(sort_master_json(schema, i, type_str))
         else:
-            result[key] = sort_master_json(schema, entry, name)
+            result[key] = sort_master_json(schema, entry, type_str)
     return result
 
 if __name__ == '__main__':
