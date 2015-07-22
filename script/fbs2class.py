@@ -232,7 +232,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += "  " + item["cpp_type"]+ " lookup" + upper_camel_case(item_name) + "(" + range_key["cpp_type"] + " needle) {\n"
                     s += "    auto found = _" + item_name + "Map.find(needle);\n"
                     s += "    if (found != _" + item_name + "Map.end()) {\n"
-                    s += "      return *found;\n"
+                    s += "      return found->second;\n"
                     s += "    } else {\n"
                     s += "      return nullptr;\n"
                     s += "    }\n"
