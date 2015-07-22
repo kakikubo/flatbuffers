@@ -140,7 +140,7 @@ def normalize_schema(schema, sheets):
         sheet['attribute'] = None
         sheet['type'] = sheet_name[0].upper() + sheet_name[1:]
         if sheet['srcType'].find('json') >= 0:
-            normalized[sheet_name] = "swapped later"
+            normalized[sheet['type']] = "swapped later"
         else:
             filtered = []
             for name, d in schema[sheet_name].iteritems():
@@ -148,7 +148,7 @@ def normalize_schema(schema, sheets):
                    re.match('^_', d['name']):
                     continue
                 filtered.append(d)
-            normalized[sheet_name] = filtered
+            normalized[sheet['type']] = filtered
         meta.append(sheet)
     normalized["_meta"] = meta
     return normalized
