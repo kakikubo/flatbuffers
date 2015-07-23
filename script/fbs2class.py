@@ -429,7 +429,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += "    setHashKey(hashKey);\n"
             elif item["is_range_key"]:
                 s += "    rangeKey = setRangeKey(rangeKey);\n"
-            elif not item["is_default_type"] and "range_key" in table_property[item["item_type"]]:
+            elif not item["is_default_type"]:
                 if item["is_vector"]:
                     s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
                     s += "      rangeKey = (*it)->completeKey(hashKey, rangeKey);\n"
@@ -567,7 +567,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += '    }\n'
             s += "    clearDirty();\n"
             s += "  }\n"
-            s += "  // construct with json\n"
+            s += "  // construct with msgpack\n"
             s += "  " + table_name + "(msgpack::object& obj) {\n"
             s += "    fromMsgpack(obj);\n"
             s += "  }\n"
