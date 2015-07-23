@@ -22,15 +22,16 @@ def sort_master_json(schema, data, type_name = "_meta"):
         type_str = sch["type"]
 
         if sch['is_vector']:
-            a = entry
-            for entry_schema in schema[type_str]:
-                if entry_schema["attribute"] and "key" in entry_schema["attribute"]:
-                    n = entry_schema["name"]
-                    a = sorted(entry, cmp=lambda x, y:cmp(x[n], y[n])) 
-                    break
-            result[key] = []
-            for i in a:
-                result[key].append(sort_master_json(schema, i, type_str))
+            if type_str in schema:
+                a = entry
+                for entry_schema in schema[type_str]:
+                    if entry_schema["attribute"] and "key" in entry_schema["attribute"]:
+                        n = entry_schema["name"]
+                        a = sorted(entry, cmp=lambda x, y:cmp(x[n], y[n])) 
+                        break
+                result[key] = []
+                for i in a:
+                    result[key].append(sort_master_json(schema, i, type_str))
         else:
             result[key] = sort_master_json(schema, entry, type_str)
     return result
