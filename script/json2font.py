@@ -34,7 +34,6 @@ def load_char_map(input_json):
                 #raise Exception("field %s:%s not found: %s" % (fc['sheet'], fc['field'], d))
                 continue
             for char in list(d[fc['field']]):
-                print("char = '%c'" % char)
                 if not char_map[font_name].has_key(char):
                     char_map[font_name][char] = 0
                 char_map[font_name][char] += 1
@@ -46,7 +45,6 @@ def generate_bitmap_font(char_map, gd_dir, font_dir):
             continue
         char_list = chars.keys()
         char_list.sort()
-        print(char_list)
         gd_prj    = gd_dir+'/'+font_name+'.GlyphProject'
         font_file = font_dir+'/'+font_name
         info("font: %s.fnt + %s.png by %s (%d characters)" % (font_name, font_name, gd_prj, len(char_list)))
