@@ -32,6 +32,8 @@ def sort_master_json(schema, data, type_name = "_meta"):
                 result[key] = []
                 for i in a:
                     result[key].append(sort_master_json(schema, i, type_str))
+            else:
+                result[key] = entry
         else:
             result[key] = sort_master_json(schema, entry, type_str)
     return result
