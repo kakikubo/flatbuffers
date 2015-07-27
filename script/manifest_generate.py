@@ -23,6 +23,7 @@ def loadManifest(path):
 def createAssetList(remote_dir, local_search_path, filter_list):
     if 0 < len(local_search_path) and not local_search_path.endswith('/'):
        local_search_path += '/' # force local_search_path directory to end with '/'
+    local_search_path = os.path.normpath(local_search_path)
 
     walk_files = []
     for dpath, dnames, fnames in os.walk(local_search_path):
@@ -45,7 +46,7 @@ def createAssetList(remote_dir, local_search_path, filter_list):
                     continue
                 else:
                     raise Exception, "%s is empty file" % path
-            assetPath = path[len(local_search_path):]
+            assetPath = path[len(local_search_path)+1:]
             asset = OrderedDict()
             asset['md5'] = hashlib.md5(byte).hexdigest()
             asset['path'] = remote_dir + "/" + assetPath
