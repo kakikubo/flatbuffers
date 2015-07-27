@@ -32,7 +32,7 @@ done
 if [ $i -ge $max ]; then
   cat $head_file | jq -r '.[] | (if .exists and .new then "A" elif .exists then "U" else "D" end) + " " + .["name"]' > $sonya_file
   echo "=== WAITING FOR BOX SYNC === " >> $sonya_file
-  $tool_dir/script/sonya.sh "(yawn) watchman '$WATCHMAN_TRIGGER' is waiting for Box Sync" $jenkins_url_global $sonya_file || exit $?
+  $tool_dir/script/sonya.sh "(yawn) watchman '$WATCHMAN_TRIGGER' of '$target' is waiting for Box Sync" $jenkins_url_global $sonya_file || exit $?
   exit 0
 fi
 
