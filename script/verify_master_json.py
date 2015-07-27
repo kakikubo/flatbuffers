@@ -8,9 +8,10 @@ import re
 import argparse
 import json
 import logging
-from traceback import print_exception
+from traceback import print_exc
 from logging import info, warning, error
 from collections import OrderedDict
+from subprocess import check_output
 from glob import glob
 
 class MasterDataVerifier():
@@ -159,8 +160,7 @@ class MasterDataVerifier():
                 print('=======================')
                 print('   MASTER DATA ERROR   ')
                 print('=======================')
-                t, v, b = sys.exc_info()
-                print_exception(t, v, b)
+                print_exc()
                 print('=======================')
                 raise
         return True
@@ -272,8 +272,7 @@ class MasterDataVerifier():
                 print('    USER DATA ERROR    ')
                 print('=======================')
                 print(key+' = '+json.dumps(data, indent=2).encode('utf-8'))
-                t, v, b = sys.exc_info()
-                print_exception(t, v, b)
+                print_exc()
                 print('=======================')
                 raise
         return True
