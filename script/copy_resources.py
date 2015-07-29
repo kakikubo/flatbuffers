@@ -13,6 +13,7 @@ from shutil import rmtree, copy
 
 def load_filter_list(filter_fnmatch_path):
     filter_list = []
+    cleanup_list = []
     if filter_fnmatch_path:
         with open(filter_fnmatch_path, 'r') as f:
             lines = f.readlines()
@@ -21,13 +22,32 @@ def load_filter_list(filter_fnmatch_path):
             l = l.strip()
             if not l:
                 continue
-            filter_list.append(os.path.normpath(l))
-    return filter_list
+            m = re.match('\s*D\s+(.*)', l)
+            if m:
+                cleanup_list.append(os.path.normpath(m.group(1)))
+            else:
+                filter_list.append(os.path.normpath(l))
+    return (filter_list, cleanup_list)
+
+def cleanup_resources(dest_dir, cleanup_list):
+    for l in cleanup_list:
+        info("cleanup %s" % l)
+        if l[0] != '/':
+            l = os.path.join(dest_dir, l)
+        for root, dirs, files in os.walk(os.path.dirname(l)):
+            for f in files + dirs:
+                if f in ('.gitkeep'):
+                    continue
+                full_path = os.path.join(root, f)
+                if fnmatch.fnmatch(full_path, l):
+                    if os.path.exists(full_path):
+                        #print("rm "+full_path)
+                        rmtree(full_path)
+    return True
 
 def copy_resources(src_dir, dest_dir, filter_list):
     for l in filter_list:
         info("copy %s" % l)
-        src_dir = os.path.normpath(src_dir)
         if l[0] != '/':
             l = os.path.join(src_dir, l)
         for root, dirs, files in os.walk(os.path.dirname(l)):
@@ -40,6 +60,7 @@ def copy_resources(src_dir, dest_dir, filter_list):
                         os.makedirs(os.path.dirname(dest))
                     debug("%s -> %s" % (src, dest))
                     copy(src, dest)
+    return True
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='copy asset files to Resources dir by bundled.list', epilog="""\
@@ -53,6 +74,9 @@ example:
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
-    filter_list = load_filter_list(args.filter)
-    copy_resources(args.src_dir, args.dest_dir, filter_list)
+    src_dir  = os.path.normpath(args.src_dir)
+    dest_dir = os.path.normpath(args.dest_dir)
+    filter_list, cleanup_list= load_filter_list(args.filter)
+    cleanup_resources(dest_dir, cleanup_list)
+    copy_resources(src_dir, dest_dir, filter_list)
     exit(0)

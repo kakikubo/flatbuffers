@@ -71,6 +71,7 @@ def loadFilterList(filter_fnmatch_path, local_asset_search_path):
             lines = f.readlines()
         for i, l in enumerate(lines):
             l = re.sub('#.*', '', l)
+            l = re.sub('\s*D\s+.*', '', l) # ignore delete
             l = l.strip()
             if not l:
                 continue
