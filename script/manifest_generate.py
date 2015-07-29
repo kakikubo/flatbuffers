@@ -6,9 +6,11 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from collections import OrderedDict
 import logging
 from logging import info, warning, debug
+import fnmatch
 
 ENGINE_VERSION = 'Cocos2d-x v3.5'
 
@@ -18,27 +20,37 @@ def loadManifest(path):
         manifest = json.load(f, object_pairs_hook=OrderedDict)
     return manifest
 
-def createAssetList(remote_dir, local_search_path):
+def createAssetList(remote_dir, local_search_path, filter_list):
     if 0 < len(local_search_path) and not local_search_path.endswith('/'):
        local_search_path += '/' # force local_search_path directory to end with '/'
+    local_search_path = os.path.normpath(local_search_path)
 
-    assetsDic = OrderedDict()
+    walk_files = []
     for dpath, dnames, fnames in os.walk(local_search_path):
         for fname in fnames:
-            path = os.path.join(dpath, fname)
-            with open(path, 'r') as f:
-                byte = f.read()
-                if byte == "": # AssetsManagerEx can not download size 0 file
-                    if fname.endswith("_stringtable.txt"):
-                        continue
-                    else:
-                        raise Exception, "%s is empty file" % path
+            walk_files.append(os.path.normpath(os.path.join(dpath, fname)))
 
-                assetPath = path[len(local_search_path):]
-                asset = OrderedDict()
-                asset['md5'] = hashlib.md5(byte).hexdigest()
-                asset['path'] = remote_dir + "/" + assetPath
-                assetsDic[assetPath] = asset
+    filtered_files = []
+    if filter_list == None:
+        filtered_files = walk_files
+    else:
+        for l in filter_list:
+            filtered_files += fnmatch.filter(walk_files, l)
+
+    assetsDic = OrderedDict()
+    for path in filtered_files:
+        with open(path, 'r') as f:
+            byte = f.read()
+            if byte == "": # AssetsManagerEx can not download size 0 file
+                if fnmatch.fnmatch(path, "*_stringtable.txt"):
+                    continue
+                else:
+                    raise Exception, "%s is empty file" % path
+            assetPath = path[len(local_search_path)+1:]
+            asset = OrderedDict()
+            asset['md5'] = hashlib.md5(byte).hexdigest()
+            asset['path'] = remote_dir + "/" + assetPath
+            assetsDic[assetPath] = asset
     return assetsDic
 
 def createVersionManifest(version, remote_manifest_url, remote_version_url, package_url):
@@ -52,16 +64,34 @@ def createVersionManifest(version, remote_manifest_url, remote_version_url, pack
     manifest['engineVersion'] = ENGINE_VERSION
     return manifest
 
+def loadFilterList(filter_fnmatch_path, local_asset_search_path):
+    filter_list = []
+    if filter_fnmatch_path:
+        with open(filter_fnmatch_path, 'r') as f:
+            lines = f.readlines()
+        for i, l in enumerate(lines):
+            l = re.sub('#.*', '', l)
+            l = l.strip()
+            if not l:
+                continue
+            if l[0] != '/':
+                l = os.path.join(local_asset_search_path, l)
+            filter_list.append(os.path.normpath(l))
+    return filter_list
+
 def createManifest(dst_file_project_manifest, dst_file_version_manifest,
                    version, url_project_manifest, url_version_manifest, url_asset,
                    remote_dir_asset, local_asset_search_path, 
-                   reference_manifest_path, keep_ref_entries):
+                   filter_fnmatch_path, reference_manifest_path, keep_ref_entries):
 
     manifest = createVersionManifest(version, url_project_manifest, url_version_manifest, url_asset)
     with open(dst_file_version_manifest, 'w') as f:
         json.dump(manifest, f, sort_keys=True, indent=2)
 
-    assets = createAssetList(remote_dir_asset, local_asset_search_path)
+    filter_list = None
+    if filter_fnmatch_path:
+        filter_list = loadFilterList(filter_fnmatch_path, local_asset_search_path)
+    assets = createAssetList(remote_dir_asset, local_asset_search_path, filter_list)
 
     if reference_manifest_path:
         if not os.path.exists(reference_manifest_path):
@@ -100,7 +130,7 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate asset manifest files for AssetsManagerEx', epilog="""\
 example:
-    $ ./manifest_generate.py  --ref reference.manifest project.manifest version.manifest ""version 1"" http://example.com/project.manifest http://exmaple.com/version.manifest http://exmaple.com/cdn ver1 asset""")
+    $ ./manifest_generate.py --ref reference.manifest --filer filter.list project.manifest version.manifest ""version 1"" http://example.com/project.manifest http://exmaple.com/version.manifest http://exmaple.com/cdn ver1 asset""")
 
     parser.add_argument('dst_file_project_manifest', metavar='project.manifest', help='output path for project.manifest')
     parser.add_argument('dst_file_version_manifest', metavar='version.manifest', help='output path for version.manifest')
@@ -111,9 +141,10 @@ example:
     parser.add_argument('url_asset', metavar='url.asset', help='base url for assets')
     parser.add_argument('remote_dir_asset', metavar='remote.dir.asset', help='remote directory for asset files')
     parser.add_argument('local_asset_search_path', metavar='local.asset.search.path', help='local asset path')
+    parser.add_argument('--filter', metavar='filter.fnmatch', help='asset filter list (fnmatch format)')
     parser.add_argument('--ref', metavar='reference.manifest.path', help='reference manifest path')
     parser.add_argument('--keep-ref-entries', default = False, action = 'store_true', help = 'do not delete entries only exists in reference manifest')
-    parser.add_argument('--log-level',     help = 'log level (WARNING|INFO|DEBUG). default: INFO')
+    parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
 
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
@@ -121,4 +152,4 @@ example:
     createManifest(args.dst_file_project_manifest, args.dst_file_version_manifest,
         args.version, args.url_project_manifest, args.url_version_manifest, args.url_asset,
         args.remote_dir_asset, args.local_asset_search_path,
-        args.ref, args.keep_ref_entries)
+        args.filter, args.ref, args.keep_ref_entries)

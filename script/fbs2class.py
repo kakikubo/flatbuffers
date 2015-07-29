@@ -232,7 +232,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += "  " + item["cpp_type"]+ " lookup" + upper_camel_case(item_name) + "(" + range_key["cpp_type"] + " needle) {\n"
                     s += "    auto found = _" + item_name + "Map.find(needle);\n"
                     s += "    if (found != _" + item_name + "Map.end()) {\n"
-                    s += "      return *found;\n"
+                    s += "      return found->second;\n"
                     s += "    } else {\n"
                     s += "      return nullptr;\n"
                     s += "    }\n"
@@ -429,7 +429,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += "    setHashKey(hashKey);\n"
             elif item["is_range_key"]:
                 s += "    rangeKey = setRangeKey(rangeKey);\n"
-            elif not item["is_default_type"] and "range_key" in table_property[item["item_type"]]:
+            elif not item["is_default_type"]:
                 if item["is_vector"]:
                     s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
                     s += "      rangeKey = (*it)->completeKey(hashKey, rangeKey);\n"
@@ -567,7 +567,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += '    }\n'
             s += "    clearDirty();\n"
             s += "  }\n"
-            s += "  // construct with json\n"
+            s += "  // construct with msgpack\n"
             s += "  " + table_name + "(msgpack::object& obj) {\n"
             s += "    fromMsgpack(obj);\n"
             s += "  }\n"

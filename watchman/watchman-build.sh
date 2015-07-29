@@ -1,8 +1,8 @@
 #!/bin/sh
 
 tool_dir=`pwd | sed -e 's/Box Sync/box/'`
-asset_list_json=/var/www/cdn/dev.asset_list.json
 git_dir=/Users/kms.jenkins/kms/asset
+asset_list_json=$git_dir/manifests/dev.asset_list.json
 
 target=$1
 [ -n "$target" ] || exit 1

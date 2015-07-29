@@ -33,7 +33,7 @@ def load_char_map(input_json):
             if not d.has_key(fc['field']):
                 #raise Exception("field %s:%s not found: %s" % (fc['sheet'], fc['field'], d))
                 continue
-            for char in d[fc['field']].split():
+            for char in list(d[fc['field']]):
                 if not char_map[font_name].has_key(char):
                     char_map[font_name][char] = 0
                 char_map[font_name][char] += 1
@@ -48,7 +48,7 @@ def generate_bitmap_font(char_map, gd_dir, font_dir):
         gd_prj    = gd_dir+'/'+font_name+'.GlyphProject'
         font_file = font_dir+'/'+font_name
         info("font: %s.fnt + %s.png by %s (%d characters)" % (font_name, font_name, gd_prj, len(char_list)))
-        with tempfile.NamedTemporaryFile(prefix = '', suffix = '', delete = False) as fp:
+        with tempfile.NamedTemporaryFile(prefix = 'json2font_'+font_name+'_', suffix = '.list', delete = False) as fp:
             fp.write(''.join(char_list).encode('utf-8'))
             fp.flush()
             cmdline = [gdcl, gd_prj, font_file, '-inf', fp.name]
