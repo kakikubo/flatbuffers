@@ -236,14 +236,10 @@ END
       hash = nil
       name = "__head__"
       while l = file.gets
-        if l =~ /\/\/\s*\[state2cpp\]__disabled__/
+        if l =~ /\/\/\s*\[state2cpp\](__\w+__)/
           old_sources[name] = [hash, s.strip()+"\n"]
           s = ""
-          name = "__disabled__"
-        elsif l =~ /\/\/\s*\[state2cpp\]__common__/
-          old_sources[name] = [hash, s.strip()+"\n"]
-          s = ""
-          name = "__common__"
+          name = $1
         elsif l =~ /\/\/\s*\[state2cpp\]([^:]+):(\w+)/
           old_sources[name] = [hash, s.strip()+"\n"]
           s = ""
@@ -268,6 +264,7 @@ END
         else
           file.print source
         end
+        p old_sources["__head__"][1]
       when "__common__"
         file.print "\n// [state2cpp]__common__\n\n"
         file.print source
@@ -314,6 +311,7 @@ END
     if old_sources.include?"__disabled__"
       file.print(old_sources["__disabled__"][1])
     end
+    file.print("// [state2cpp]__end__\n")
     file.print(cpp_foot)
   }
 end
