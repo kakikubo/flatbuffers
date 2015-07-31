@@ -103,30 +103,18 @@ END
 
   sources = []
   source = ""
-source +=<<END
+  source +=<<END
 #include "#{class_name}.h"
+#include "StateMachineMacros.h"
 #{cpp_head}
+END
 
-#define TO_STRING() \\
-  _stateMachine.to_string()
-#define EXEC() \\
-  _stateMachine.Exec()
-#define SPAWN(state) \\
-  _stateMachine.Spawn(std::make_pair([&]{state();}, #state))
-#define SWITCH_TO(state) \\
-  _stateMachine.SwitchTo(std::make_pair([&]{state();}, #state))
-#define YIELD_TO(state) \\
-  _stateMachine.YieldTo(std::make_pair([&]{state();}, #state))
-#define EXIT() _stateMachine.Exit()
+  sources << ["__head__", source]
+  source = ""
 
-std::string #{class_name}::DumpState() const {
-    return TO_STRING();
-}
-
-void #{class_name}::ExecState() {
-    EXEC();
-}
-
+  source +=<<END
+std::string #{class_name}::DumpState() const { return TO_STRING(); }
+void #{class_name}::ExecState() { EXEC(); }
 void #{class_name}::StartState() {
 END
 
@@ -142,13 +130,12 @@ END
 }
 END
 
-  sources << [nil, source]
+  sources << ["__common__", source]
 
   data.nodes.each do |n|
     source = ""
     source += <<END
 void #{class_name}::State#{n.name}() {
-
     //  TODO: Something to execute every frame while this state.
 
 END
@@ -214,7 +201,7 @@ END
         condition = link.condition
         if count == 0
           source += <<END
-    if (false) { //  #{condition}
+    if (false) {#{comment(condition)}
 END
         elsif link.condition.nil? && count == n.link.size-1
           source += <<END
@@ -242,33 +229,31 @@ END
   end
 
   old_sources = {}
-  old_disabled = ""
 
   if File.exist?(cpp_path)
     File.open(cpp_path, "r:UTF-8") { | file |
-      source = ""
+      s = ""
       hash = nil
-      name = nil
-      is_disabled = false
+      name = "__head__"
       while l = file.gets
         if l =~ /\/\/\s*\[state2cpp\]__disabled__/
-          is_disabled = true
+          old_sources[name] = [hash, s.strip()+"\n"]
+          s = ""
+          name = "__disabled__"
+        elsif l =~ /\/\/\s*\[state2cpp\]__common__/
+          old_sources[name] = [hash, s.strip()+"\n"]
+          s = ""
+          name = "__common__"
         elsif l =~ /\/\/\s*\[state2cpp\]([^:]+):(\w+)/
-          is_disabled = false
-          unless name.nil?
-            old_sources[name] = [hash, source.strip()+"\n"]
-          end
+          old_sources[name] = [hash, s.strip()+"\n"]
+          s = ""
           name = $1
           hash = $2
-          source = ""
         else
-          if is_disabled
-            old_disabled << l
-          else
-            source << l
-          end
+          s << l
         end
       end
+      old_sources[name] = [hash, s.strip()+"\n"]
     }
   end
 
@@ -276,7 +261,15 @@ END
 
   File.open(cpp_path, "w:UTF-8") { | file |
     sources.each do | name, source |
-      if name.nil?
+      case name
+      when "__head__"
+        if old_sources.include?("__head__")
+          file.print old_sources["__head__"][1]
+        else
+          file.print source
+        end
+      when "__common__"
+        file.print "\n// [state2cpp]__common__\n\n"
         file.print source
       else
         source_names << name
@@ -288,26 +281,38 @@ END
           if hash == old_hash
             file.print old_source
           else
+            puts "#{cpp_path}: #{name} modified."
             file.print source
             file.print <<END
-#if 0 // yaml file is modified. Please remove this chunk.
+#if 0 //  TODO: yaml file is modified. Please remove this chunk.
 #{old_sources[name][1]}
 #endif
 END
           end
         else
+          puts "#{cpp_path}: #{name} created."
           file.print source
         end
       end
     end
+
+    first = true
     old_sources.each do | name, a |
       next if source_names.include?name
+      next if name.start_with?("__")
+      if first
+        file.print "\n// [state2cpp]__disabled__\n\n"
+        first = false
+      end
+      puts "#{cpp_path}: #{name} deleted."
       file.print <<END
-#if 0 // deleted in the yaml file. Please remove this chunk.
+#if 0 //  TODO: Please remove this chunk. #{name} is deleted from the yml file. 
 #{a[1]}
 #endif
-#{old_disabled}
 END
+    end
+    if old_sources.include?"__disabled__"
+      file.print(old_sources["__disabled__"][1])
     end
     file.print(cpp_foot)
   }
