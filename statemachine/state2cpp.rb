@@ -264,7 +264,6 @@ END
         else
           file.print source
         end
-        p old_sources["__head__"][1]
       when "__common__"
         file.print "\n// [state2cpp]__common__\n\n"
         file.print source
