@@ -14,13 +14,15 @@ import xlrd
 import logging
 from logging import info, warning, debug
 
-def searchInListDataRecursiveByKeyAndValue(listData, key, value):
+def searchAndDeleteInListDataRecursiveByKeyAndValue(listData, key, value):
     for data in listData:
         if isinstance(data, dict):
-            return searchInDictDataRecursiveByKeyAndValue(data, key, value)
+            if searchAndDeleteInDictDataRecursiveByKeyAndValue(data, key, value):
+                return listData.index(data)
+    return -1
 
 
-def searchInDictDataRecursiveByKeyAndValue(dictData, key, value):
+def searchAndDeleteInDictDataRecursiveByKeyAndValue(dictData, key, value):
     if dictData.has_key(key):
         if dictData[key] == value:
             return True
@@ -28,9 +30,17 @@ def searchInDictDataRecursiveByKeyAndValue(dictData, key, value):
     for dictKey in dictKeys:
         child = dictData[dictKey]
         if isinstance(child, dict):
-            return searchInDictDataRecursiveByKeyAndValue(child, key, value)
+            if searchAndDeleteInDictDataRecursiveByKeyAndValue(child, key, value):
+                return True
         elif isinstance(child, list):
-            return searchInListDataRecursiveByKeyAndValue(child, key, value)
+            index = searchAndDeleteInListDataRecursiveByKeyAndValue(child, key, value)
+            if index != -1:
+                # print "find {0}:{1}".format(dictKey, index)
+                child.pop(index)
+                if len(child) == 0:
+                    # print "list size == 0 : del {0}".format(dictKey)
+                    del dictData[dictKey]
+                return True
     return False
 
 
@@ -83,8 +93,9 @@ def deleteAnimationBySlotName(dictData, slotName):
             animKeys = animation.keys()
             for animKey in animKeys:
                 anim = animation[animKey]
-                if searchInListDataRecursiveByKeyAndValue(anim, "slot", slotName):
-                    del animation[animKey]
+                searchAndDeleteInListDataRecursiveByKeyAndValue(anim, "slot", slotName)
+                #if searchAndDeleteInListDataRecursiveByKeyAndValue(anim, "slot", slotName) != -1:
+                #    print "{0}:{1}:{2}".format(animationKey, animKey, slotName)
                 if isinstance(anim, dict):
                     if anim.has_key(slotName):
                         del anim[slotName]
@@ -266,7 +277,6 @@ def deleteElement(args):
                                 for offsetData in offsets:
                                     slot = offsetData["slot"]
                                     offset = offsetData["offset"]
-
                                     targetIndex = slotIndexMap[slot] + offset
                                     targetName = ""
                                     currentIndex = 0
