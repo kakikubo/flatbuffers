@@ -8,13 +8,13 @@ target=$1
 [ -n "$target" ] || exit 1
 
 # build asset
-$tool_dir/script/build.py build --target $target --git-dir $git_dir || exit $?
+$tool_dir/script/build.py build $target --git-dir $git_dir || exit $?
 echo "build $target done"
 
 if [ $target = "master" ]; then
   # update each user in master updated
   for user_target in `cat $asset_list_json | jq '.[]' -r`; do
-    $tool_dir/script/build.py build --target $user_target
+    $tool_dir/script/build.py build $user_target
     if [ $? -ne 0 ]; then
       echo "*** build $user_target via master failed ***"
       #exit 1	# ignore other user error
