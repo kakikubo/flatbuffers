@@ -100,130 +100,83 @@ def deleteAnimationBySlotName(dictData, slotName):
                     if anim.has_key(slotName):
                         del anim[slotName]
 """
-def exportWearPattern(name, dirName):
+def exportWearPattern(parser, name, dirName):
     srcPath = os.path.abspath(dirName)
     dstPath = os.path.abspath(dirName)
     wearNames = [name + "_n", name + "_w"]
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", nargs="*")
-    parser.add_argument("-b", nargs="*")
-    parser.add_argument("-i", required=True)
-    parser.add_argument("-o", required=True)
-    parser.add_argument("-f", required=True)
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + wearNames[0], "-f", name, "-s", "C_bo_gear_inside", "-b"]))
     shutil.copy(srcPath + "/" + name + ".json", dstPath + "/" + wearNames[1] + ".json")
     shutil.copy(srcPath + "/" + name + ".atlas", dstPath + "/" + wearNames[1] + ".atlas")
     return wearNames
 
-def exportWingPattern(name, dirName):
+def exportWingPattern(parser, name, dirName):
     srcPath = os.path.abspath(dirName)
     dstPath = os.path.abspath(dirName)
     wingNames = [name + "_n", name + "_w"]
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", nargs="*")
-    parser.add_argument("-b", nargs="*")
-    parser.add_argument("-i", required=True)
-    parser.add_argument("-o", required=True)
-    parser.add_argument("-f", required=True)
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + wingNames[0], "-f", name, "-s", "C_bo_mant_b", "-b"]))
     shutil.copy(srcPath + "/" + name + ".json", dstPath + "/" + wingNames[1] + ".json")
     shutil.copy(srcPath + "/" + name + ".atlas", dstPath + "/" + wingNames[1] + ".atlas")
     return wingNames
 
-def exportAccessoryPattern(name, dirName):
+def exportAccessoryPattern(parser, name, dirName):
     srcPath = os.path.abspath(dirName)
     dstPath = os.path.abspath(dirName)
     accessoryNames = [name + "_c", name + "_r", name + "_n"]
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", nargs="*")
-    parser.add_argument("-b", nargs="*")
-    parser.add_argument("-i", required=True)
-    parser.add_argument("-o", required=True)
-    parser.add_argument("-f", required=True)
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[0], "-f", name, "-s", "C_rabbit_ear", "-b", "rabbit_earLeft1", "rabbit_earLeft1"]))
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[1], "-f", name, "-s", "C_cat_ear", "C_tail", "-b", "cat_earRight1", "cat_earLeft1", "tail"]))
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[2], "-f", name, "-s", "C_rabbit_ear", "C_cat_ear", "C_tail", "-b", "rabbit_earLeft1", "rabbit_earLeft1", "cat_earRight1", "cat_earLeft1", "tail"]))
     return accessoryNames
 
-def exportWithoutAccessory(name, dirName):
+def exportWithoutAccessory(parser, name, dirName):
     srcPath = os.path.abspath(dirName)
     dstPath = os.path.abspath(dirName)
-    parser = argparse.ArgumentParser()
     accessoryNames = [name + "_n"]
-    parser.add_argument("-s", nargs="*")
-    parser.add_argument("-b", nargs="*")
-    parser.add_argument("-i", required=True)
-    parser.add_argument("-o", required=True)
-    parser.add_argument("-f", required=True)
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + accessoryNames[0], "-f", name, "-s", "C_rabbit_ear", "C_cat_ear", "C_tail", "-b", "rabbit_earLeft1", "rabbit_earLeft1", "cat_earRight1", "cat_earLeft1", "tail"]))
     return accessoryNames
 
-def exportHairPattern(name, dirName):
+def exportHairPattern(parser, name, dirName):
     srcPath = os.path.abspath(dirName)
     dstPath = os.path.abspath(dirName)
     hairNames = [name + "_b", name + "_p", name + "_t"]
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", nargs="*")
-    parser.add_argument("-b", nargs="*")
-    parser.add_argument("-i", required=True)
-    parser.add_argument("-o", required=True)
-    parser.add_argument("-f", required=True)
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[0], "-f", name, "-s", "C_hd_twintail_R", "C_hd_twintail_L", "C_hd_hair_tail", "-b", "twintail_L1", "twintail_R1", "hair_tail"]))
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[1], "-f", name, "-s", "C_hd_twintail_R", "C_hd_twintail_L", "C_hd_hair_b", "-b", "twintail_L1", "twintail_R1"]))
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[2], "-f", name, "-s", "C_hd_hair_tail", "C_hd_hair_b", "-b", "hair_tail"]))
     return hairNames
 
-def exportWithoutHair(name, dirName):
+def exportWithoutHair(parser, name, dirName):
     srcPath = os.path.abspath(dirName)
     dstPath = os.path.abspath(dirName)
     hairNames = [name + "_b"]
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", nargs="*")
-    parser.add_argument("-b", nargs="*")
-    parser.add_argument("-i", required=True)
-    parser.add_argument("-o", required=True)
-    parser.add_argument("-f", required=True)
     deleteElement(parser.parse_args(["-i", srcPath, "-o", dstPath + "/" + hairNames[0], "-f", name, "-s", "C_hd_twintail_R", "C_hd_twintail_L", "C_hd_hair_tail", "-b", "twintail_L1", "twintail_R1", "hair_tail"]))
     return hairNames
 
-def autoExport(name, dirName):
-    wearNames = exportWearPattern(name, dirName)
+def autoExport(parser, name, dirName):
+    wearNames = exportWearPattern(parser, name, dirName)
     for wearName in wearNames:
-        wingNames = exportWingPattern(wearName, dirName)
+        wingNames = exportWingPattern(parser, wearName, dirName)
         for wingName in wingNames:
-            accessoryNames = exportAccessoryPattern(wingName, dirName)
+            accessoryNames = exportAccessoryPattern(parser, wingName, dirName)
             for accessoryName in accessoryNames:
-                hairNames = exportHairPattern(accessoryName, dirName)
+                hairNames = exportHairPattern(parser, accessoryName, dirName)
 """
 
-# ---
-# default help message
-#
-def printHelp():
-    print '''> python delete-element.py {excelFilePath} {excelSheetName} {startRow} {startCol} {spineFilePath} {outPutFolderPath}
-    e.g. > python delete-element.py master/character.xlsx characterSpine 3 9 contents/files/spine/characterSpine/character.json contents/files/spine/characterSpine/'''
-
 def deleteElement(args):
-    srcPath = os.path.abspath(args.i)
-    dstPath = os.path.abspath(args.o)
-    srcJson = srcPath
-    dstJson = dstPath
+    srcJson = os.path.abspath(args.input_json)
+    dstJson = os.path.abspath(args.output_json)
 
-    boneList = args.b
-    slotList = args.s
+    boneList = args.delete_bone
+    slotList = args.delete_slot
     skinList = slotList
 
-    if True:
-        debug("convert file = {0}".format(srcJson))
-        debug("output file = {0}".format(dstJson))
-        debug("bones = {0}".format(boneList))
-        debug("slots = {0}".format(slotList))
-        debug("skins = {0}".format(skinList))
+    debug("convert file = {0}".format(srcJson))
+    debug("output file = {0}".format(dstJson))
+    debug("bones = {0}".format(boneList))
+    debug("slots = {0}".format(slotList))
+    debug("skins = {0}".format(skinList))
 
     jsonData = {}
     with open(srcJson, 'r') as f:
         jsonData = json.loads(f.read(), object_pairs_hook=OrderedDict)
-
 
         # 全slotの名前とインデクスを保存
         slotIndexMap = {}
@@ -375,40 +328,43 @@ def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail, 
     dic["bone"] = bone
     return dic
 
-def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile, outPath):
-    iParamStartRow = int(paramStartRow)
-    iParamStartCol = -1
-    book = xlrd.open_workbook(masterExcel)
-    sheet = book.sheet_by_name(sheetName)
+def export_spine(parser, master_excel, sheet_name, start_row, start_column, input_json, output_dir):
+    info("master excel = %s:%s" % (master_excel, sheet_name))
+    info("start %s:%s" % (start_row, start_column))
+
+    start_row = int(start_row)
+    start_col = -1
+    book = xlrd.open_workbook(master_excel)
+    sheet = book.sheet_by_name(sheet_name)
 
     if sheet.nrows > 0:
         for col in range(sheet.ncols):
-            if sheet.cell_value(0, col) == paramStartField:
-                iParamStartCol = col
-                debug("find {0}:{1}".format(paramStartField, col))
+            if sheet.cell_value(0, col) == start_column:
+                start_col = col
+                debug("find {0}:{1}".format(start_column, col))
                 break
 
-    if iParamStartCol >= 0:
+    if start_col >= 0:
         for row in range(sheet.nrows):
-            if (sheet.ncols < iParamStartCol+9):
-                debug("ncols={0} but paramStartCol={1}".format(sheet.ncols, iParamStartCol))
+            if (sheet.ncols < start_col+9):
+                info("ncols={0} but paramStartCol={1}".format(sheet.ncols, start_col))
             else:
-                if (row >= iParamStartRow):
+                if (row >= start_row):
                     modelID = int(sheet.cell_value(row, 0))
-                    hasTwinTail = sheet.cell_value(row, iParamStartCol)
-                    hasPonyTail = sheet.cell_value(row, iParamStartCol+1)
-                    hasEarCat = sheet.cell_value(row, iParamStartCol+2)
-                    hasEarRabitt = sheet.cell_value(row, iParamStartCol+3)
-                    hasTail = sheet.cell_value(row, iParamStartCol+4)
-                    hasEar = sheet.cell_value(row, iParamStartCol+5)
-                    hasMant = sheet.cell_value(row, iParamStartCol+6)
-                    hasInside = sheet.cell_value(row, iParamStartCol+7)
-                    hasShoulder = sheet.cell_value(row, iParamStartCol+8)
+                    hasTwinTail = sheet.cell_value(row, start_col)
+                    hasPonyTail = sheet.cell_value(row, start_col+1)
+                    hasEarCat = sheet.cell_value(row, start_col+2)
+                    hasEarRabitt = sheet.cell_value(row, start_col+3)
+                    hasTail = sheet.cell_value(row, start_col+4)
+                    hasEar = sheet.cell_value(row, start_col+5)
+                    hasMant = sheet.cell_value(row, start_col+6)
+                    hasInside = sheet.cell_value(row, start_col+7)
+                    hasShoulder = sheet.cell_value(row, start_col+8)
                     debug("Convert Param = {0}:{1},{2},{3},{4},{5},{6},{7},{8},{9}".format(str(modelID), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail, hasEar, hasMant, hasInside, hasShoulder))
                     dic = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail, hasEar, hasMant, hasInside, hasShoulder)
-                    srcPath = os.path.abspath(srcFile)
-                    root, ext = os.path.splitext(srcFile)
-                    dstPath = os.path.abspath(outPath) + "/" + str(modelID) + ext
+                    srcPath = os.path.abspath(input_json)
+                    root, ext = os.path.splitext(input_json)
+                    dstPath = os.path.abspath(output_dir) + "/" + str(modelID) + ext
 
                     params = []
                     params.append("-i")
@@ -422,39 +378,59 @@ def exportSpine(masterExcel, sheetName, paramStartRow, paramStartField, srcFile,
                     for bone in dic["bone"]:
                         params.append(bone)
                     debug(params)
-                    parser = argparse.ArgumentParser()
-                    parser.add_argument("-s", nargs="*")
-                    parser.add_argument("-b", nargs="*")
-                    parser.add_argument("-i", required=True)
-                    parser.add_argument("-o", required=True)
                     deleteElement(parser.parse_args(params))
+
+def verify_spine(input_json, size_limit):
+    limits = []
+    for l in size_limit.split(':'):
+        limits.append(float(l))
+    with open(input_json, 'r') as f:
+        spine = json.load(f, object_pairs_hook=OrderedDict)
+
+    width  = float(spine['skeleton']['width'])
+    height = float(spine['skeleton']['height'])
+    if width < limits[0] or limits[1] < width:
+        raise Exception("spine skeleton.width is invalid: %s < %s < %s: %s", limits[0], width, limits[1], input_json)
+    if height < limits[0] or limits[1] < height:
+        raise Exception("spine skeleton.height is invalid: %s < %s < %s: %s", limits[0], height, limits[1], input_json)
+
+    return True
 
 # ---
 # main function
 #
 if __name__ == '__main__':
-    log_level = "INFO" # "DEBUG" # FIXME get via arguments
-    logging.basicConfig(level = log_level, format = '%(asctime)-15s %(levelname)s %(message)s')
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
     argv = sys.argv
     argc = len(argv)
 
-    if argc > 1:
-        if argv[1] == "-h":
-            printHelp()
-        else:
-            if argc == 7:
-                exportSpine(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6])
-            elif argc == 5:
-                parser = argparse.ArgumentParser()
-                parser.add_argument("-s", nargs="*")
-                parser.add_argument("-b", nargs="*")
-                parser.add_argument("-i", required=True)
-                parser.add_argument("-o", required=True)
-                deleteElement(parser.parse_args())
-            else:
-                print 'Error :: not enough params.'
-                printHelp()
+    internal_parser = argparse.ArgumentParser(
+        description = 'delete specified elements from source spine json file',
+    )
+    internal_parser.add_argument("-i", '--input-json',  required=True, help = "input spine json")
+    internal_parser.add_argument("-o", '--output-json', required=True, help = "output spine json")
+    internal_parser.add_argument("-b", '--delete-bone', nargs="*", help="slot list to delete")
+    internal_parser.add_argument("-s", '--delete-slot', nargs="*", help="bone list to delete")
+
+    if argc < 7:
+        deleteElement(internal_parser.parse_args())
     else:
-        printHelp()
+        parser = argparse.ArgumentParser(
+            description = 'delete specified elements from source spine json file by excel sheet data',
+            epilog = 'e.g. > python delete-element.py master/character.xlsx characterSpine 3 9 contents/files/spine/characterSpine/character.json contents/files/spine/characterSpine/'
+        )
+        parser.add_argument('master_excel', help = 'input master data excel')
+        parser.add_argument('sheet_name',   help = 'target sheet name to use in master_excel')
+        parser.add_argument('start_row',    help = 'start row number in target sheet')
+        parser.add_argument('start_column', help = 'start column name in target sheet')
+        parser.add_argument('input_json',   help = 'source spine json file')
+        parser.add_argument('output_dir',   help = 'dest spine jsons dir')
+        parser.add_argument('--size-limit', help = "spine size spiecified by max-width:max-height")
+        parser.add_argument('--log-level',  help = 'log level (WARNING|INFO|DEBUG). default: INFO')
+        args = parser.parse_args()
+        logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+
+        if args.size_limit:
+            verify_spine(args.input_json, args.size_limit)
+        export_spine(internal_parser, args.master_excel, args.sheet_name, args.start_row, args.start_column, args.input_json, args.output_dir)
 

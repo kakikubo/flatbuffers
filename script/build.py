@@ -18,48 +18,68 @@ from glob import glob
 from logging import info, warning, debug
 
 class AssetBuilder():
-    def __init__(self, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, cdn_dir=None, git_dir=None):
+    def __init__(self, command=None, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, cdn_dir=None, git_dir=None):
         self.target            = target or 'master'
         self.is_master         = self.target == 'master'
 
         self.asset_version     = asset_version or target
         self.asset_version_dir = asset_version or target
         self.timestamp         = strftime('%Y-%m-%d %H:%M:%S')
-
         self_dir = os.path.dirname(os.path.abspath(__file__))
-        for main_dir_default in (\
-            os.path.normpath(os.curdir+'/kms_'+target+'_asset'), \
-            os.path.normpath(self_dir+'/../../box/kms_'+target+'_asset'), \
-            os.path.normpath(os.path.expanduser('~/Box Sync/kms_'+target+'_asset'))):
+
+        # select main dir
+        if command in ('debug', 'clean'):
+            main_dir_list = [
+                os.path.normpath(os.curdir+'/kms_'+target+'_asset')
+            ]
+        else: # build
+            main_dir_list = [
+                os.path.normpath(self_dir+'/../../box/kms_'+target+'_asset'),
+                os.path.normpath(os.path.expanduser('~/Box Sync/kms_'+target+'_asset'))
+            ]
+        for main_dir_default in main_dir_list:
             if os.path.exists(main_dir_default):
                 break
         self.org_main_dir = main_dir or main_dir_default
+        if not os.path.exists(self.org_main_dir):
+            raise Exception("main dir is not exists: %s" % self.org_main_dir)
 
-        if target in ('hiroto.furuya'):
-            for master_dir_default in (\
-                os.path.normpath(os.curdir+'/asset'), \
-                git_dir, \
-                os.path.normpath(self_dir+'/../client/asset'), \
-                os.path.normpath(os.path.expanduser('~/kms/asset'))):
-                if master_dir_default and os.path.exists(master_dir_default):
-                    break
-        else:
-            for master_dir_default in (\
-                os.path.normpath(os.curdir+'/kms_master_asset'), \
+        # select master dir
+        if command in ('debug', 'clean'):
+            master_dir_list = [
+                os.path.normpath(os.curdir+'/kms_master_asset')
+            ]
+        elif target in ('hiroto.furuya'):
+            master_dir_list = [
+                git_dir,
+                os.path.normpath(self_dir+'/../client/asset'),
+                os.path.normpath(os.path.expanduser('~/kms/asset'))
+            ]
+        else:   # build standard
+            master_dir_list = [
                 os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
-                os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))):
-                if master_dir_default and os.path.exists(master_dir_default):
-                    break
+                os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))
+            ]
+        for master_dir_default in master_dir_list:
+            if master_dir_default and os.path.exists(master_dir_default):
+                break
         self.org_master_dir = master_dir or master_dir_default
+        if not os.path.exists(self.org_master_dir):
+            raise Exception("master dir is not exists: %s" % self.org_master_dir)
+
+        # select build dir
+        if command == 'build':
+            build_dir_default = tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
+        else: # debug clean
+            build_dir_default = os.curdir+'/.kms_asset_builder_build'
+        self.build_dir = build_dir or build_dir_default
 
         cdn_dir_default          = '/var/www/cdn'
-        self.cdn_dir             = cdn_dir   or cdn_dir_default
+        self.cdn_dir             = cdn_dir or cdn_dir_default
         self.git_dir             = git_dir
-        self.build_dir           = build_dir or tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
         self.main_dir            = self.build_dir+'/main'
         self.master_dir          = self.build_dir+'/master'
         self.remote_dir_asset    = self.asset_version_dir+'/contents' if self.is_master else self.target + '/contents'
-        self.auto_cleanup        = not build_dir   # do not clean up when user specified
 
         if not os.path.exists(self.build_dir):
             os.makedirs(self.build_dir)
@@ -367,23 +387,30 @@ class AssetBuilder():
         src_spine_dir = src_spine_dir or self.spine_dir
         dest_dir      = dest_dir      or self.build_dir
 
+        config = [
+            ['characterSpine', '450:600'],
+            ['npcSpine',       '450:550'],
+            ['snpcSpine',      '350:550']
+        ]
         for xlsx in self._get_xlsxes():
             sheets = self._get_xlsx_sheets(xlsx)
-            for sheet_name in ('characterSpine', 'npcSpine', 'snpcSpine'):
-                  if not sheet_name in sheets:
-                      continue
-                  spine_file     = re.sub('Spine$', '.json', sheet_name)
-                  src_spine_json = src_spine_dir+'/'+sheet_name+'/'+spine_file
-                  dest_spine_dir = dest_dir+'/'+sheet_name
-                  if not os.path.exists(src_spine_json):
-                      continue
-                  if not os.path.exists(dest_spine_dir):
-                      os.makedirs(dest_spine_dir)
+            for conf in config:
+                sheet_name = conf[0]
+                size_limit = conf[1]
+                if not sheet_name in sheets:
+                    continue
+                spine_file     = re.sub('Spine$', '.json', sheet_name)
+                src_spine_json = src_spine_dir+'/'+sheet_name+'/'+spine_file
+                dest_spine_dir = dest_dir+'/'+sheet_name
+                if not os.path.exists(src_spine_json):
+                    continue
+                if not os.path.exists(dest_spine_dir):
+                    os.makedirs(dest_spine_dir)
 
-                  info("build spine: %s:%s %s" % (os.path.basename(xlsx), sheet_name, os.path.basename(src_spine_json)))
-                  cmdline = [self.delete_element_bin, xlsx, sheet_name, str(self.MASTER_DATA_ROW_START), "hasTwinTail", src_spine_json, dest_spine_dir]
-                  debug(' '.join(cmdline))
-                  check_call(cmdline)
+                info("build spine: %s:%s %s" % (os.path.basename(xlsx), sheet_name, os.path.basename(src_spine_json)))
+                cmdline = [self.delete_element_bin, xlsx, sheet_name, str(self.MASTER_DATA_ROW_START), "hasTwinTail", src_spine_json, dest_spine_dir, '--size-limit', size_limit]
+                debug(' '.join(cmdline))
+                check_call(cmdline)
         return True
 
     # create weapon atlas from json
@@ -660,59 +687,59 @@ class AssetBuilder():
         return True
 
     # do all processes
-    def build_all(self, check_modified=True):
-        # main process
-        try:
-            self.setup_dir()
+    def build(self):
+        self.setup_dir()
 
-            # for standard master data
-            self.build_master_json()
-            self.merge_editor_file()
-            self.sort_master_json()
-            #self.build_master_macro()
-            self.build_master_fbs()
-            self.build_master_bin()
+        # for standard master data
+        self.build_master_json()
+        self.merge_editor_file()
+        self.sort_master_json()
+        #self.build_master_macro()
+        self.build_master_fbs()
+        self.build_master_bin()
 
-            # for editor master data
-            editor_schema_file = self.build_dir+'/'+self.EDITOR_MASTER_JSON_SCHEMA_FILE
-            editor_data_file   = self.build_dir+'/'+self.EDITOR_MASTER_JSON_DATA_FILE
-            editor_macro_file  = self.build_dir+'/'+self.EDITOR_MASTER_MACRO_FILE
-            editor_fbs_file    = self.build_dir+'/'+self.EDITOR_MASTER_FBS_FILE
-            editor_bin_file    = self.build_dir+'/'+self.EDITOR_MASTER_BIN_FILE
-            editor_header_file = self.build_dir+'/'+self.EDITOR_MASTER_HEADER_FILE
-            editor_md5_file    = self.build_dir+'/'+self.EDITOR_MASTER_MD5_FILE
-            self.build_master_json(dest_schema=editor_schema_file, dest_data=editor_data_file, except_json=True)
-            self.sort_master_json(src_schema=editor_schema_file, src_data=editor_data_file)
-            self.build_master_macro(src_json=editor_data_file, dest_macro=editor_macro_file)
-            self.build_master_fbs(src_json=editor_schema_file, dest_fbs=editor_fbs_file)
-            self.build_master_bin(src_json=editor_data_file, src_fbs=editor_fbs_file, dest_bin=editor_bin_file, dest_header=editor_header_file, dest_md5=editor_md5_file)
+        # for editor master data
+        editor_schema_file = self.build_dir+'/'+self.EDITOR_MASTER_JSON_SCHEMA_FILE
+        editor_data_file   = self.build_dir+'/'+self.EDITOR_MASTER_JSON_DATA_FILE
+        editor_macro_file  = self.build_dir+'/'+self.EDITOR_MASTER_MACRO_FILE
+        editor_fbs_file    = self.build_dir+'/'+self.EDITOR_MASTER_FBS_FILE
+        editor_bin_file    = self.build_dir+'/'+self.EDITOR_MASTER_BIN_FILE
+        editor_header_file = self.build_dir+'/'+self.EDITOR_MASTER_HEADER_FILE
+        editor_md5_file    = self.build_dir+'/'+self.EDITOR_MASTER_MD5_FILE
+        self.build_master_json(dest_schema=editor_schema_file, dest_data=editor_data_file, except_json=True)
+        self.sort_master_json(src_schema=editor_schema_file, src_data=editor_data_file)
+        self.build_master_macro(src_json=editor_data_file, dest_macro=editor_macro_file)
+        self.build_master_fbs(src_json=editor_schema_file, dest_fbs=editor_fbs_file)
+        self.build_master_bin(src_json=editor_data_file, src_fbs=editor_fbs_file, dest_bin=editor_bin_file, dest_header=editor_header_file, dest_md5=editor_md5_file)
 
-            # user data
-            self.build_user_class()
+        # user data
+        self.build_user_class()
 
-            # verify
-            self.verify_master_json()
+        # verify
+        self.verify_master_json()
 
-            # asset
-            self.build_spine()
-            self.build_weapon()
-            self.build_font()
+        # asset
+        self.build_spine()
+        self.build_weapon()
+        self.build_font()
 
-            # install and deploy
-            self.install_generated()
-            self.build_asset_list()
-            self.deploy_git_repo()
-            self.build_manifest()
-            self.install_manifest()
-            self.deploy_dev_cdn()
-            self.deploy_s3_cdn()
-        finally:
-            if self.auto_cleanup:
-                self.cleanup()
+        # install
+        self.install_generated()
+        self.build_asset_list()
+        self.deploy_git_repo() # FIXME can move to deploy?
+        self.build_manifest()
+        self.install_manifest()
+        return True
+
+    # deploy to cdn
+    def deploy(self):
+        self.deploy_dev_cdn()
+        self.deploy_s3_cdn()
         return True
 
     # clean up
     def cleanup(self):
+        info("cleanup: %s" % self.build_dir)
         rmtree(self.build_dir)
         return True
 
@@ -723,41 +750,26 @@ if __name__ == '__main__':
         description = 'build asset and master data', 
         epilog = """\
 commands:
-  build              do all build processes
-  build-all          same as 'build'
-  build-manifest     generate project.manifest + version.manifest from contents/**
-  build-json         generate master_data.json + master_schema.json from master_data.xlsx
-  build-master-fbs   generate master_data.fbs from master_data.json
-  build-master-bin   generate master_data.bin + master_header/*.h from master_data.json + master_data.fbs
-  build-user-class   generate user_header/*.h from user_data.fbs
-  build-user-header  generate user_header/*_generated.h from user_data.fbs
-  build-spine        generate spine animation patterns
-  build-weapon       generate weapon atlas
-  build-font         generate bitmap font from master_data.json
-  deploy-dev         deploy asset files to cdn directory
-  install            install files from build dir
-  cleanup            cleanup build dir
+  build    do build, deploy and cleanup
+  debug    just do build, do not deploy and cleanup
+  clean    cleanup build dir
 
 examples:
   build all for 'kms_master_data'
     $ cd kms_master_data/hook
-    $ ./build.py build
+    $ ./script/build.py build master
 
   build on local (for development)
-    $ kms_master_asset/hook/build.py build --target master --build-dir build --cdn-dir cdn --git-dir git --log-level DEBUG
+    $ ./script/build.py debug master --log-level DEBUG
+
+  clean up after build on local (for development)
+    $ ./script/build.py clean master
 
   build all for 'kms_xxx.yyy_asset'
-    $ kms_master_asset/hook/build.py build --target xxx.yyy
-
-  build only fbs
-    $ cd kms_master_asset/hook
-    $ ./build.py build-fbs --build-dir /tmp/asset_builder
-    $ ./build.py install --build-dir /tmp/asset_builder
-    $ ./build.py cleanup --build-dir /tmp/asset_builder
+    $ kms_master_asset/hook/build.py build xxx.yyy
         """)
-    parser.add_argument('command',         help = 'build command (build|build-manifest|build-master-json|build-master-fbs|build-master-bin|build-user-class|build-user-header|install|deploy-dev|cleanup)')
-    parser.add_argument('--target', default = 'master', help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
-    parser.add_argument('--force',  default = False, action = 'store_true', help = 'skip check timestamp. always build')
+    parser.add_argument('command',         help = 'build command (build|debug)')
+    parser.add_argument('target',          help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
     parser.add_argument('--asset-version', help = 'asset version. default: <target>.<unix-timestamp>')
     parser.add_argument('--master-dir',    help = 'master asset directory. default: same as script top')
     parser.add_argument('--main-dir',      help = 'asset generated directory. default: same as script top')
@@ -768,32 +780,13 @@ examples:
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
-    asset_builder = AssetBuilder(target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
-    if args.command in ('build', 'build-all'):
-        asset_builder.build_all(not args.force)
-    elif args.command == 'build-manifest':
-        asset_builder.build_manifest()
-    elif args.command == 'build-master-json':
-        asset_builder.build_master_json()
-    elif args.command == 'build-master-fbs':
-        asset_builder.build_master_fbs()
-    elif args.command == 'build-master-bin':
-        asset_builder.build_master_bin()
-    elif args.command == 'build-spine':
-        asset_builder.build_spine()
-    elif args.command == 'build-weapon':
-        asset_builder.build_weapon()
-    elif args.command == 'build-user-class':
-        asset_builder.build_user_class()
-    elif args.command == 'build-user-header':
-        asset_builder.build_user_header()
-    elif args.command == 'build-font':
-        asset_builder.build_font()
-    elif args.command == 'install':
-        asset_builder.install_generated()
-        asset_builder.install_manifest()
-    elif args.command == 'deploy-dev':
-        asset_builder.deploy_dev()
-    elif args.command == 'cleanup':
-        asset_builder.cleanup()
+    asset_builder = AssetBuilder(command = args.command, target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
+    try:
+        if args.command in ('build', 'debug'):
+            asset_builder.build()
+        if args.command in ('build'):
+            asset_builder.deploy()
+    finally:
+        if args.command in ('build', 'clean'):
+            asset_builder.cleanup()
     exit(0)
