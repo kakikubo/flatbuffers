@@ -13,14 +13,14 @@ echo "build $target done"
 
 if [ $target = "master" ]; then
   # update each user in master updated
-  for user_target in `cat $asset_list_json | jq '.[]' -r`; do
-    $tool_dir/script/build.py build $user_target
-    if [ $? -ne 0 ]; then
-      echo "*** build $user_target via master failed ***"
-      #exit 1	# ignore other user error
-    fi
-    echo "build $user_target done"
-  done
+  #for user_target in `cat $asset_list_json | jq '.[]' -r`; do
+  #  $tool_dir/script/build.py build --target $user_target
+  #  if [ $? -ne 0 ]; then
+  #    echo "*** build $user_target via master failed ***"
+  #    #exit 1	# ignore other user error
+  #  fi
+  #  echo "build $user_target done"
+  #done
 
   # git commit + push
   cd $git_dir
