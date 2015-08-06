@@ -787,6 +787,6 @@ examples:
         if args.command in ('build'):
             asset_builder.deploy()
     finally:
-        if args.command in ('build', 'clean'):
+        if not args.build_dir and args.command in ('build', 'clean'):
             asset_builder.cleanup()
     exit(0)
