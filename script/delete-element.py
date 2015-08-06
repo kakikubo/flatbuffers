@@ -174,7 +174,7 @@ def deleteElement(args):
     debug("slots = {0}".format(slotList))
     debug("skins = {0}".format(skinList))
 
-    jsonData = {}
+    jsonData = OrderedDict()
     with open(srcJson, 'r') as f:
         jsonData = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
@@ -277,8 +277,7 @@ def deleteElement(args):
     if changed:
         with open(dstJson, 'w+') as f_new:
             info("data created {0}".format(dstJson))
-            #f.write(json.dumps(jsonData, indent=2, sort_keys=False))
-            f_new.write(json.dumps(jsonData))
+            f_new.write(json.dumps(jsonData, indent=2))
     
 def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail, hasEar, hasMant, hasInside, hasShoulder):
     slot = []
