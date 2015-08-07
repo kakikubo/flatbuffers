@@ -17,31 +17,23 @@ from logging import info, warning, debug
 def searchAndDeleteInListDataRecursiveByKeyAndValue(listData, key, value):
     for data in listData:
         if isinstance(data, dict):
-            if searchAndDeleteInDictDataRecursiveByKeyAndValue(data, key, value):
-                return listData.index(data)
-    return -1
-
+            searchAndDeleteInDictDataRecursiveByKeyAndValue(data, key, value)
 
 def searchAndDeleteInDictDataRecursiveByKeyAndValue(dictData, key, value):
     if dictData.has_key(key):
         if dictData[key] == value:
-            return True
+            del dictData
+            return
+
     dictKeys = dictData.keys()
     for dictKey in dictKeys:
         child = dictData[dictKey]
         if isinstance(child, dict):
-            if searchAndDeleteInDictDataRecursiveByKeyAndValue(child, key, value):
-                return True
+            searchAndDeleteInDictDataRecursiveByKeyAndValue(child, key, value)
         elif isinstance(child, list):
-            index = searchAndDeleteInListDataRecursiveByKeyAndValue(child, key, value)
-            if index != -1:
-                # print "find {0}:{1}".format(dictKey, index)
-                child.pop(index)
-                if len(child) == 0:
-                    # print "list size == 0 : del {0}".format(dictKey)
-                    del dictData[dictKey]
-                return True
-    return False
+            searchAndDeleteInListDataRecursiveByKeyAndValue(child, key, value)
+            if len(child) == 0:
+                dictData.pop(dictKey)
 
 
 def deleteListByFieldAndName(listData, field, name):
@@ -94,8 +86,6 @@ def deleteAnimationBySlotName(dictData, slotName):
             for animKey in animKeys:
                 anim = animation[animKey]
                 searchAndDeleteInListDataRecursiveByKeyAndValue(anim, "slot", slotName)
-                #if searchAndDeleteInListDataRecursiveByKeyAndValue(anim, "slot", slotName) != -1:
-                #    print "{0}:{1}:{2}".format(animationKey, animKey, slotName)
                 if isinstance(anim, dict):
                     if anim.has_key(slotName):
                         del anim[slotName]
