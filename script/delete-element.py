@@ -17,20 +17,23 @@ from logging import info, warning, debug
 def searchAndDeleteInListDataRecursiveByKeyAndValue(listData, key, value):
     for data in listData:
         if isinstance(data, dict):
-            searchAndDeleteInDictDataRecursiveByKeyAndValue(data, key, value)
+            searchAndDeleteInDictDataRecursiveByKeyAndValue(listData, data, key, value)
 
-def searchAndDeleteInDictDataRecursiveByKeyAndValue(dictData, key, value):
+def searchAndDeleteInDictDataRecursiveByKeyAndValue(parentList, dictData, key, value):
     if dictData.has_key(key):
         if dictData[key] == value:
-            del dictData
-            return
+            if isinstance(parentList, list):
+                index = parentList.index(dictData)
+                parentList.pop(index)
+                return
 
     dictKeys = dictData.keys()
     for dictKey in dictKeys:
         child = dictData[dictKey]
-        if isinstance(child, dict):
-            searchAndDeleteInDictDataRecursiveByKeyAndValue(child, key, value)
-        elif isinstance(child, list):
+        #if isinstance(child, dict):
+        #    searchAndDeleteInDictDataRecursiveByKeyAndValue(child, key, value)
+        #elif isinstance(child, list):
+        if isinstance(child, list):
             searchAndDeleteInListDataRecursiveByKeyAndValue(child, key, value)
             if len(child) == 0:
                 dictData.pop(dictKey)
