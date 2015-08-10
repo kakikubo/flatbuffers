@@ -90,7 +90,7 @@ def parse_xls(xls_path, except_sheets=[]):
                         raise Exception("Cell Error found: ctype = %d" % c)
                     #elif c in (XL_CELL_BLANK, XL_CELL_EMPTY):
                     #    continue
-                    elif t.find('int') >= 0:
+                    elif t.find('int') >= 0 or t.find('long') >= 0:
                         v = int(v) if v != '' else 0
                     elif t.find('float') >= 0:
                         v = float(v) if v != '' else 0
