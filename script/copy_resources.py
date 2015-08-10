@@ -40,9 +40,10 @@ def cleanup_resources(dest_dir, cleanup_list):
                     continue
                 full_path = os.path.join(root, f)
                 if fnmatch.fnmatch(full_path, l):
-                    if os.path.exists(full_path):
-                        #print("rm "+full_path)
+                    if os.path.isdir(full_path):
                         rmtree(full_path)
+                    else:
+                        os.remove(full_path)
     return True
 
 def copy_resources(src_dir, dest_dir, filter_list):
