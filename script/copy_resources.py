@@ -36,7 +36,7 @@ def cleanup_resources(dest_dir, cleanup_list):
             l = os.path.join(dest_dir, l)
         for root, dirs, files in os.walk(os.path.dirname(l)):
             for f in files + dirs:
-                if f in ('.gitkeep'):
+                if f in ('.gitkeep', '.DS_Store'):
                     continue
                 full_path = os.path.join(root, f)
                 if fnmatch.fnmatch(full_path, l):
