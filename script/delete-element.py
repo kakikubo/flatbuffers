@@ -382,9 +382,9 @@ def verify_spine(input_json, size_limit):
     width  = float(spine['skeleton']['width'])
     height = float(spine['skeleton']['height'])
     if width < limits[0] or limits[1] < width:
-        raise Exception("spine skeleton.width is invalid: %s < %s < %s: %s", % (limits[0], width, limits[1], input_json))
+        raise Exception("spine skeleton.width is invalid: %s < %s < %s: %s" % (limits[0], width, limits[1], input_json))
     if height < limits[0] or limits[1] < height:
-        raise Exception("spine skeleton.height is invalid: %s < %s < %s: %s", % (limits[0], height, limits[1], input_json))
+        raise Exception("spine skeleton.height is invalid: %s < %s < %s: %s" % (limits[0], height, limits[1], input_json))
 
     return True
 
