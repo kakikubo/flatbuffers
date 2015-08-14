@@ -245,17 +245,29 @@ def deleteElement(args):
             for skinsKey in skinsKeys:
                 skin = skins[skinsKey]
                 if skin.has_key("R_weapon"):
-                    rWeapon = skin["R_weapon"]
-                    if rWeapon.has_key("R_weapon"):
-                        rWeaponData = rWeapon["R_weapon"]
-                        if rWeaponData.has_key("x"):
-                            rWeaponData["x"] = 0
-                        if rWeaponData.has_key("y"):
-                            rWeaponData["y"] = 0
-                        if rWeaponData.has_key("width"):
-                            rWeaponData["width"] = 0
-                        if rWeaponData.has_key("height"):
-                            rWeaponData["height"] = 0
+                    weapon = skin["R_weapon"]
+                    if weapon.has_key("R_weapon"):
+                        weaponData = weapon["R_weapon"]
+                        if weaponData.has_key("x"):
+                            weaponData["x"] = 0
+                        if weaponData.has_key("y"):
+                            weaponData["y"] = 0
+                        if weaponData.has_key("width"):
+                            weaponData["width"] = 0
+                        if weaponData.has_key("height"):
+                            weaponData["height"] = 0
+                if skin.has_key("L_weapon"):
+                    weapon = skin["L_weapon"]
+                    if weapon.has_key("L_weapon"):
+                        weaponData = weapon["L_weapon"]
+                        if weaponData.has_key("x"):
+                            weaponData["x"] = 0
+                        if weaponData.has_key("y"):
+                            weaponData["y"] = 0
+                        if weaponData.has_key("width"):
+                            weaponData["width"] = 0
+                        if weaponData.has_key("height"):
+                            weaponData["height"] = 0
 
     changed = True
     if os.path.exists(dstJson):
