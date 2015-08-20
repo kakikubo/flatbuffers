@@ -388,7 +388,7 @@ class AssetBuilder():
         dest_dir      = dest_dir      or self.build_dir
 
         config = [
-            ['characterSpine', '450:600'],
+            ['characterSpine', '350:600'],
             ['npcSpine',       '450:550'],
             ['snpcSpine',      '350:550']
         ]
