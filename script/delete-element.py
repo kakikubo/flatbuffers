@@ -282,7 +282,8 @@ def deleteElement(args):
     if changed:
         with open(dstJson, 'w+') as f_new:
             info("data created {0}".format(dstJson))
-            f_new.write(json.dumps(jsonData, indent=2))
+            #f_new.write(json.dumps(jsonData, indent=2))
+            f_new.write(json.dumps(jsonData))
     
 def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail, hasEar, hasMant, hasInside, hasShoulder):
     slot = []
