@@ -491,8 +491,10 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += '      json_array_foreach(__' + item_name + ', i, v) {\n'
                     if item_type in ('string'):
                         s += "        pushBack" + upper_camel_case(item_name) + "(json_string_value(v));\n"
-                    elif item_type in ('int', 'long'):
-                        s += "        pushBack" + upper_camel_case(item_name) + "(json_integer_value(v));\n"
+                    elif item_type in ('int'):
+                        s += "        pushBack" + upper_camel_case(item_name) + "(static_cast<int>(json_integer_value(v)));\n"
+                    elif item_type in ('long'):
+                        s += "        pushBack" + upper_camel_case(item_name) + "(static_cast<long>(json_integer_value(v)));\n"
                     elif item_type in ('float', 'double'):
                         s += "        pushBack" + upper_camel_case(item_name) + "(json_real_value(v));\n"
                     elif item_type in ('bool'):
@@ -502,8 +504,10 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += "      }\n"
                 elif item_type in ('string'):
                     s += "      set" + upper_camel_case(item_name) + '(json_string_value(__' + item_name + '));\n'
-                elif item_type in ('int', 'long'):
-                    s += "      set" + upper_camel_case(item_name) + '(json_integer_value(__' + item_name + '));\n'
+                elif item_type in ('int'):
+                    s += "      set" + upper_camel_case(item_name) + '(static_cast<int>(json_integer_value(__' + item_name + ')));\n'
+                elif item_type in ('long'):
+                    s += "      set" + upper_camel_case(item_name) + '(static_cast<long>(json_integer_value(__' + item_name + ')));\n'
                 elif item_type in ('float', 'double'):
                     s += "      set" + upper_camel_case(item_name) + '(json_real_value(__' + item_name + '));\n'
                 elif item_type in ('bool'):
