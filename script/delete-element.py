@@ -288,17 +288,19 @@ def deleteElement(args):
 def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail, hasEar, hasMant, hasInside, hasShoulder):
     slot = []
     bone = []
-    if hasTwinTail:
-        slot.append("C_hd_hair_b")
-    else:
+    # if hasTwinTail:
+    #     slot.append("C_hd_hair_b")
+    # else:
+    if not hasTwinTail:
         slot.append("C_hd_twintail_R")
         slot.append("C_hd_twintail_L")
         bone.append("twintail_L1")
         bone.append("twintail_R1")
 
-    if hasPonyTail:
-        slot.append("C_hd_hair_b")
-    else:
+    # if hasPonyTail:
+    #     slot.append("C_hd_hair_b")
+    # else:
+    if not hasPonyTail:
         slot.append("C_hd_hair_tail")
         bone.append("hair_tail")
 
