@@ -458,7 +458,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     elif item_type in ('bool'):
                         s += "      json_array_append(a_" + item_name + ", json_boolean(*it));\n"
                     else:
-                        s += "      json_array_append(a_" + item_name + ", (*it)->toJson(onlyDirty));\n"
+                        s += "      json_array_append(a_" + item_name + ", (*it)->toJson(false));\n"
                     s += "    }\n"
                     s += '    json_object_set_new(json, "' + item_name + '", a_' + item_name + ');\n'
                 elif item_type == 'string':
@@ -470,7 +470,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 elif item_type in ('bool'):
                     s += '    json_object_set_new(json, "' + item_name + '", json_boolean(_' + item_name + '));\n'
                 else:
-                    s += '    json_object_set_new(json, "' + item_name + '", _' + item_name + '->toJson(onlyDirty));\n'
+                    s += '    json_object_set_new(json, "' + item_name + '", _' + item_name + '->toJson(false));\n'
             s += "    return json;\n";
             s += "  }\n"
 
