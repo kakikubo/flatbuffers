@@ -26,7 +26,7 @@ if [ $target = "master" ]; then
   cd $git_dir
 
   # setup git
-  current_branch=`git branch | cut -c 3-`
+  current_branch=`git branch | grep '^*' | cut -c 3-`
   if [ $current_branch != 'master' ]; then
     echo "current branch is not master ($current_branch)"
     exit 1
