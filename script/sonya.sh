@@ -1,6 +1,7 @@
 #!/bin/sh
 
-sonya_chan_url=http://skail.gree-dev.net:4979/send_chat
+#sonya_chan_url=http://skail.gree-dev.net:4979/send_chat
+sonya_chan_url=http://takochan.gree-dev.net:4979/send_chat
 #chat_id=31065011  # personal dev
 #chat_id=27838766  # KMSエンジニア
 #chat_id=31118592  # KMSビルド
