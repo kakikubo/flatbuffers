@@ -12,8 +12,18 @@ from shutil import rmtree, copy
 from subprocess import check_call
 
 def pack_textures(src_dir, dest_dir):
-    cmdline_base = ['TexturePacker', '--format', 'cocos2d', '--texture-format', 'png', '--max-size', '2048', '--force-squared', '--force-word-aligned', '--pack-mode', 'Best', '--padding', '8']
-    cmdline_base.extend(['--algorithm', 'MaxRects', '--multipack'])
+    cmdline_base = [
+        'TexturePacker', 
+        '--format', 'cocos2d', 
+        '--texture-format', 'png', 
+        '--max-size', '2048', 
+        '--force-squared', 
+        '--force-word-aligned', 
+        '--pack-mode', 'Best', 
+        '--padding', '8',
+        '--algorithm', 'MaxRects', 
+        '--multipack'
+    ]
     for root, dirs, files in os.walk(src_dir):
         targets = []
         for f in files:
@@ -25,8 +35,8 @@ def pack_textures(src_dir, dest_dir):
             if not os.path.isdir(dir):
                 os.makedirs(dir)
             cmdline = list(cmdline_base)
-            cmdline.extend(['--sheet', os.path.join(dir, 'textures.png')])
-            cmdline.extend(['--data',  os.path.join(dir, 'textures.plist')])
+            cmdline.extend(['--sheet', os.path.join(dir, 'textures.{n}.png')])
+            cmdline.extend(['--data',  os.path.join(dir, 'textures.{n}.plist')])
             cmdline.extend(targets)
             debug(' '.join(cmdline))
             check_call(cmdline)
