@@ -17,6 +17,8 @@ def pack_textures(src_dir, dest_dir):
         '--format', 'cocos2d', 
         '--texture-format', 'png', 
         '--max-size', '2048', 
+        #'--common-divisor-x', '128',
+        #'--common-divisor-y', '128',
         '--force-squared', 
         '--force-word-aligned', 
         '--pack-mode', 'Best', 
@@ -27,7 +29,9 @@ def pack_textures(src_dir, dest_dir):
     for root, dirs, files in os.walk(src_dir):
         targets = []
         for f in files:
-            if not re.search('.png$', f):
+            if not re.search('\.png$', f):
+                continue
+            if re.search('textures\.[0-9]+\.png', f):
                 continue
             targets.append(os.path.join(root, f))
         if targets:

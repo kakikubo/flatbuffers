@@ -108,10 +108,12 @@ class AssetBuilder():
         self.user_class_dir           = self.main_dir+'/user_header'
         self.user_schema_dir          = self.main_dir+'/user_derivatives'
         self.user_header_dir          = self.main_dir+'/user_header'
+        self.files_dir                = self.main_dir+'/contents/files'
         self.user_data_dir            = self.main_dir+'/contents/files/user_data'
         self.spine_dir                = self.main_dir+'/contents/files/spine'
         self.font_dir                 = self.main_dir+'/contents/files/font'
         self.weapon_dir               = self.main_dir+'/contents/files/weapon'
+        self.ui_dir                   = self.main_dir+'/contents/files/ui'
 
         self.org_manifest_dir         = self.org_main_dir+'/manifests'
         self.org_master_schema_dir    = self.org_main_dir+'/master_derivatives'
@@ -122,10 +124,12 @@ class AssetBuilder():
         self.org_user_class_dir       = self.org_main_dir+'/user_header'
         self.org_user_schema_dir      = self.org_main_dir+'/user_derivatives'
         self.org_user_header_dir      = self.org_main_dir+'/user_header'
+        self.org_files_dir            = self.org_main_dir+'/contents/files'
         self.org_user_data_dir        = self.org_main_dir+'/contents/files/user_data'
         self.org_spine_dir            = self.org_main_dir+'/contents/files/spine'
         self.org_font_dir             = self.org_main_dir+'/contents/files/font'
         self.org_weapon_dir           = self.org_main_dir+'/contents/files/weapon'
+        self.org_ui_dir               = self.org_main_dir+'/contents/files/ui'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -156,6 +160,7 @@ class AssetBuilder():
         self.verify_master_json_bin = self_dir+'/verify_master_json.py'
         self.delete_element_bin     = self_dir+'/delete-element.py'
         self.make_atlas_bin         = self_dir+'/make_atlas.py'
+        self.pack_texture_bin       = self_dir+'/pack_texture.py'
         
         self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
@@ -436,6 +441,20 @@ class AssetBuilder():
                     check_call(cmdline)
         return True
 
+    # create ui texture atlas by texture packer
+    def build_ui(self, src_dir=None, dest_dir=None):
+        src_dir  = src_dir  or self.ui_dir
+        dest_dir = dest_dir or self.build_dir+'/ui'
+
+        if not os.path.exists(src_dir):
+            return True
+
+        info("build ui texture atlas: %s:" % src_dir)
+        cmdline = [self.pack_texture_bin, src_dir, dest_dir]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
     # create class header from fbs
     def build_user_class(self, src_fbs=None, dest_class=None, dest_schema=None, dest_md5=None, namespace=None):
         src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
@@ -533,10 +552,14 @@ class AssetBuilder():
         for weapon_path in glob("%s/weapon/*.atlas" % build_dir):
             weapon_path = re.sub('^'+build_dir+'/', '', weapon_path)
             png_path  = re.sub('.atlas$', '.png', weapon_path)
-            dest_weapon_dir1 = re.sub('/weapon', '', self.weapon_dir)
-            dest_weapon_dir2 = re.sub('/weapon', '', self.org_weapon_dir)
-            list.append((weapon_path, dest_weapon_dir1, dest_weapon_dir2))
-            list.append((png_path,  dest_weapon_dir1, dest_weapon_dir2))
+            list.append((weapon_path, self.files_dir, self.org_files_dir))
+            list.append((png_path,  self.files_dir, self.org_files_dir))
+        # ui
+        for root, dirs, files in os.walk("%s/ui" % build_dir):
+            for file in files:
+                path = os.path.join(root, file)
+                path = re.sub('^'+build_dir+'/', '', path)
+                list.append((path, self.files_dir, self.org_files_dir))
         return self.install_list(list, build_dir)
 
     def install_manifest(self, build_dir=None):
@@ -721,6 +744,7 @@ class AssetBuilder():
         # asset
         self.build_spine()
         self.build_weapon()
+        self.build_ui()
         self.build_font()
 
         # install
