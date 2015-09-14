@@ -13,7 +13,7 @@ import xlrd
 import logging
 from time import strftime
 from subprocess import check_call, check_output, call
-from shutil import move, rmtree, copy, copytree
+from shutil import move, rmtree, copy2, copytree
 from glob import glob
 from logging import info, warning, debug
 
@@ -70,6 +70,7 @@ class AssetBuilder():
         # select build dir
         if command == 'build':
             build_dir_default = tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
+            #build_dir_default = os.curdir+'/.kms_asset_builder_build'
         else: # debug clean
             build_dir_default = os.curdir+'/.kms_asset_builder_build'
         self.build_dir = build_dir or build_dir_default
@@ -507,8 +508,8 @@ class AssetBuilder():
                 dest = dest_dir+'/'+filename
                 if not os.path.exists(os.path.dirname(dest)):
                     os.makedirs(os.path.dirname(dest))
-                if re.match('\.plist$', src):
-                    if call(['diff' '-I', '\s*<string>\$TexturePacker:SmartUpdate:\w+:\w+:\w+\$</string>\s*', src, dest]) == 0:
+                if re.search('\.plist$', src):
+                    if os.path.exists(dest) and call(['diff', '-I', '<string>$TexturePacker:SmartUpdate:.*$</string>', src, dest]) == 0:
                         continue
                 else:   # general files
                     if call(['cmp', '--quiet', src, dest]) == 0:
@@ -516,7 +517,7 @@ class AssetBuilder():
                 if os.path.exists(dest):
                     os.remove(dest)
                 info("install: %s -> %s" % (src, dest))
-                copy(src, dest)
+                copy2(src, dest)
         return True
 
     def install_generated(self, build_dir=None):
