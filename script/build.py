@@ -500,19 +500,23 @@ class AssetBuilder():
         build_dir = build_dir or self.build_dir
         for filename, dest1, dest2 in list:
             src = build_dir+'/'+filename
-            if os.path.exists(src):
-                info("install if updated: %s" % filename)
-                for dest_dir in (dest1, dest2):
-                    dest = dest_dir+'/'+filename
-                    info("install debug : %s -> %s" % (src, dest))
-                    if not os.path.exists(os.path.dirname(dest)):
-                        os.makedirs(os.path.dirname(dest))
+            if not os.path.exists(src):
+                continue
+            info("install if updated: %s" % filename)
+            for dest_dir in (dest1, dest2):
+                dest = dest_dir+'/'+filename
+                if not os.path.exists(os.path.dirname(dest)):
+                    os.makedirs(os.path.dirname(dest))
+                if re.match('\.plist$', src):
+                    if call(['diff' '-I', '\s*<string>\$TexturePacker:SmartUpdate:\w+:\w+:\w+\$</string>\s*', src, dest]) == 0:
+                        continue
+                else:   # general files
                     if call(['cmp', '--quiet', src, dest]) == 0:
                         continue
-                    if os.path.exists(dest):
-                        os.remove(dest)
-                    info("install: %s -> %s" % (src, dest))
-                    copy(src, dest)
+                if os.path.exists(dest):
+                    os.remove(dest)
+                info("install: %s -> %s" % (src, dest))
+                copy(src, dest)
         return True
 
     def install_generated(self, build_dir=None):
