@@ -7,8 +7,7 @@ import re
 from collections import OrderedDict
 import logging
 from logging import info, warning, debug
-import fnmatch
-from shutil import rmtree, copy
+from glob import glob
 from subprocess import check_call
 
 def pack_textures(src_dir, dest_dir):
@@ -24,26 +23,28 @@ def pack_textures(src_dir, dest_dir):
         '--pack-mode', 'Best', 
         '--padding', '8',
         '--algorithm', 'MaxRects', 
-        '--multipack'
+        '--trim-sprite-names',
+        '--multipack',
     ]
-    for root, dirs, files in os.walk(src_dir):
-        targets = []
-        for f in files:
-            if not re.search('\.png$', f):
-                continue
-            if re.search('textures\.[0-9]+\.png', f):
-                continue
-            targets.append(os.path.join(root, f))
-        if targets:
-            dir = os.path.join(dest_dir, re.sub(src_dir+'/', '', root))
-            if not os.path.isdir(dir):
-                os.makedirs(dir)
-            cmdline = list(cmdline_base)
-            cmdline.extend(['--sheet', os.path.join(dir, 'textures.{n}.png')])
-            cmdline.extend(['--data',  os.path.join(dir, 'textures.{n}.plist')])
-            cmdline.extend(targets)
-            debug(' '.join(cmdline))
-            check_call(cmdline)
+    for top_dir in glob(src_dir+'/*'):
+      targets = []
+      for root, dirs, files in os.walk(top_dir):
+          for f in files:
+              if not re.search('\.png$', f):
+                  continue
+              if re.search('textures\.[0-9]+\.png', f):
+                  continue
+              targets.append(os.path.join(root, f))
+      if targets:
+          dir = os.path.join(dest_dir, re.sub(src_dir+'/', '', root))
+          if not os.path.isdir(dir):
+              os.makedirs(dir)
+          cmdline = list(cmdline_base)
+          cmdline.extend(['--sheet', os.path.join(dir, 'textures.{n}.png')])
+          cmdline.extend(['--data',  os.path.join(dir, 'textures.{n}.plist')])
+          cmdline.extend(targets)
+          debug(' '.join(cmdline))
+          check_call(cmdline)
     return True
 
 if __name__ == '__main__':
