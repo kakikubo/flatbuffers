@@ -560,11 +560,11 @@ class AssetBuilder():
             list.append((weapon_path, self.files_dir, self.org_files_dir))
             list.append((png_path,  self.files_dir, self.org_files_dir))
         # ui
-        for root, dirs, files in os.walk("%s/ui" % build_dir):
-            for file in files:
-                path = os.path.join(root, file)
-                path = re.sub('^'+build_dir+'/', '', path)
-                list.append((path, self.files_dir, self.org_files_dir))
+        #for root, dirs, files in os.walk("%s/ui" % build_dir):
+        #    for file in files:
+        #        path = os.path.join(root, file)
+        #        path = re.sub('^'+build_dir+'/', '', path)
+        #        list.append((path, self.files_dir, self.org_files_dir))
         return self.install_list(list, build_dir)
 
     def install_manifest(self, build_dir=None):
@@ -749,7 +749,7 @@ class AssetBuilder():
         # asset
         self.build_spine()
         self.build_weapon()
-        self.build_ui()
+        #self.build_ui()
         self.build_font()
 
         # install
