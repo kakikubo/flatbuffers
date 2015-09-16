@@ -45,7 +45,7 @@ def createAssetList(remote_dir, local_search_path, filter_list):
                 if fnmatch.fnmatch(path, "*_stringtable.txt"):
                     continue
                 else:
-                    raise Exception, "%s is empty file" % path
+                    raise Exception("%s is empty file" % path)
             assetPath = path[len(local_search_path)+1:]
             asset = OrderedDict()
             asset['md5'] = hashlib.md5(byte).hexdigest()
