@@ -42,7 +42,7 @@ def createAssetList(remote_dir, local_search_path, filter_list):
         with open(path, 'r') as f:
             byte = f.read()
             if byte == "": # AssetsManagerEx can not download size 0 file
-                if fnmatch.fnmatch(path, "*_stringtable.txt"):
+                if fnmatch.fnmatch(path, "*stringtable.txt"):
                     continue
                 else:
                     raise Exception("%s is empty file" % path)
