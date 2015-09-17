@@ -362,6 +362,11 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += '    if (target == "' + item_name + '") return "' + item["item_type"] + '";\n'
             s += '    return "";\n'
             s += "  }\n"
+            s += "  const char* getKey(const std::string& target) {\n"
+            for item_name, item in table.iteritems():
+                s += '    if (target == "' + item["item_type"] + '") return "' + item_name + '";\n'
+            s += '    return "";\n'
+            s += "  }\n"
             s += "  std::vector<int> collectRangeKey(const std::string& target) {\n"
             s += '    std::vector<int> rangeKeys;\n'
             for item_name, item in table.iteritems():
@@ -600,9 +605,12 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += "    int i;\n"
                 s += "    json_t* v;\n"
             for item_name, item in table.iteritems():
+                range_key = get_item_range_key(item, fbs_data, table_property)
                 s += '    if (target == "' + item_name + '") {\n'
                 if item["is_vector"]:
                     s += "      _" + item_name + ".clear();\n"
+                    if range_key:
+                        s += "      _" + item_name + "Map.clear();\n"
                     s += "      json_array_foreach(json, i, v) {\n"
                     s += "        auto __" + item_name + " = std::make_shared<" + item["item_type"] + ">();\n"
                     s += "        __" + item_name + "->fromJson(v);\n"
@@ -631,8 +639,12 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             s += "  }\n"
             s += "  void deserializeMsgpack(msgpack::object& obj, const std::string& target) {\n"
             for item_name, item in table.iteritems():
+                range_key = get_item_range_key(item, fbs_data, table_property)
                 s += '    if (target == "' + item_name + '") {\n'
                 if item["is_vector"]:
+                    s += "      _" + item_name + ".clear();\n"
+                    if range_key:
+                        s += "      _" + item_name + "Map.clear();\n"
                     s += '      for (msgpack::object* p(obj.via.array.ptr), * const pend(obj.via.array.ptr + obj.via.array.size); p < pend; ++p) {\n'
                     s += '        auto __' + item_name + ' = std::make_shared<' + item["item_type"] + '>();\n'
                     s += '        __' + item_name + '->fromMsgpack(*p);\n'
