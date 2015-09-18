@@ -115,6 +115,7 @@ class AssetBuilder():
         self.font_dir                 = self.main_dir+'/contents/files/font'
         self.weapon_dir               = self.main_dir+'/contents/files/weapon'
         self.ui_dir                   = self.main_dir+'/contents/files/ui'
+        self.distribution_dir         = self.main_dir+'/distribution'
 
         self.org_manifest_dir         = self.org_main_dir+'/manifests'
         self.org_master_schema_dir    = self.org_main_dir+'/master_derivatives'
@@ -131,6 +132,7 @@ class AssetBuilder():
         self.org_font_dir             = self.org_main_dir+'/contents/files/font'
         self.org_weapon_dir           = self.org_main_dir+'/contents/files/weapon'
         self.org_ui_dir               = self.org_main_dir+'/contents/files/ui'
+        self.org_distribution_dir     = self.org_main_dir+'/distribution'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -159,6 +161,7 @@ class AssetBuilder():
         self.json2font_bin          = self_dir+'/json2font.py'
         self.sort_master_json_bin   = self_dir+'/sort-master-json.py'
         self.verify_master_json_bin = self_dir+'/verify_master_json.py'
+        self.strip_master_json_bin  = self_dir+'/strip_master_json.py'
         self.delete_element_bin     = self_dir+'/delete-element.py'
         self.make_atlas_bin         = self_dir+'/make_atlas.py'
         self.pack_texture_bin       = self_dir+'/pack_texture.py'
@@ -169,9 +172,12 @@ class AssetBuilder():
         self.ASSET_LIST_FILE                = 'dev.asset_list.json'
         self.MASTER_JSON_SCHEMA_FILE        = 'master_schema.json'
         self.MASTER_JSON_DATA_FILE          = 'master_data.json'
+        self.MASTER_BUNDLED_JSON_DATA_FILE  = 'master_data_bundled.json'
+        self.MASTER_BUNDLED_KEYS_FILE       = 'master_data_bundled_keys.json'
         self.MASTER_MACRO_FILE              = 'MasterAccessors.h'
         self.MASTER_FBS_FILE                = 'master_data.fbs'
         self.MASTER_BIN_FILE                = 'master_data.bin'
+        self.MASTER_BUNDLED_BIN_FILE        = 'master_data_bundled.bin'
         self.MASTER_HEADER_FILE             = 'master_data_generated.h'
         self.MASTER_MD5_FILE                = 'master_data.generated.h.md5'
         self.EDITOR_MASTER_JSON_SCHEMA_FILE = 'editor_master_schema.json'
@@ -376,16 +382,36 @@ class AssetBuilder():
         dest_bin    = dest_bin    or self.build_dir+'/'+self.MASTER_BIN_FILE
         dest_header = dest_header or self.build_dir+'/'+self.MASTER_HEADER_FILE
         dest_md5    = dest_md5    or self.build_dir+'/'+self.MASTER_MD5_FILE
-        main_dir    = os.path.dirname(dest_bin)
+        dest_dir    = os.path.dirname(dest_bin)
         info("build master bin: %s + %s" % (os.path.basename(dest_bin), os.path.basename(dest_header)))
         if os.path.dirname(dest_bin) != os.path.dirname(dest_header):
             raise Exception("%s and %s must be same dir" % (dest_bin, dest_header))
 
-        cmdline = [self.flatc_bin, '-c', '-b', '-o', main_dir, src_fbs, src_json]
+        cmdline = [self.flatc_bin, '-c', '-b', '-o', dest_dir, src_fbs, src_json]
         debug(' '.join(cmdline))
         check_call(cmdline)
 
         return self._write_md5(dest_header, dest_md5)
+
+    def build_master_bundled_bin(self, src_json=None, src_fbs=None, src_bundled_keys=None, dest_bundled_json=None, dest_bundled_bin=None):
+        src_json          = src_json          or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        src_fbs           = src_fbs           or self.build_dir+'/'+self.MASTER_FBS_FILE
+        src_bundled_keys  = src_bundled_keys  or self.distribution_dir+'/'+self.MASTER_BUNDLED_KEYS_FILE
+        dest_bundled_json = dest_bundled_json or self.build_dir+'/'+self.MASTER_BUNDLED_JSON_DATA_FILE
+        dest_bundled_bin  = dest_bundled_bin  or self.build_dir+'/'+self.MASTER_BUNDLED_BIN_FILE
+        dest_dir          = os.path.dirname(dest_bundled_bin)
+
+        info("build master bundled json + bin: %s + %s" % (os.path.basename(dest_bundled_json), os.path.basename(dest_bundled_bin)))
+
+        cmdline = [self.strip_master_json_bin, src_json, dest_bundled_json, src_bundled_keys]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+
+        cmdline = [self.flatc_bin, '-b', '-o', dest_dir, src_fbs, dest_bundled_json]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+
+        return True
 
     # strip spine character animations
     def build_spine(self, src_xlsxes=None, src_spine_dir=None, dest_dir=None):
@@ -477,10 +503,10 @@ class AssetBuilder():
     def build_user_header(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None):
         src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
         dest_header = dest_header or self.build_dir+'/'+self.USER_HEADER_FILE
-        main_dir    = os.path.dirname(dest_header)
+        dest_dir    = os.path.dirname(dest_header)
         info("build user header: %s" % os.path.basename(dest_header))
 
-        cmdline = [self.flatc_bin, '-c', '-o', main_dir, src_fbs]
+        cmdline = [self.flatc_bin, '-c', '-o', dest_dir, src_fbs]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -526,9 +552,11 @@ class AssetBuilder():
         list = [
             (self.MASTER_JSON_SCHEMA_FILE,        self.master_schema_dir, self.org_master_schema_dir),
             (self.MASTER_JSON_DATA_FILE,          self.master_data_dir,   self.org_master_data_dir),
+            (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_data_dir,   self.org_master_data_dir),
             (self.MASTER_MACRO_FILE,              self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_FBS_FILE,                self.master_fbs_dir,    self.org_master_fbs_dir),
             (self.MASTER_BIN_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
+            (self.MASTER_BUNDLED_BIN_FILE,        self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_MD5_FILE,                self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
@@ -725,6 +753,7 @@ class AssetBuilder():
         #self.build_master_macro()
         self.build_master_fbs()
         self.build_master_bin()
+        self.build_master_bundled_bin()
 
         # for editor master data
         editor_schema_file = self.build_dir+'/'+self.EDITOR_MASTER_JSON_SCHEMA_FILE
