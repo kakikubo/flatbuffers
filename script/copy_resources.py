@@ -13,6 +13,7 @@ from shutil import rmtree, copy
 
 def load_filter_list(filter_fnmatch_path):
     filter_list = []
+    rename_list = []
     cleanup_list = []
     if filter_fnmatch_path:
         with open(filter_fnmatch_path, 'r') as f:
@@ -22,12 +23,15 @@ def load_filter_list(filter_fnmatch_path):
             l = l.strip()
             if not l:
                 continue
-            m = re.match('\s*D\s+(.*)', l)
-            if m:
-                cleanup_list.append(os.path.normpath(m.group(1)))
+            m1 = re.match('\s*D\s+(.*)', l)
+            m2 = re.match('\s*([^\s]+)\s+([^\s]+)', l)
+            if m1:
+                cleanup_list.append(os.path.normpath(m1.group(1)))
+            elif m2:
+                rename_list.append((os.path.normpath(m2.group(1)), os.path.normpath(m2.group(2))))
             else:
                 filter_list.append(os.path.normpath(l))
-    return (filter_list, cleanup_list)
+    return (filter_list, rename_list, cleanup_list)
 
 def cleanup_resources(dest_dir, cleanup_list):
     for l in cleanup_list:
@@ -46,7 +50,7 @@ def cleanup_resources(dest_dir, cleanup_list):
                         os.remove(full_path)
     return True
 
-def copy_resources(src_dir, dest_dir, filter_list):
+def copy_resources(src_dir, dest_dir, filter_list, rename_list):
     for l in filter_list:
         info("copy %s" % l)
         if l[0] != '/':
@@ -61,6 +65,15 @@ def copy_resources(src_dir, dest_dir, filter_list):
                         os.makedirs(os.path.dirname(dest))
                     debug("%s -> %s" % (src, dest))
                     copy(src, dest)
+    for l in rename_list:
+        info("copy with rename: '%s' -> '%s'" % (l[0], l[1]))
+        src  = os.path.join(src_dir,  l[0]) if l[0][0] != '/' else l[0]
+        dest = os.path.join(dest_dir, l[1]) if l[1][0] != '/' else l[1]
+        if not os.path.isdir(os.path.dirname(dest)):
+            os.makedirs(os.path.dirname(dest))
+        debug("%s -> %s" % (src, dest))
+        copy(src, dest)
+      
     return True
 
 if __name__ == '__main__':
@@ -77,7 +90,7 @@ example:
 
     src_dir  = os.path.normpath(args.src_dir)
     dest_dir = os.path.normpath(args.dest_dir)
-    filter_list, cleanup_list= load_filter_list(args.filter)
+    filter_list, rename_list, cleanup_list = load_filter_list(args.filter)
     cleanup_resources(dest_dir, cleanup_list)
-    copy_resources(src_dir, dest_dir, filter_list)
+    copy_resources(src_dir, dest_dir, filter_list, rename_list)
     exit(0)
