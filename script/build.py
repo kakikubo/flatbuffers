@@ -401,6 +401,10 @@ class AssetBuilder():
         dest_bundled_bin  = dest_bundled_bin  or self.build_dir+'/'+self.MASTER_BUNDLED_BIN_FILE
         dest_dir          = os.path.dirname(dest_bundled_bin)
 
+        if not os.path.exists(src_bundled_keys):
+            info("skip build master bundled")
+            return True
+
         info("build master bundled json + bin: %s + %s" % (os.path.basename(dest_bundled_json), os.path.basename(dest_bundled_bin)))
 
         cmdline = [self.strip_master_json_bin, src_json, dest_bundled_json, src_bundled_keys]
