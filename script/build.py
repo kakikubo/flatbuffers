@@ -607,6 +607,12 @@ class AssetBuilder():
             png_path  = re.sub('.atlas$', '.png', weapon_path)
             list.append((weapon_path, self.files_dir, self.org_files_dir))
             list.append((png_path,  self.files_dir, self.org_files_dir))
+        # packed area texture
+        for root, dirs, files in os.walk("%s/areaAtlas" % build_dir):
+            for file in files:
+                path = os.path.join(root, file)
+                path = re.sub('^'+build_dir+'/', '', path)
+                list.append((path, self.files_dir, self.org_files_dir))
         # ui
         #for root, dirs, files in os.walk("%s/ui" % build_dir):
         #    for file in files:
