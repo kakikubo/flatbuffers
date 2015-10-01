@@ -40,6 +40,8 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
             pvrQuality = "very-low"
             scale = "1.0"
 
+            print "srcDir:{0}".format(srcDir)
+            
             subprocess.check_call(["TexturePacker",
                 "--sheet", imageFile,
                 "--texture-format", textureType,
