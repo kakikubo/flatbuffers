@@ -83,7 +83,9 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
                 "--scale-mode", "Smooth",
                  workTopDir])
 
-            plistFile = base + "_{n}.plist"
+            #現在png側をコンバートした時のplistを使っているので特に要らないファイル。が、上書きしちゃうと再ビルドの時に全部ビルドが走ってしまうらしい。。。
+            plistFile = base + "_{n}.pvr.plist"
+            
             #imageFile = base + "_{n}.pvr.ccz"
             imageFile = base + "_{n}.pvr"
             #textureType = "pvr3ccz"
