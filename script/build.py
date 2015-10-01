@@ -491,7 +491,7 @@ class AssetBuilder():
     # create ui texture atlas by texture packer
     def build_area_texture(self, src_dir=None, dest_dir=None):
         src_dir  = src_dir  or self.area_texture_dir
-        dest_dir = dest_dir or self.build_dir+'/areaAtlas'
+        dest_dir = dest_dir or self.area_texture_dir+'Atlas'
 
         if not os.path.exists(src_dir):
             return True
