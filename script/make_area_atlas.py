@@ -7,6 +7,13 @@ import codecs
 import subprocess
 import shutil
 
+def getFileNum(dir):
+    if not os.path.isdir(dir): return 0
+    i=0
+    for root, dirs, files in os.walk(dir):
+        i+=len(files)
+    return i
+
 def makeAreaAtlas(srcFolderPath, dstFolderPath):
     print "src:{0}".format(srcFolderPath)
     print "dst:{0}".format(dstFolderPath)
@@ -40,8 +47,11 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
             pvrQuality = "very-low"
             scale = "1.0"
 
-            print "srcDir:{0}".format(srcDir)
-            
+            fnum = getFileNum(workTopDir)
+            print "{0} : textures num[{1}]".format(srcDir, fnum)
+            if fnum == 0:
+                continue
+
             subprocess.check_call(["TexturePacker",
                 "--sheet", imageFile,
                 "--texture-format", textureType,
