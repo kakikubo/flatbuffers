@@ -115,6 +115,7 @@ class AssetBuilder():
         self.font_dir                 = self.main_dir+'/contents/files/font'
         self.weapon_dir               = self.main_dir+'/contents/files/weapon'
         self.ui_dir                   = self.main_dir+'/contents/files/ui'
+        self.area_texture_dir         = self.main_dir+'/contents/files/area'
         self.distribution_dir         = self.main_dir+'/distribution'
 
         self.org_manifest_dir         = self.org_main_dir+'/manifests'
@@ -165,6 +166,7 @@ class AssetBuilder():
         self.delete_element_bin     = self_dir+'/delete-element.py'
         self.make_atlas_bin         = self_dir+'/make_atlas.py'
         self.pack_texture_bin       = self_dir+'/pack_texture.py'
+        self.pack_area_texture_bin  = self_dir+'/make_area_atlas.py'
         
         self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
@@ -486,6 +488,20 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    # create ui texture atlas by texture packer
+    def build_area_texture(self, src_dir=None, dest_dir=None):
+        src_dir  = src_dir  or self.area_texture_dir
+        dest_dir = dest_dir or self.build_dir+'/areaAtlas'
+
+        if not os.path.exists(src_dir):
+            return True
+
+        info("build area texture atlas: %s:" % src_dir)
+        cmdline = [self.pack_area_texture_bin, src_dir, dest_dir]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
     # create class header from fbs
     def build_user_class(self, src_fbs=None, dest_class=None, dest_schema=None, dest_md5=None, namespace=None):
         src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
@@ -782,6 +798,7 @@ class AssetBuilder():
         # asset
         self.build_spine()
         self.build_weapon()
+        self.build_area_texture()
         #self.build_ui()
         self.build_font()
 
