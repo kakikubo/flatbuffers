@@ -40,7 +40,6 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
 
             base = "{0}/{1}/{1}_{2}".format(dstFolderPath, topDir, categoryDir)
 
-            #plistFile = base + "_{n}.png.plist"
             plistFile = base + "_{n}.plist"
             imageFile = base + "_{n}.png"
             textureType = "png"
@@ -84,10 +83,11 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
                 "--scale-mode", "Smooth",
                  workTopDir])
 
-            """
-            plistFile = base + "_{n}.pvr.plist"
-            imageFile = base + "_{n}.pvr.ccz"
-            textureType = "pvr3ccz"
+            plistFile = base + "_{n}.plist"
+            #imageFile = base + "_{n}.pvr.ccz"
+            imageFile = base + "_{n}.pvr"
+            #textureType = "pvr3ccz"
+            textureType = "pvr3"
             textureFormat = "PVRTC4"
             pvrQuality = "very-low"
             #pvrQuality = "best"
@@ -123,7 +123,6 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
                 "--scale", scale,
                 "--scale-mode", "Smooth",
                  workTopDir])
-            """
 
             shutil.rmtree(workTopDir)
 # ---
