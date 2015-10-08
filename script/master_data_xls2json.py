@@ -178,7 +178,7 @@ def normalize_data(data):
                         if id in id_mapping:
                             del id_mapping[id]  # delete
                 else:
-                  warning("no primary key record: %s: %s" % (sheet['name'], d))
+                    raise Exception("no primary key record: %s: %s" % (sheet['name'], d))
       
             # object -> list
             for id in id_mapping:
