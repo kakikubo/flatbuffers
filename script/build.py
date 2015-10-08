@@ -71,9 +71,9 @@ class AssetBuilder():
         if command == 'build':
             #build_dir_default = tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
             #build_dir_default = os.curdir+'/.kms_asset_builder_build'
-            build_dir_default = os.path.expanduser('~')+'/kms_asset_builder_build'
+            build_dir_default = os.path.expanduser('~')+'/kms_asset_builder_build/'+self.target
         else: # debug clean
-            build_dir_default = os.curdir+'/.kms_asset_builder_build'
+            build_dir_default = os.curdir+'/.kms_asset_builder_build/'+self.target
         self.build_dir = build_dir or build_dir_default
 
         cdn_dir_default          = '/var/www/cdn'
@@ -876,6 +876,6 @@ examples:
         if args.command in ('build'):
             asset_builder.deploy()
     finally:
-        if not args.build_dir and args.command in ('build', 'clean'):
+        if args.command in ('clean'):
             asset_builder.cleanup()
     exit(0)
