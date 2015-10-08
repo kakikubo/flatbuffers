@@ -175,11 +175,17 @@ class MasterDataVerifier():
                 bname = os.path.basename(json_path)
                 if re.match('^_', bname):
                     continue
+                m = re.match('^-(.*)$', bname)
+                if m:
+                    json_files[m.group(1)] = False  # deleted file
+                    continue
                 if json_files.has_key(bname):
                     continue
                 json_files[bname] = json_path
 
         for bname, json_path in json_files.iteritems():
+            if not json_path:
+                continue
             key = re.sub('.json$', '', bname)
             info("load user data: %s" % bname)
             with open(json_path, 'r') as f:
