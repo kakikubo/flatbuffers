@@ -69,8 +69,9 @@ class AssetBuilder():
 
         # select build dir
         if command == 'build':
-            build_dir_default = tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
+            #build_dir_default = tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
             #build_dir_default = os.curdir+'/.kms_asset_builder_build'
+            build_dir_default = os.path.expanduser('~')+'/kms_asset_builder_build'
         else: # debug clean
             build_dir_default = os.curdir+'/.kms_asset_builder_build'
         self.build_dir = build_dir or build_dir_default
@@ -133,6 +134,7 @@ class AssetBuilder():
         self.org_font_dir             = self.org_main_dir+'/contents/files/font'
         self.org_weapon_dir           = self.org_main_dir+'/contents/files/weapon'
         self.org_ui_dir               = self.org_main_dir+'/contents/files/ui'
+        self.org_area_texture_dir     = self.org_main_dir+'/contents/files/area'
         self.org_distribution_dir     = self.org_main_dir+'/distribution'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
@@ -214,10 +216,12 @@ class AssetBuilder():
                 if re.search('[^\w\.-]', file):
                     raise Exception("invalid filename is detected: "+root+'/'+file)
 
-        if os.path.exists(dest):
-            rmtree(dest)
+        if src[-1] != '/':
+            src += '/'
         info("copytree '%s' -> '%s'" % (src, dest))
-        copytree(src, dest)
+        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', src, dest]
+        info(' '.join(cmdline))
+        check_call(cmdline)
 
     # setup dest directories
     def setup_dir(self):
