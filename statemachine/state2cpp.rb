@@ -113,8 +113,6 @@ END
   source = ""
 
   source +=<<END
-std::string #{class_name}::DumpState() const { return TO_STRING(); }
-void #{class_name}::ExecState() { EXEC(); }
 void #{class_name}::StartState() {
 END
 
@@ -126,11 +124,22 @@ END
 END
   end
 
-  source += <<END
+   source += <<END
+}
+
+END
+
+  source +=<<END
+void #{class_name}::ExecState() {
+  EXEC();
+}
+
+std::string #{class_name}::DumpState() const {
+  return TO_STRING();
 }
 END
 
-  sources << ["__common__", source]
+ sources << ["__common__", source]
 
   data.nodes.each do |n|
     source = ""
