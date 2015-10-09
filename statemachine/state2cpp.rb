@@ -113,9 +113,9 @@ END
   source = ""
 
   source +=<<END
-std::string #{class_name}::DumpState() const { return TO_STRING(); }
-void #{class_name}::ExecState() { EXEC(); }
 void #{class_name}::StartState() {
+void #{class_name}::ExecState() { EXEC(); }
+std::string #{class_name}::DumpState() const { return TO_STRING(); }
 END
 
   root.each_with_index do | node, i |
