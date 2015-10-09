@@ -18,7 +18,7 @@ from glob import glob
 from logging import info, warning, debug
 
 class AssetBuilder():
-    def __init__(self, command=None, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, cdn_dir=None, git_dir=None):
+    def __init__(self, command=None, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, mirror_dir=None, cdn_dir=None, git_dir=None):
         self.target            = target or 'master'
         self.is_master         = self.target == 'master'
 
@@ -71,20 +71,24 @@ class AssetBuilder():
         if command == 'build':
             #build_dir_default = tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
             #build_dir_default = os.curdir+'/.kms_asset_builder_build'
-            build_dir_default = os.path.expanduser('~')+'/kms_asset_builder_build/'+self.target
+            build_dir_default  = os.path.expanduser('~')+'/kms_asset_builder_build/'+self.target
+            mirror_dir_default = os.path.expanduser('~')+'/kms_asset_builder_mirror/'+self.target
         else: # debug clean
-            build_dir_default = os.curdir+'/.kms_asset_builder_build/'+self.target
-        self.build_dir = build_dir or build_dir_default
+            build_dir_default  = os.curdir+'/.kms_asset_builder_build/'+self.target
+            mirror_dir_default = build_dir_default
+        self.build_dir  = build_dir or build_dir_default
+        self.mirror_dir = mirror_dir or mirror_dir_default
 
         cdn_dir_default          = '/var/www/cdn'
         self.cdn_dir             = cdn_dir or cdn_dir_default
         self.git_dir             = git_dir
-        self.main_dir            = self.build_dir+'/main'
-        self.master_dir          = self.build_dir+'/master'
+        self.main_dir            = self.mirror_dir+'/main'
+        self.master_dir          = self.mirror_dir+'/master'
         self.remote_dir_asset    = self.asset_version_dir+'/contents' if self.is_master else self.target + '/contents'
 
-        if not os.path.exists(self.build_dir):
-            os.makedirs(self.build_dir)
+        for dir in (self.build_dir, self.mirror_dir) :
+            if not os.path.exists(dir):
+                os.makedirs(dir)
         # isolate from modefation via box
         self.prepare_dir(self.org_main_dir, self.main_dir)
         if self.org_main_dir == self.org_master_dir:
@@ -97,6 +101,7 @@ class AssetBuilder():
         info("main-dir = %s", self.org_main_dir)
         info("master-dir = %s", self.org_master_dir)
         info("build-dir = %s", self.build_dir)
+        info("mirror-dir = %s", self.mirror_dir)
         info("cdn-dir = %s", self.cdn_dir)
         info("git-dir = %s", self.git_dir)
         info("remote-dir-asset = %s", self.remote_dir_asset)
@@ -219,7 +224,7 @@ class AssetBuilder():
         if src[-1] != '/':
             src += '/'
         info("copytree '%s' -> '%s'" % (src, dest))
-        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', src, dest]
+        cmdline = ['rsync', '-ac', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', src, dest]
         info(' '.join(cmdline))
         check_call(cmdline)
 
@@ -808,7 +813,7 @@ class AssetBuilder():
         # asset
         self.build_spine()
         self.build_weapon()
-        self.build_area_texture()
+        #self.build_area_texture()
         #self.build_ui()
         self.build_font()
 
@@ -862,20 +867,21 @@ examples:
     parser.add_argument('--asset-version', help = 'asset version. default: <target>.<unix-timestamp>')
     parser.add_argument('--master-dir',    help = 'master asset directory. default: same as script top')
     parser.add_argument('--main-dir',      help = 'asset generated directory. default: same as script top')
-    parser.add_argument('--build-dir',     help = 'build directory. default: temp dir')
+    parser.add_argument('--build-dir',     help = 'build directory. default: ~/kms_asset_builder_build')
+    parser.add_argument('--mirror-dir',    help = 'mirror directory. default: ~/kms_asset_builder_mirror')
     parser.add_argument('--cdn-dir',       help = 'cdn directory to deploy. default: /var/www/cdn')
     parser.add_argument('--git-dir',       help = 'git directory to deploy. default: (not to deploy)')
     parser.add_argument('--log-level',     help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
-    asset_builder = AssetBuilder(command = args.command, target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
+    asset_builder = AssetBuilder(command = args.command, target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, mirror_dir = args.mirror_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
     try:
         if args.command in ('build', 'debug'):
             asset_builder.build()
         if args.command in ('build'):
             asset_builder.deploy()
     finally:
-        if args.command in ('clean'):
+        if args.command in ('clean', 'build'):
             asset_builder.cleanup()
     exit(0)
