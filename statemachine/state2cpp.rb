@@ -114,8 +114,6 @@ END
 
   source +=<<END
 void #{class_name}::StartState() {
-void #{class_name}::ExecState() { EXEC(); }
-std::string #{class_name}::DumpState() const { return TO_STRING(); }
 END
 
   root.each_with_index do | node, i |
@@ -126,11 +124,22 @@ END
 END
   end
 
-  source += <<END
+   source += <<END
+}
+
+END
+
+  source +=<<END
+void #{class_name}::ExecState() {
+  EXEC();
+}
+
+std::string #{class_name}::DumpState() const {
+  return TO_STRING();
 }
 END
 
-  sources << ["__common__", source]
+ sources << ["__common__", source]
 
   data.nodes.each do |n|
     source = ""
