@@ -435,7 +435,8 @@ class AssetBuilder():
         dest_dir      = dest_dir      or self.build_dir
 
         config = [
-            ['characterSpine', '350:600'],
+            #['characterSpine', '350:600'],
+            ['characterSpine', '200:600'],
             ['npcSpine',       '450:550'],
             ['snpcSpine',      '350:550']
         ]
@@ -659,7 +660,7 @@ class AssetBuilder():
             return
 
         info("deploy to git repo: %s -> %s" % (self.main_dir, self.git_dir))
-        cmdline = ['rsync', '-a', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
+        cmdline = ['rsync', '-ac', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -720,7 +721,7 @@ class AssetBuilder():
                 f.truncate(0)
                 json.dump(manifest, f, indent=2)
 
-        rsync = ['rsync', '-a']
+        rsync = ['rsync', '-ac']
         #rsync = ['rsync', '-crltvO']
         #rsync = ['rsync', '-crltvO', '-e', "ssh -i "+DEV_SSH_KEY]
         rsync.extend(['--exclude', '.DS_Store'])
