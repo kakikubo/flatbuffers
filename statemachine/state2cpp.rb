@@ -57,8 +57,8 @@ def state2cpp(yaml_file)
     h_template = data["h_template"] || ""
   end
 
-  cpp_path = "#{dst_dir}/#{class_name}States.cpp"
-  h_path = "#{dst_dir}/#{class_name}States.h"
+  cpp_path = "#{dst_dir}/#{class_name}-States.cpp"
+  h_path = "#{dst_dir}/#{class_name}-States.h"
 
   class_header_path = "#{dst_dir}/#{class_name}.h"
   unless File.exist?(class_header_path)
@@ -85,16 +85,16 @@ END
 private:
   StateMachine _stateMachine;
 public:
-  void StartState();
-  void ExecState();
-  std::string DumpState() const;
+  void startState();
+  void execState();
+  std::string dumpState() const;
 
 private:
 END
 
   data.nodes.each do |n|
     header +=<<END
-  void State#{n.name}();
+  void state#{n.name}();
 END
   end
   File.open(h_path, "w:UTF-8") { | file |
@@ -113,28 +113,28 @@ END
   source = ""
 
   source +=<<END
-void #{class_name}::StartState() {
+void #{class_name}::startState() {
 END
 
   root.each_with_index do | node, i |
     p = ""
     p = "//  " if i != 0
   source += <<END
-    #{p}SPAWN(State#{node.name});
+  #{p}SPAWN(state#{node.name});
 END
   end
 
-   source += <<END
+  source += <<END
 }
 
 END
 
   source +=<<END
-void #{class_name}::ExecState() {
+void #{class_name}::execState() {
   EXEC();
 }
 
-std::string #{class_name}::DumpState() const {
+std::string #{class_name}::dumpState() const {
   return TO_STRING();
 }
 END
@@ -144,7 +144,7 @@ END
   data.nodes.each do |n|
     source = ""
     source += <<END
-void #{class_name}::State#{n.name}() {
+void #{class_name}::state#{n.name}() {
     //  TODO: Something to execute every frame while this state.
 
 END
@@ -170,7 +170,7 @@ END
       end
 
       source += <<END
-    #{indent}SWITCH_TO(State#{link.to.name});
+    #{indent}SWITCH_TO(state#{link.to.name});
 END
 
       if indent != ""
@@ -183,7 +183,7 @@ END
       n.link.each do | link |
         if link.spawn
           source += <<END
-    SPAWN(State#{link.to.name});
+    SPAWN(state#{link.to.name});
 END
           source.puts
         end
@@ -207,7 +207,7 @@ END
         end
         count += 1
         source += <<END
-        SWITCH_TO(State#{link.to.name});
+        SWITCH_TO(state#{link.to.name});
 END
       end
       source += <<END
