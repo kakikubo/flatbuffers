@@ -15,6 +15,7 @@ def load_filter_list(filter_fnmatch_path):
     filter_list = []
     rename_list = []
     cleanup_list = []
+    ext_list = []
     if filter_fnmatch_path:
         with open(filter_fnmatch_path, 'r') as f:
             lines = f.readlines()
@@ -24,14 +25,17 @@ def load_filter_list(filter_fnmatch_path):
             if not l:
                 continue
             m1 = re.match('\s*D\s+(.*)', l)
-            m2 = re.match('\s*([^\s]+)\s+([^\s]+)', l)
+            m2 = re.match('\s*EXT\s+(.*)', l)
+            m3 = re.match('\s*([^\s]+)\s+([^\s]+)', l)
             if m1:
                 cleanup_list.append(os.path.normpath(m1.group(1)))
             elif m2:
-                rename_list.append((os.path.normpath(m2.group(1)), os.path.normpath(m2.group(2))))
+                ext_list = re.split('\s+', m2.group(1))
+            elif m3:
+                rename_list.append((os.path.normpath(m3.group(1)), os.path.normpath(m3.group(2))))
             else:
                 filter_list.append(os.path.normpath(l))
-    return (filter_list, rename_list, cleanup_list)
+    return (filter_list, rename_list, cleanup_list, ext_list)
 
 def cleanup_resources(dest_dir, cleanup_list):
     for l in cleanup_list:
@@ -50,12 +54,28 @@ def cleanup_resources(dest_dir, cleanup_list):
                         os.remove(full_path)
     return True
 
-def copy_resources(src_dir, dest_dir, filter_list, rename_list):
+def copy_resources(src_dir, dest_dir, filter_list, rename_list, ext_list):
     for l in filter_list:
         info("copy %s" % l)
         if l[0] != '/':
             l = os.path.join(src_dir, l)
         for root, dirs, files in os.walk(os.path.dirname(l)):
+            if ext_list:
+                file_map = OrderedDict()
+                for f in files:
+                    file_map[f] = True
+                for f in file_map.keys():
+                    name, ext = os.path.splitext(f)
+                    if not ext[1:] in ext_list:
+                        continue
+                    for alter_ext in ext_list:
+                        prior_file = name + '.' + alter_ext
+                        if f == prior_file:
+                            break
+                        elif prior_file in file_map:
+                            del file_map[f]
+                files = file_map.keys()
+
             for f in files:
                 sub_dir = re.sub(src_dir+'/', '', root)
                 src = os.path.join(root, f)
@@ -90,7 +110,7 @@ example:
 
     src_dir  = os.path.normpath(args.src_dir)
     dest_dir = os.path.normpath(args.dest_dir)
-    filter_list, rename_list, cleanup_list = load_filter_list(args.filter)
+    filter_list, rename_list, cleanup_list, ext_list = load_filter_list(args.filter)
     cleanup_resources(dest_dir, cleanup_list)
-    copy_resources(src_dir, dest_dir, filter_list, rename_list)
+    copy_resources(src_dir, dest_dir, filter_list, rename_list, ext_list)
     exit(0)

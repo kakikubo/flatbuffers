@@ -20,7 +20,7 @@ def loadManifest(path):
         manifest = json.load(f, object_pairs_hook=OrderedDict)
     return manifest
 
-def createAssetList(remote_dir, local_search_path, filter_list):
+def createAssetList(remote_dir, local_search_path, filter_list, ext_list):
     if 0 < len(local_search_path) and not local_search_path.endswith('/'):
        local_search_path += '/' # force local_search_path directory to end with '/'
     local_search_path = os.path.normpath(local_search_path)
@@ -36,6 +36,22 @@ def createAssetList(remote_dir, local_search_path, filter_list):
     else:
         for l in filter_list:
             filtered_files += fnmatch.filter(walk_files, l)
+
+    if ext_list:
+        file_map = OrderedDict()
+        for f in filtered_files:
+            file_map[f] = True
+        for f in file_map.keys():
+            name, ext = os.path.splitext(f)
+            if not ext[1:] in ext_list:
+                continue
+            for alter_ext in ext_list:
+                prior_file = name + '.' + alter_ext
+                if f == prior_file:
+                    break
+                elif prior_file in file_map:
+                    del file_map[f]
+        filtered_files = file_map.keys()
 
     assetsDic = OrderedDict()
     for path in filtered_files:
@@ -53,6 +69,30 @@ def createAssetList(remote_dir, local_search_path, filter_list):
             assetsDic[assetPath] = asset
     return assetsDic
 
+def filterByRefernceManifest(assets, reference_manifest_path, keep_ref_entries):
+    if not os.path.exists(reference_manifest_path):
+        raise Exception("reference manifest is not found: %s" % reference_manifest_path)
+    baseManifest = loadManifest(reference_manifest_path)
+    baseAssets = baseManifest.get('assets')
+    if keep_ref_entries:
+        for key in assets:
+            #if not baseAssets.has_key(key):
+            #    continue
+            asset     = assets.get(key)
+            baseAsset = baseAssets.get(key)
+            if not baseAsset or baseAsset.get('md5') != asset.get('md5'):
+                baseAssets[key] = asset
+        assets = baseAssets
+    else:
+        for key in baseAssets:
+            if not assets.has_key(key):
+              continue
+            asset     = assets.get(key)
+            baseAsset = baseAssets.get(key)
+            if baseAsset.get('md5') == asset.get('md5'):
+                assets[key] = baseAsset
+    return assets
+
 def createVersionManifest(version, remote_manifest_url, remote_version_url, package_url):
     manifest = OrderedDict()
     
@@ -65,20 +105,25 @@ def createVersionManifest(version, remote_manifest_url, remote_version_url, pack
     return manifest
 
 def loadFilterList(filter_fnmatch_path, local_asset_search_path):
-    filter_list = []
-    if filter_fnmatch_path:
-        with open(filter_fnmatch_path, 'r') as f:
-            lines = f.readlines()
-        for i, l in enumerate(lines):
-            l = re.sub('#.*', '', l)
-            l = re.sub('\s*D\s+.*', '', l) # ignore delete
-            l = l.strip()
-            if not l:
-                continue
+    filter_list = ext_list = []
+    with open(filter_fnmatch_path, 'r') as f:
+        lines = f.readlines()
+    for i, l in enumerate(lines):
+        l = re.sub('#.*', '', l)
+        l = re.sub('\s*D\s+.*', '', l) # ignore delete
+        l = l.strip()
+        if not l:
+            continue
+        m = re.match('\s*EXT\s+(.*)', l)
+        if m: # extension
+            if ext_list:
+                raise Exception("extension list must appear just 1 line in filter file: %s" % l)
+            ext_list = re.split('\s+', m.group(1))
+        else: # file path
             if l[0] != '/':
                 l = os.path.join(local_asset_search_path, l)
             filter_list.append(os.path.normpath(l))
-    return filter_list
+    return (filter_list, ext_list)
 
 def createManifest(dst_file_project_manifest, dst_file_version_manifest,
                    version, url_project_manifest, url_version_manifest, url_asset,
@@ -89,33 +134,12 @@ def createManifest(dst_file_project_manifest, dst_file_version_manifest,
     with open(dst_file_version_manifest, 'w') as f:
         json.dump(manifest, f, sort_keys=True, indent=2)
 
-    filter_list = None
+    filter_list = ext_list = None
     if filter_fnmatch_path:
-        filter_list = loadFilterList(filter_fnmatch_path, local_asset_search_path)
-    assets = createAssetList(remote_dir_asset, local_asset_search_path, filter_list)
-
+        filter_list, ext_list = loadFilterList(filter_fnmatch_path, local_asset_search_path)
+    assets = createAssetList(remote_dir_asset, local_asset_search_path, filter_list, ext_list)
     if reference_manifest_path:
-        if not os.path.exists(reference_manifest_path):
-            raise Exception("reference manifest is not found: %s" % reference_manifest_path)
-        baseManifest = loadManifest(reference_manifest_path)
-        baseAssets = baseManifest.get('assets')
-        if keep_ref_entries:
-            for key in assets:
-                #if not baseAssets.has_key(key):
-                #  continue
-                asset     = assets.get(key)
-                baseAsset = baseAssets.get(key)
-                if not baseAsset or baseAsset.get('md5') != asset.get('md5'):
-                    baseAssets[key] = asset
-            assets = baseAssets
-        else:
-            for key in baseAssets:
-                if not assets.has_key(key):
-                  continue
-                asset     = assets.get(key)
-                baseAsset = baseAssets.get(key)
-                if baseAsset.get('md5') == asset.get('md5'):
-                    assets[key] = baseAsset
+        assets = filterByRefernceManifest(assets, reference_manifest_path, keep_ref_entries)
     manifest['assets'] = assets
 
     for key in manifest['assets'].keys():
