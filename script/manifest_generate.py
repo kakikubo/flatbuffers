@@ -31,7 +31,7 @@ def createAssetList(remote_dir, local_search_path, filter_list, ext_list):
             walk_files.append(os.path.normpath(os.path.join(dpath, fname)))
 
     filtered_files = []
-    if filter_list == None:
+    if not filter_list:
         filtered_files = walk_files
     else:
         for l in filter_list:
