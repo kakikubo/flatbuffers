@@ -489,7 +489,7 @@ class AssetBuilder():
         return True
 
     # create ui texture atlas by texture packer
-    def build_ui(self, src_dir=None, dest_dir=None):
+    def build_ui_texture(self, src_dir=None, dest_dir=None):
         src_dir  = src_dir  or self.ui_dir
         dest_dir = dest_dir or self.build_dir+'/ui'
 
@@ -563,7 +563,7 @@ class AssetBuilder():
             src = build_dir+'/'+filename
             if not os.path.exists(src):
                 continue
-            info("install if updated: %s" % filename)
+            debug("install if updated: %s" % filename)
             for dest_dir in (dest1, dest2):
                 dest = dest_dir+'/'+filename
                 if not os.path.exists(os.path.dirname(dest)):
@@ -621,12 +621,6 @@ class AssetBuilder():
             png_path  = re.sub('.atlas$', '.png', weapon_path)
             list.append((weapon_path, self.files_dir, self.org_files_dir))
             list.append((png_path,  self.files_dir, self.org_files_dir))
-        # ui
-        #for root, dirs, files in os.walk("%s/ui" % build_dir):
-        #    for file in files:
-        #        path = os.path.join(root, file)
-        #        path = re.sub('^'+build_dir+'/', '', path)
-        #        list.append((path, self.files_dir, self.org_files_dir))
         return self.install_list(list, build_dir)
 
     def install_texture(self, build_dir=None, files_dir=None, org_files_dir=None, texturepacker_dir=None, org_texturepacker_dir=None, imesta_dir=None, org_imesta_dir=None):
@@ -663,6 +657,7 @@ class AssetBuilder():
                     imesta_file = os.path.join(im_dir, path)
                     dest = os.path.join(dest_dir, path)
                     src  = imesta_file if os.path.exists(imesta_file) else packer_file
+                    debug("install texture if updated: %s" % src)
                     if call(['cmp', '--quiet', src, dest]) == 0:
                         continue
                     info("install texture: %s -> %s" % (src, dest))
@@ -854,7 +849,7 @@ class AssetBuilder():
         self.build_spine()
         self.build_weapon()
         self.build_area_texture()
-        #self.build_ui()
+        #self.build_ui_texture()
         self.build_font()
 
         # install
@@ -923,6 +918,7 @@ examples:
         if args.command in ('build'):
             asset_builder.deploy()
     finally:
-        if args.command in ('clean', 'build'):
+        #if args.command in ('clean', 'build'):
+        if args.command in ('clean'):
             asset_builder.cleanup()
     exit(0)
