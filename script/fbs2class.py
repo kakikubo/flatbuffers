@@ -190,6 +190,8 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             item["is_default_type"] = not item["item_type"] in fbs_data
             if item["item_type"] == "string":
                 item["cpp_type"] = "std::string"
+            elif item["item_type"] == "long":
+                item["cpp_type"] = "long long"
             elif item["is_default_type"]:
                 item["cpp_type"] = item["item_type"]
             else:
