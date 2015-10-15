@@ -106,41 +106,45 @@ class AssetBuilder():
         info("git-dir = %s", self.git_dir)
         info("remote-dir-asset = %s", self.remote_dir_asset)
 
-        self.manifest_dir             = self.main_dir+'/manifests'
-        self.master_schema_dir        = self.main_dir+'/master_derivatives'
-        self.master_data_dir          = self.main_dir+'/master_derivatives'
-        self.master_fbs_dir           = self.main_dir+'/master_derivatives'
-        self.master_bin_dir           = self.main_dir+'/contents/master'
-        self.master_header_dir        = self.main_dir+'/master_header'
-        self.user_class_dir           = self.main_dir+'/user_header'
-        self.user_schema_dir          = self.main_dir+'/user_derivatives'
-        self.user_header_dir          = self.main_dir+'/user_header'
-        self.files_dir                = self.main_dir+'/contents/files'
-        self.user_data_dir            = self.main_dir+'/contents/files/user_data'
-        self.spine_dir                = self.main_dir+'/contents/files/spine'
-        self.font_dir                 = self.main_dir+'/contents/files/font'
-        self.weapon_dir               = self.main_dir+'/contents/files/weapon'
-        self.ui_dir                   = self.main_dir+'/contents/files/ui'
-        self.area_texture_dir         = self.main_dir+'/contents/files/area'
-        self.distribution_dir         = self.main_dir+'/distribution'
+        self.manifest_dir          = self.main_dir+'/manifests'
+        self.master_schema_dir     = self.main_dir+'/master_derivatives'
+        self.master_data_dir       = self.main_dir+'/master_derivatives'
+        self.master_fbs_dir        = self.main_dir+'/master_derivatives'
+        self.master_bin_dir        = self.main_dir+'/contents/master'
+        self.master_header_dir     = self.main_dir+'/master_header'
+        self.user_class_dir        = self.main_dir+'/user_header'
+        self.user_schema_dir       = self.main_dir+'/user_derivatives'
+        self.user_header_dir       = self.main_dir+'/user_header'
+        self.files_dir             = self.main_dir+'/contents/files'
+        self.user_data_dir         = self.main_dir+'/contents/files/user_data'
+        self.spine_dir             = self.main_dir+'/contents/files/spine'
+        self.font_dir              = self.main_dir+'/contents/files/font'
+        self.weapon_dir            = self.main_dir+'/contents/files/weapon'
+        self.ui_dir                = self.main_dir+'/contents/files/ui'
+        self.area_texture_dir      = self.main_dir+'/contents/files/area'
+        self.texturepacker_dir     = self.main_dir+'/texturepacker'
+        self.imesta_dir            = self.main_dir+'/imesta'
+        self.distribution_dir      = self.main_dir+'/distribution'
 
-        self.org_manifest_dir         = self.org_main_dir+'/manifests'
-        self.org_master_schema_dir    = self.org_main_dir+'/master_derivatives'
-        self.org_master_data_dir      = self.org_main_dir+'/master_derivatives'
-        self.org_master_fbs_dir       = self.org_main_dir+'/master_derivatives'
-        self.org_master_bin_dir       = self.org_main_dir+'/contents/master'
-        self.org_master_header_dir    = self.org_main_dir+'/master_header'
-        self.org_user_class_dir       = self.org_main_dir+'/user_header'
-        self.org_user_schema_dir      = self.org_main_dir+'/user_derivatives'
-        self.org_user_header_dir      = self.org_main_dir+'/user_header'
-        self.org_files_dir            = self.org_main_dir+'/contents/files'
-        self.org_user_data_dir        = self.org_main_dir+'/contents/files/user_data'
-        self.org_spine_dir            = self.org_main_dir+'/contents/files/spine'
-        self.org_font_dir             = self.org_main_dir+'/contents/files/font'
-        self.org_weapon_dir           = self.org_main_dir+'/contents/files/weapon'
-        self.org_ui_dir               = self.org_main_dir+'/contents/files/ui'
-        self.org_area_texture_dir     = self.org_main_dir+'/contents/files/area'
-        self.org_distribution_dir     = self.org_main_dir+'/distribution'
+        self.org_manifest_dir      = self.org_main_dir+'/manifests'
+        self.org_master_schema_dir = self.org_main_dir+'/master_derivatives'
+        self.org_master_data_dir   = self.org_main_dir+'/master_derivatives'
+        self.org_master_fbs_dir    = self.org_main_dir+'/master_derivatives'
+        self.org_master_bin_dir    = self.org_main_dir+'/contents/master'
+        self.org_master_header_dir = self.org_main_dir+'/master_header'
+        self.org_user_class_dir    = self.org_main_dir+'/user_header'
+        self.org_user_schema_dir   = self.org_main_dir+'/user_derivatives'
+        self.org_user_header_dir   = self.org_main_dir+'/user_header'
+        self.org_files_dir         = self.org_main_dir+'/contents/files'
+        self.org_user_data_dir     = self.org_main_dir+'/contents/files/user_data'
+        self.org_spine_dir         = self.org_main_dir+'/contents/files/spine'
+        self.org_font_dir          = self.org_main_dir+'/contents/files/font'
+        self.org_weapon_dir        = self.org_main_dir+'/contents/files/weapon'
+        self.org_ui_dir            = self.org_main_dir+'/contents/files/ui'
+        self.org_area_texture_dir  = self.org_main_dir+'/contents/files/area'
+        self.org_texturepacker_dir = self.org_main_dir+'/texturepacker'
+        self.org_imesta_dir        = self.org_main_dir+'/imesta'
+        self.org_distribution_dir  = self.org_main_dir+'/distribution'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -617,12 +621,6 @@ class AssetBuilder():
             png_path  = re.sub('.atlas$', '.png', weapon_path)
             list.append((weapon_path, self.files_dir, self.org_files_dir))
             list.append((png_path,  self.files_dir, self.org_files_dir))
-        # packed area texture
-        for root, dirs, files in os.walk("%s/areaAtlas" % build_dir):
-            for file in files:
-                path = os.path.join(root, file)
-                path = re.sub('^'+build_dir+'/', '', path)
-                list.append((path, self.files_dir, self.org_files_dir))
         # ui
         #for root, dirs, files in os.walk("%s/ui" % build_dir):
         #    for file in files:
@@ -630,6 +628,47 @@ class AssetBuilder():
         #        path = re.sub('^'+build_dir+'/', '', path)
         #        list.append((path, self.files_dir, self.org_files_dir))
         return self.install_list(list, build_dir)
+
+    def install_texture(self, build_dir=None, files_dir=None, org_files_dir=None, texturepacker_dir=None, org_texturepacker_dir=None, imesta_dir=None, org_imesta_dir=None):
+        build_dir             = build_dir             or self.build_dir
+        files_dir             = files_dir             or self.files_dir
+        texturepacker_dir     = texturepacker_dir     or self.texturepacker_dir
+        imesta_dir            = imesta_dir            or self.imesta_dir
+        org_files_dir         = org_files_dir         or self.org_files_dir
+        org_texturepacker_dir = org_texturepacker_dir or self.org_texturepacker_dir
+        org_imesta_dir        = org_imesta_dir        or self.org_imesta_dir
+
+        # install texture packer output
+        list = []
+        for texture_build_dir in ("areaAtlas", "ui"):
+            for root, dirs, files in os.walk("%s/%s" % (build_dir, texture_build_dir)):
+                for file in files:
+                    path = build_file = os.path.join(root, file)
+                    path = re.sub('^'+build_dir+'/', '', path)
+                    for tp_dir, im_dir in ((texturepacker_dir, imesta_dir), (org_texturepacker_dir, org_imesta_dir)):
+                        # when texture packer outputs are updated, must rebuild it by imesta
+                        packer_file = os.path.join(tp_dir, path)
+                        imesta_file = os.path.join(im_dir, path)
+                        if os.path.exists(packer_file) and os.path.exists(imesta_file) and call(['cmp', '--quiet', build_file, packer_file]) != 0:
+                            os.remove(imesta_file)
+                    list.append((path, texturepacker_dir, org_texturepacker_dir))
+        self.install_list(list, build_dir)
+
+        # select imesta or texture packer output and install
+        for dest_dir, tp_dir, im_dir in ((files_dir, texturepacker_dir, imesta_dir), (org_files_dir, org_texturepacker_dir, org_imesta_dir)):
+            for root, dirs, files in os.walk(tp_dir):
+                for file in files:
+                    path = packer_file = os.path.join(root, file)
+                    path = re.sub('^'+tp_dir+'/', '', path)
+                    imesta_file = os.path.join(im_dir, path)
+                    dest = os.path.join(dest_dir, path)
+                    src  = imesta_file if os.path.exists(imesta_file) else packer_file
+                    if call(['cmp', '--quiet', src, dest]) == 0:
+                        continue
+                    info("install texture: %s -> %s" % (src, dest))
+                    if not os.path.exists(os.path.dirname(dest)):
+                        os.makedirs(os.path.dirname(dest))
+                    copy2(src, dest)
 
     def install_manifest(self, build_dir=None):
         list = [
@@ -820,6 +859,7 @@ class AssetBuilder():
 
         # install
         self.install_generated()
+        self.install_texture()
         self.build_asset_list()
         self.deploy_git_repo() # FIXME can move to deploy?
         self.build_manifest()
