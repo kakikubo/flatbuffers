@@ -814,7 +814,7 @@ class AssetBuilder():
         # asset
         self.build_spine()
         self.build_weapon()
-        #self.build_area_texture()
+        self.build_area_texture()
         #self.build_ui()
         self.build_font()
 
