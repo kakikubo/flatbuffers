@@ -1,8 +1,10 @@
 #!/bin/sh
 
 tool_dir=`pwd | sed -e 's/Box Sync/box/'`
+server_dir=`pwd | sed -e 's/Box Sync/box/'`
 git_dir=/Users/kms.jenkins/kms/asset
 asset_list_json=$git_dir/manifests/dev.asset_list.json
+user_version=0.0.1
 
 target=$1
 [ -n "$target" ] || exit 1
@@ -53,6 +55,9 @@ if [ $target = "master" ]; then
   else
     echo "nothing to commit exists"
   fi
+
+  # build user data default
+  vagrant ssh -- $server_dir/cli/userdata.php -s develop install-default $user_version $git_dir/user_data || exit $?
 fi
 
 exit 0
