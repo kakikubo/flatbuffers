@@ -1,6 +1,8 @@
 # Ignore for watchman
-watchman/watchman-*.json
+watchman/template/watchman-*.json
 watchman/watchman-*.log
+
+.kms_asset_builder_build/
 
 *.swp
 *.swo

@@ -21,7 +21,7 @@ for dir in $dirs; do
 done
 
 # setup watchman trigger
-for template in $tool_dir/watchman/*.json.template; do
+for template in $tool_dir/watchman/template/*.json.template; do
   json=`echo $template | sed -e 's/\.template$//'`
   cat $template | sed -e "s!__ROOT_DIR__!$root_dir!g" | sed -e "s!__TOOL_DIR__!$tool_dir!g" > $json
   path=`cat $json | jq -r '.[1]'`

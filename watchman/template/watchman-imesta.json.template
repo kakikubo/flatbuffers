@@ -1,0 +1,10 @@
+["trigger", "__ROOT_DIR__/imesta", {
+  "name": "imesta",
+  "expression": ["suffix", "png"],
+  "ignore_dirs": ["watchman", ".git"],
+  "command": ["__TOOL_DIR__/watchman/watchman-callback.sh", "__ROOT_DIR__", "5"],
+  "stdin": ["name", "exists", "new", "size"],
+  "stdout": ">>__TOOL_DIR__/watchman/watchman-callback.log",
+  "stderr": ">>__TOOL_DIR__/watchman/watchman-callback.log",
+  "chdir": "__TOOL_DIR__"
+}]
