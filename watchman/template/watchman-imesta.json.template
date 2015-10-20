@@ -1,6 +1,6 @@
 ["trigger", "__ROOT_DIR__/imesta", {
   "name": "imesta",
-  "expression": ["suffix", "png"],
+  "expression": ["suffix", ["pvr", "png"]],
   "ignore_dirs": ["watchman", ".git"],
   "command": ["__TOOL_DIR__/watchman/watchman-callback.sh", "__ROOT_DIR__", "5"],
   "stdin": ["name", "exists", "new", "size"],
