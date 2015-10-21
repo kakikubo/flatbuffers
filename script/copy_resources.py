@@ -77,7 +77,9 @@ def copy_resources(src_dir, dest_dir, filter_list, rename_list, ext_list):
                 files = file_map.keys()
 
             for f in files:
-                sub_dir = re.sub(src_dir+'/', '', root)
+                sub_dir = re.sub(src_dir, '', root)
+                if sub_dir and sub_dir[0] == '/': 
+                    sub_dir = sub_dir[1:]
                 src = os.path.join(root, f)
                 dest = os.path.join(dest_dir, sub_dir, f)
                 if fnmatch.fnmatch(src, l):
