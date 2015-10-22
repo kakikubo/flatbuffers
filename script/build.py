@@ -206,6 +206,7 @@ class AssetBuilder():
         self.USER_CLASS_FILE                = 'user_data.h'
         self.USER_MD5_FILE                  = 'user_data.h.md5'
         self.USER_JSON_SCHEMA_FILE          = 'user_schema.json'
+        self.USER_JSON_DATA_FILE            = 'default.json'
         self.USER_HEADER_FILE               = 'user_data_generated.h'
         self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
@@ -270,6 +271,13 @@ class AssetBuilder():
         for sheet in xlsx_book.sheets():
             sheets.append(sheet.name)
         return sheets
+
+    # select file to exist
+    def _get_exist_file(self, file_list):
+        for file in file_list:
+            if file and os.path.exists(file):
+                return file
+        raise Exception("cannot find existing file" % ', '.join(file_list))
 
     # get editor data files
     def _get_editor_files(self):
@@ -349,19 +357,15 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
-    def verify_master_json(self, src_schema=None, src_data=None, asset_dirs=None, src_user_schema=None, src_user_dirs=None):
+    def verify_master_json(self, src_schema=None, src_data=None, asset_dirs=None, src_user_schema=None, src_user_data=None):
         src_schema      = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         src_data        = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        src_user_schema = self._get_exist_file((src_user_schema, self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE, self.master_user_schema_dir+'/'+self.USER_JSON_SCHEMA_FILE))
+        src_user_data   = self._get_exist_file((src_user_data, self.user_data_dir+'/'+self.USER_JSON_DATA_FILE, self.master_user_data_dir+'/'+self.USER_JSON_DATA_FILE))
         asset_dirs      = asset_dirs or [self.org_main_dir, self.org_master_dir]
-        src_user_dirs   = src_user_dirs or [self.user_data_dir, self.master_user_data_dir]
-        if not src_user_schema:
-            for user_schema in (self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE, self.master_user_schema_dir+'/'+self.USER_JSON_SCHEMA_FILE):
-                if os.path.exists(user_schema):
-                    src_user_schema = user_schema
-                    break
-        info("verify master data: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
+        info("verify master data: %s + %s (%s + %s)" % (os.path.basename(src_schema), os.path.basename(src_data), os.path.basename(src_user_schema), os.path.basename(src_user_data)))
 
-        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-dir'] + src_user_dirs
+        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-data', src_user_data]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True

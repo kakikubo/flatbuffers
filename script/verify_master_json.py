@@ -11,7 +11,7 @@ import logging
 from traceback import print_exc
 from logging import info, warning, error
 from collections import OrderedDict
-from subprocess import check_output
+from subprocess import check_call
 from glob import glob
 
 class MasterDataVerifier():
@@ -165,41 +165,21 @@ class MasterDataVerifier():
                 raise
         return True
 
-    def load_user_data(self, user_schema_file, user_dirs):
-        with open(user_schema_file, 'r') as f:
-            self.user_schema = json.load(f, object_pairs_hook=OrderedDict)
-
-        json_files = OrderedDict()
-        for user_dir in user_dirs:
-            for json_path in glob("%s/*.json" % user_dir):
-                bname = os.path.basename(json_path)
-                if re.match('^_', bname):
-                    continue
-                m = re.match('^-(.*)$', bname)
-                if m:
-                    json_files[m.group(1)] = False  # deleted file
-                    continue
-                if json_files.has_key(bname):
-                    continue
-                json_files[bname] = json_path
-
-        for bname, json_path in json_files.iteritems():
-            if not json_path:
-                continue
-            key = re.sub('.json$', '', bname)
-            info("load user data: %s" % bname)
-            with open(json_path, 'r') as f:
-                try:
-                    self.user_data[key] = json.load(f, object_pairs_hook=OrderedDict)
-                except ValueError, e:
-                    print('=======================')
-                    print('    USER DATA ERROR    ')
-                    print('=======================')
-                    print(json_path)
-                    print(e)
-                    print(check_output(["jq", ".", json_path]))
-                    print('=======================')
-                    raise e
+    def load_user_data(self, user_schema_file, user_data_file):
+        try:
+            with open(user_schema_file, 'r') as f:
+                self.user_schema = json.load(f, object_pairs_hook=OrderedDict)
+            with open(user_data_file, 'r') as f:
+                    self.user_data = json.load(f, object_pairs_hook=OrderedDict)
+        except ValueError, e:
+            print('=======================')
+            print('    USER DATA ERROR    ')
+            print('=======================')
+            print(f.name)
+            print(e)
+            print(check_call(["jq", ".", f.name]))
+            print('=======================')
+            raise e
 
         # create schema and reference map
         self.user_meta_map, self.user_schema_map, self.user_reference_map, self.user_file_reference_map, self.user_id_map = \
@@ -293,20 +273,20 @@ if __name__ == '__main__':
     parser.add_argument('input_master_schema', metavar = 'input.master_schema', help = 'input master data schema json file')
     parser.add_argument('input_master_data',   metavar = 'input.master_data',   help = 'input master data json file')
     parser.add_argument('--user-schema', help = 'input user schema file')
-    parser.add_argument('--user-dir', default = [], nargs='*', help = 'user data dir root default: .')
+    parser.add_argument('--user-data', help = 'input user data json file ')
     parser.add_argument('--asset-dir', default = [], nargs='*', help = 'asset dir root default: .')
     args = parser.parse_args()
 
-    info("input schema = %s" % args.input_master_schema)
-    info("input data = %s" % args.input_master_data)
-    info("user schema = %s", args.user_schema)
-    info("user dir = %s", ', '.join(args.user_dir))
-    info("asset dir = %s", ', '.join(args.asset_dir))
+    info("input master schema = %s" % args.input_master_schema)
+    info("input master data = %s" % args.input_master_data)
+    info("input user schema = %s", args.user_schema)
+    info("input user data = %s", args.user_data)
+    info("input asset dir = %s", ', '.join(args.asset_dir))
     verifier = MasterDataVerifier(args.asset_dir)
     verifier.load_master_data(args.input_master_schema, args.input_master_data)
     verifier.verify_master_data()
     if args.user_schema:
-        verifier.load_user_data(args.user_schema, args.user_dir)
+        verifier.load_user_data(args.user_schema, args.user_data)
         verifier.verify_user_data()
     info("no error is detected")
     exit(0)
