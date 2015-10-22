@@ -99,7 +99,7 @@ def copy_resources(src_dir, dest_dir, filter_list, rename_list, ext_list):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='copy asset files to Resources dir by bundled.list', epilog="""\
 example:
-    $ ./copy_resources.py asset/distribution/bundled.list asset/contents Resources""")
+    $ ./copy_resources.py --filter asset/distribution/bundled.list asset/contents Resources""")
 
     parser.add_argument('src_dir', metavar='src.dir', help='asset dir to be copy source')
     parser.add_argument('dest_dir', metavar='dest.dir', help='dest Resource dir to copy')
