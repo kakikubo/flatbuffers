@@ -61,7 +61,7 @@ if [ $target = "master" ]; then
   echo "install user data default"
   cd $vagrant_dir
   rsync -a --delete $git_dir/user_data/ user_data || exit $?
-  vagrant ssh -- $in_vagrant_dir/app/server/cli/userdata.php -s develop install-default $user_version $in_vagrant_dir/user_data || exit $?
+  vagrant ssh -- $in_vagrant_dir/app/server/cli/userdata.php -s develop install-default $user_version $in_vagrant_dir/user_data/default.json || exit $?
 fi
 
 exit 0
