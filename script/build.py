@@ -443,8 +443,7 @@ class AssetBuilder():
         dest_dir      = dest_dir      or self.build_dir
 
         config = [
-            #['characterSpine', '350:600'],
-            ['characterSpine', '200:600'],
+            ['characterSpine', '350:600'],
             ['npcSpine',       '450:550'],
             ['snpcSpine',      '350:550']
         ]
@@ -610,7 +609,7 @@ class AssetBuilder():
             (self.USER_MD5_FILE,                  self.user_header_dir,   self.org_user_header_dir),
         ]
         # spine
-        for spine_path in glob("%s/*Spine/*.json" % build_dir):
+        for spine_path in glob("%s/*Spine/*" % build_dir):
             spine_path = re.sub('^'+build_dir+'/', '', spine_path)
             list.append((spine_path, self.spine_dir, self.org_spine_dir))
         # font

@@ -9,6 +9,7 @@ import json
 import argparse
 import datetime
 from collections import OrderedDict
+from shutil import copy2
 import time
 import xlrd
 import logging
@@ -284,6 +285,26 @@ def deleteElement(args):
             info("data created {0}".format(dstJson))
             #f_new.write(json.dumps(jsonData, indent=2))
             f_new.write(json.dumps(jsonData))
+
+def completeSpine(srcPath, dstPath):
+    src, ext = os.path.splitext(srcPath)
+    dst, ext = os.path.splitext(dstPath)
+    base = os.path.join(os.path.dirname(srcPath), os.path.basename(dst))
+
+    # png
+    if not os.path.exists(base + '.png'):
+        info("complete png: {0}.png -> {1}.png".format(src, dst))
+        copy2(src+'.png', dst+'.png')
+
+    # modify png filename in .atlas
+    if not os.path.exists(base + '.atlas'):
+        info("complete atlas: {0}.atlas -> {1}.atlas".format(src, dst))
+        contents = []
+        with open(src + '.atlas', 'r') as f:
+            for l in f.readlines():
+                contents.append(l.replace(src+'.png', dst+'.png'))
+        with open(dst + '.atlas', 'w') as f:
+            f.writelines(contents)
     
 def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail, hasEar, hasMant, hasInside, hasShoulder):
     slot = []
@@ -386,6 +407,7 @@ def export_spine(parser, master_excel, sheet_name, start_row, start_column, inpu
                         params.append(bone)
                     debug(params)
                     deleteElement(parser.parse_args(params))
+                    completeSpine(srcPath, dstPath)
 
 def verify_spine(input_json, size_limit):
     limits = []
