@@ -13,6 +13,7 @@ from shutil import copy2
 import time
 import xlrd
 import logging
+import copy
 from logging import info, warning, debug
 
 def searchAndDeleteInListDataRecursiveByKeyAndValue(listData, key, value):
@@ -311,7 +312,7 @@ def export_spine(master_excel, sheet_name, start_row, start_column, input_json, 
                     debug("bones = {0}".format(bone))
                     debug("slots = {0}".format(slot))
                     debug("skins = {0}".format(skin))
-                    deleteElement(json_data, dest_json, slot, bone, skin)
+                    deleteElement(copy.deepcopy(json_data), dest_json, slot, bone, skin)
                     completeSpine(input_json, dest_json)
 
 def verify_spine(input_json, size_limit):
