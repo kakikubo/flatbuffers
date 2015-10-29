@@ -480,13 +480,13 @@ class AssetBuilder():
         for xlsx in self._get_xlsxes():
             sheets = self._get_xlsx_sheets(xlsx)
             for sheet in sheets:
-                if sheet == "weapon":
+                if sheet == "weaponPosition":
                     dest_weapon_dir = dest_dir+'/'+"weapon"
                     if not os.path.exists(dest_weapon_dir):
                         os.makedirs(dest_weapon_dir)
 
                     info("build weapon atlas: %s:" % os.path.basename(xlsx))
-                    cmdline = [self.make_atlas_bin, xlsx, "weapon", str(self.MASTER_DATA_ROW_START), "positionX", dest_weapon_dir]
+                    cmdline = [self.make_atlas_bin, xlsx, "weaponPosition", str(self.MASTER_DATA_ROW_START), "positionX", dest_weapon_dir]
                     debug(' '.join(cmdline))
                     check_call(cmdline)
         return True
