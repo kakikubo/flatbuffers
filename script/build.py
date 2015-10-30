@@ -873,7 +873,13 @@ class AssetBuilder():
     # clean up
     def cleanup(self):
         info("cleanup: %s" % self.build_dir)
-        rmtree(self.build_dir)
+        for root, dirnames, filenames, in os.walk(self.build_dir):
+            for file in fienames:
+                rmtree(os.path.join(root, file))
+            for dir in dirnames:
+                if dir in ('areaAtlas'):
+                    continue
+                rmtree(os.path.join(root, dir))
         return True
 
 if __name__ == '__main__':
@@ -921,7 +927,6 @@ examples:
         if args.command in ('build'):
             asset_builder.deploy()
     finally:
-        #if args.command in ('clean', 'build'):
-        if args.command in ('clean'):
+        if args.command in ('clean', 'build'):
             asset_builder.cleanup()
     exit(0)
