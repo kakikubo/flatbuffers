@@ -872,14 +872,15 @@ class AssetBuilder():
 
     # clean up
     def cleanup(self):
-        info("cleanup: %s" % self.build_dir)
-        for root, dirnames, filenames, in os.walk(self.build_dir):
-            for file in fienames:
-                rmtree(os.path.join(root, file))
-            for dir in dirnames:
-                if dir in ('areaAtlas'):
-                    continue
-                rmtree(os.path.join(root, dir))
+        info("cleanup under: %s" % self.build_dir)
+        for path in glob(self.build_dir+'/*'):
+            if os.path.basename(path) in ('areaAtlas', 'ui'):
+                info("exclude to clean up: "+path)
+                continue
+            elif os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                rmtree(path)
         return True
 
 if __name__ == '__main__':
