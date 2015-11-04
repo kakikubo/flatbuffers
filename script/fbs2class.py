@@ -141,9 +141,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
     s += '#include <iomanip>\n'
     s += '#include <sstream>\n'
     s += '#include <jansson.h>\n'
-    s += '#include <format.h>\n'
     s += '#include <openssl/md5.h>\n'
-    s += '#include <cocos2d.h>\n'
     if with_msgpack:
         s += '#include <msgpack.hpp>\n'
     if with_fbs:
@@ -262,24 +260,25 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += "    _" + item_name + "[pos] = value;\n"
                     s += "    __dirty = true;\n"
                     s += "  }\n"
-                s += "  void emplace" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
-                s += "    _" + item_name + ".emplace(pos, value);\n"
-                if range_key:
-                    s += '    CCASSERT(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end(), fmt::format("duplicated range key in ' + item_name + ': {}", value->' + range_key["name"] + '()).c_str());\n'
-                    s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
-                s += "    __dirty = true;\n"
-                s += "  }\n"
+                if item["item_type"] != "bool":
+                    s += "  void emplace" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
+                    s += "    _" + item_name + ".emplace(pos, value);\n"
+                    if range_key:
+                        s += '    assert(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end());\n'
+                        s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
+                    s += "    __dirty = true;\n"
+                    s += "  }\n"
                 s += "  void insert" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
                 s += "    _" + item_name + ".insert(pos, value);\n"
                 if range_key:
-                    s += '    CCASSERT(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end(), fmt::format("duplicated range key in ' + item_name + ': {}", value->' + range_key["name"] + '()).c_str());\n'
+                    s += '    assert(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end());\n'
                     s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
                 s += "    __dirty = true;\n"
                 s += "  }\n"
                 s += "  void pushBack" + upper_camel_case(item_name) + "(const " + item["cpp_type"] + "& value) {\n"
                 s += "    _" + item_name + ".push_back(value);\n"
                 if range_key:
-                    s += '    CCASSERT(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end(), fmt::format("duplicated range key in ' + item_name + ': {}", value->' + range_key["name"] + '()).c_str());\n'
+                    s += '    assert(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end());\n'
                     s += "    _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
                 s += "    __dirty = true;\n"
                 s += "  }\n"
