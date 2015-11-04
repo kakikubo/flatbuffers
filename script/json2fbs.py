@@ -56,7 +56,7 @@ def json2fbs(input_json, output_fbs, rootName, nameSpace):
         if isinstance(jsonData, dict):
             s = generate_fbs(rootName, nameSpace, jsonData)
             with open(output_fbs, 'w') as f:
-                f.write(s)
+                f.write(s.encode('utf-8'))
         else:
             print 'unsupported format. params:[{0}][{1}][{2}]'.format(input_json, rootName, nameSpace)
 
