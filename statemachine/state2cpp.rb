@@ -88,6 +88,7 @@ public:
   void startState();
   void execState();
   std::string dumpState() const;
+  bool exited() const;
 
 private:
 END
@@ -136,6 +137,10 @@ void #{class_name}::execState() {
 
 std::string #{class_name}::dumpState() const {
   return TO_STRING();
+}
+
+bool #{class_name}::exited() const {
+  return EXITED();
 }
 END
 
