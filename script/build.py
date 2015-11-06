@@ -586,21 +586,6 @@ class AssetBuilder():
                 copy2(src, dest)
         return True
 
-    def install_statics(self, main_dir=None, master_dir=None):
-        main_dir   = main_dir   or self.main_dir
-        master_dir = master_dir or self.master_dir
-        # ui layout loader json
-        path_map = {}
-        for top_dir in (main_dir, master_dir):
-            list = []
-            ui_dir = os.path.join(top_dir, 'ui')
-            for root, dirs, files in os.walk(ui_dir):
-                for f in files:
-                    path = re.sub('^'+ui_dir+'/', '', os.path.join(root, f))
-                    if not path_map.has_key(path):
-                        list.append((path, self.files_ui_dir, self.org_files_ui_dir))
-            self.install_list(list, top_dir)
-
     def install_generated(self, build_dir=None):
         build_dir = build_dir or self.build_dir
         # fixed pathes
@@ -874,7 +859,6 @@ class AssetBuilder():
         self.build_font()
 
         # install
-        self.install_statics()
         self.install_generated()
         self.install_texture()
         self.build_asset_list()

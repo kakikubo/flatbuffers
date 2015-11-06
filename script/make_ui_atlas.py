@@ -63,6 +63,18 @@ def pack_textures(src_dir, dest_dir, work_dir=None):
             check_call(cmdline)
     return True
 
+def copy_json(src_dir, dest_dir):
+    for top_dir in glob(src_dir+'/*'):
+        for root, dirs, files in os.walk(top_dir):
+            for f in files:
+                name, ext = os.path.splitext(f)
+                if ext != '.json':
+                    continue
+                dest = os.path.join(dest_dir, os.path.basename(top_dir), f)
+                info("setup %s/%s" % (os.path.basename(top_dir), f))
+                copy2(os.path.join(root, f), dest)
+    return True
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='pack ui textures (PNG) by TexturePacker CLI', epilog="""\
 example:
@@ -78,5 +90,6 @@ example:
     src_dir  = os.path.normpath(args.src_dir)
     dest_dir = os.path.normpath(args.dest_dir)
     pack_textures(src_dir, dest_dir, args.work_dir)
+    copy_json(src_dir, dest_dir)
     exit(0)
 
