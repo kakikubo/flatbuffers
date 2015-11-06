@@ -214,7 +214,7 @@ def completeSpine(srcPath, dstPath):
         contents = []
         with open(src + '.atlas', 'r') as f:
             for l in f.readlines():
-                contents.append(l.replace(src+'.png', dst+'.png'))
+                contents.append(l.replace(os.path.basename(src)+'.png', os.path.basename(dst)+'.png'))
         with open(dst + '.atlas', 'w') as f:
             f.writelines(contents)
     
