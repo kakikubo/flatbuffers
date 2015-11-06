@@ -120,8 +120,9 @@ class AssetBuilder():
         self.spine_dir             = self.main_dir+'/contents/files/spine'
         self.font_dir              = self.main_dir+'/contents/files/font'
         self.weapon_dir            = self.main_dir+'/contents/files/weapon'
-        self.ui_dir                = self.main_dir+'/contents/files/ui'
+        self.files_ui_dir          = self.main_dir+'/contents/files/ui'
         self.area_texture_dir      = self.main_dir+'/area'
+        self.ui_dir                = self.main_dir+'/ui'
         self.texturepacker_dir     = self.main_dir+'/texturepacker'
         self.imesta_dir            = self.main_dir+'/imesta'
         self.distribution_dir      = self.main_dir+'/distribution'
@@ -140,8 +141,9 @@ class AssetBuilder():
         self.org_spine_dir         = self.org_main_dir+'/contents/files/spine'
         self.org_font_dir          = self.org_main_dir+'/contents/files/font'
         self.org_weapon_dir        = self.org_main_dir+'/contents/files/weapon'
-        self.org_ui_dir            = self.org_main_dir+'/contents/files/ui'
+        self.org_files_ui_dir      = self.org_main_dir+'/contents/files/ui'
         self.org_area_texture_dir  = self.org_main_dir+'/area'
+        self.org_ui_dir            = self.org_main_dir+'/ui'
         self.org_texturepacker_dir = self.org_main_dir+'/texturepacker'
         self.org_imesta_dir        = self.org_main_dir+'/imesta'
         self.org_distribution_dir  = self.org_main_dir+'/distribution'
@@ -176,8 +178,8 @@ class AssetBuilder():
         self.strip_master_json_bin  = self_dir+'/strip_master_json.py'
         self.delete_element_bin     = self_dir+'/delete-element.py'
         self.make_atlas_bin         = self_dir+'/make_atlas.py'
-        self.pack_texture_bin       = self_dir+'/pack_texture.py'
-        self.pack_area_texture_bin  = self_dir+'/make_area_atlas.py'
+        self.make_ui_atlas_bin      = self_dir+'/make_ui_atlas.py'
+        self.make_area_texture_bin  = self_dir+'/make_area_atlas.py'
         
         self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
@@ -492,21 +494,22 @@ class AssetBuilder():
         return True
 
     # create ui texture atlas by texture packer
-    def build_ui_texture(self, src_dir=None, dest_dir=None):
+    def build_ui_atlas(self, src_dir=None, dest_dir=None, work_dir=None):
         src_dir  = src_dir  or self.ui_dir
         dest_dir = dest_dir or self.build_dir+'/ui'
+        work_dir = work_dir or self.build_dir+'/ui_work'
 
         if not os.path.exists(src_dir):
             return True
 
         info("build ui texture atlas: %s:" % src_dir)
-        cmdline = [self.pack_texture_bin, src_dir, dest_dir]
+        cmdline = [self.make_ui_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
 
     # create ui texture atlas by texture packer
-    def build_area_texture(self, src_dir=None, dest_dir=None):
+    def build_area_atlas(self, src_dir=None, dest_dir=None):
         src_dir  = src_dir  or self.area_texture_dir
         dest_dir = dest_dir or self.build_dir+'/areaAtlas'
 
@@ -514,7 +517,7 @@ class AssetBuilder():
             return True
 
         info("build area texture atlas: %s:" % src_dir)
-        cmdline = [self.pack_area_texture_bin, src_dir, dest_dir]
+        cmdline = [self.make_area_texture_bin, src_dir, dest_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -582,6 +585,21 @@ class AssetBuilder():
                 info("install: %s -> %s" % (src, dest))
                 copy2(src, dest)
         return True
+
+    def install_statics(self, main_dir=None, master_dir=None):
+        main_dir   = main_dir   or self.main_dir
+        master_dir = master_dir or self.master_dir
+        # ui layout loader json
+        path_map = {}
+        for top_dir in (main_dir, master_dir):
+            list = []
+            ui_dir = os.path.join(top_dir, 'ui')
+            for root, dirs, files in os.walk(ui_dir):
+                for f in files:
+                    path = re.sub('^'+ui_dir+'/', '', os.path.join(root, f))
+                    if not path_map.has_key(path):
+                        list.append((path, self.files_ui_dir, self.org_files_ui_dir))
+            self.install_list(list, top_dir)
 
     def install_generated(self, build_dir=None):
         build_dir = build_dir or self.build_dir
@@ -851,11 +869,12 @@ class AssetBuilder():
         # asset
         self.build_spine()
         self.build_weapon()
-        self.build_area_texture()
-        #self.build_ui_texture()
+        self.build_area_atlas()
+        self.build_ui_atlas()
         self.build_font()
 
         # install
+        self.install_statics()
         self.install_generated()
         self.install_texture()
         self.build_asset_list()
