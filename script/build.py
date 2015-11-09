@@ -10,6 +10,7 @@ import tempfile
 import argparse
 import json
 import xlrd
+import md5
 import logging
 from time import strftime
 from subprocess import check_call, check_output, call
@@ -194,19 +195,22 @@ class AssetBuilder():
         self.MASTER_BIN_FILE                = 'master_data.bin'
         self.MASTER_BUNDLED_BIN_FILE        = 'master_data_bundled.bin'
         self.MASTER_HEADER_FILE             = 'master_data_generated.h'
-        self.MASTER_MD5_FILE                = 'master_data.generated.h.md5'
+        self.MASTER_MD5_FILE                = 'master_data_generated_md5.h'
+        self.MASTER_MD5_DEFINE              = 'KMS_MASTER_DATA_VERSION'
         self.EDITOR_MASTER_JSON_SCHEMA_FILE = 'editor_master_schema.json'
         self.EDITOR_MASTER_JSON_DATA_FILE   = 'editor_master_data.json'
         self.EDITOR_MASTER_MACRO_FILE       = 'EditorMasterAccessors.h'
         self.EDITOR_MASTER_FBS_FILE         = 'editor_master_data.fbs'
         self.EDITOR_MASTER_BIN_FILE         = 'editor_master_data.bin'
         self.EDITOR_MASTER_HEADER_FILE      = 'editor_master_data_generated.h'
-        self.EDITOR_MASTER_MD5_FILE         = 'editor_master_data_generated.h.md5'
+        self.EDITOR_MASTER_MD5_FILE         = 'editor_master_data_generated_md5.h'
+        self.EDITOR_MASTER_MD5_DEFINE       = 'KMS_MASTER_DATA_VERSION'
         self.MASTER_FBS_ROOT_NAME           = 'MasterDataFBS'
         self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
         self.USER_FBS_FILE                  = 'user_data.fbs'
         self.USER_CLASS_FILE                = 'user_data.h'
-        self.USER_MD5_FILE                  = 'user_data.h.md5'
+        self.USER_MD5_FILE                  = 'user_data_md5.h'
+        self.USER_MD5_DEFINE                = 'KMS_USER_DATA_VERSION'
         self.USER_JSON_SCHEMA_FILE          = 'user_schema.json'
         self.USER_JSON_DATA_FILE            = 'default.json'
         self.USER_HEADER_FILE               = 'user_data_generated.h'
@@ -296,14 +300,17 @@ class AssetBuilder():
                     editor_files[basename] = editor_path
         return editor_files.values()
 
-    def _write_md5(self, src, dest):
-        cmdline = ['md5', src]
-        out = check_output(cmdline)
-        m = re.match('.*=\s*([^\s]+)', out)
-        if m:
-            with open(dest, 'w') as f:
-                f.write(m.group(1))
-                return True
+    def _write_md5(self, src, dest, define):
+        content = None
+        with open(src, 'r') as f:
+            content = f.read()
+        hexdigest = md5.new(content).hexdigest()
+        with open(dest, 'w') as f:
+            f.write("""
+#pragma_once
+#define %s "%s"
+""" % (define, hexdigest))
+            return True
         return False
 
     # cerate master data json from xlsx
@@ -397,12 +404,13 @@ class AssetBuilder():
         return True
 
     # create bin+header from json+fbs
-    def build_master_bin(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None, dest_md5=None):
+    def build_master_bin(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None, dest_md5=None, dest_define=None):
         src_json    = src_json    or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         src_fbs     = src_fbs     or self.build_dir+'/'+self.MASTER_FBS_FILE
         dest_bin    = dest_bin    or self.build_dir+'/'+self.MASTER_BIN_FILE
         dest_header = dest_header or self.build_dir+'/'+self.MASTER_HEADER_FILE
         dest_md5    = dest_md5    or self.build_dir+'/'+self.MASTER_MD5_FILE
+        dest_define = dest_define or self.MASTER_MD5_DEFINE
         dest_dir    = os.path.dirname(dest_bin)
         info("build master bin: %s + %s" % (os.path.basename(dest_bin), os.path.basename(dest_header)))
         if os.path.dirname(dest_bin) != os.path.dirname(dest_header):
@@ -412,7 +420,7 @@ class AssetBuilder():
         debug(' '.join(cmdline))
         check_call(cmdline)
 
-        return self._write_md5(dest_header, dest_md5)
+        return self._write_md5(dest_header, dest_md5, dest_define)
 
     def build_master_bundled_bin(self, src_json=None, src_fbs=None, src_bundled_keys=None, dest_bundled_json=None, dest_bundled_bin=None):
         src_json          = src_json          or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
@@ -523,11 +531,12 @@ class AssetBuilder():
         return True
 
     # create class header from fbs
-    def build_user_class(self, src_fbs=None, dest_class=None, dest_schema=None, dest_md5=None, namespace=None):
+    def build_user_class(self, src_fbs=None, dest_class=None, dest_schema=None, dest_md5=None, dest_define=None, namespace=None):
         src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
         dest_class  = dest_class  or self.build_dir+'/'+self.USER_CLASS_FILE
         dest_schema = dest_schema or self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE
         dest_md5    = dest_md5    or self.build_dir+'/'+self.USER_MD5_FILE
+        dest_define = dest_define or self.USER_MD5_DEFINE
         namespace   = namespace   or self.USER_FBS_NAMESPACE
         if not os.path.exists(src_fbs):
             return False
@@ -537,7 +546,7 @@ class AssetBuilder():
         debug(' '.join(cmdline))
         check_call(cmdline)
 
-        return self._write_md5(dest_class, dest_md5)
+        return self._write_md5(dest_class, dest_md5, dest_define)
 
     # create bin+header from json+fbs
     def build_user_header(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None):
@@ -839,11 +848,12 @@ class AssetBuilder():
         editor_bin_file    = self.build_dir+'/'+self.EDITOR_MASTER_BIN_FILE
         editor_header_file = self.build_dir+'/'+self.EDITOR_MASTER_HEADER_FILE
         editor_md5_file    = self.build_dir+'/'+self.EDITOR_MASTER_MD5_FILE
+        editor_md5_define  = self.EDITOR_MASTER_MD5_DEFINE
         self.build_master_json(dest_schema=editor_schema_file, dest_data=editor_data_file, except_json=True)
         self.sort_master_json(src_schema=editor_schema_file, src_data=editor_data_file)
         self.build_master_macro(src_json=editor_data_file, dest_macro=editor_macro_file)
         self.build_master_fbs(src_json=editor_schema_file, dest_fbs=editor_fbs_file)
-        self.build_master_bin(src_json=editor_data_file, src_fbs=editor_fbs_file, dest_bin=editor_bin_file, dest_header=editor_header_file, dest_md5=editor_md5_file)
+        self.build_master_bin(src_json=editor_data_file, src_fbs=editor_fbs_file, dest_bin=editor_bin_file, dest_header=editor_header_file, dest_md5=editor_md5_file, dest_define=editor_md5_define)
 
         # user data
         self.build_user_class()
