@@ -306,7 +306,7 @@ class AssetBuilder():
             content = f.read()
         hexdigest = md5.new(content).hexdigest()
         with open(dest, 'w') as f:
-            f.write("#pragma once\n#define %s "%s"\n" % (define, hexdigest))
+            f.write('#pragma once\n#define %s "%s"\n' % (define, hexdigest))
             return True
         return False
 
