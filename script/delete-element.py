@@ -95,7 +95,7 @@ def deleteAnimationBySlotName(dictData, slotName):
                     if anim.has_key(slotName):
                         del anim[slotName]
 
-def deleteElement(json_data, dest_json, boneList, slotList, skinList):
+def delete_element(json_data, boneList, slotList, skinList):
     # 全slotの名前とインデクスを保存
     slotIndexMap = {}
     if json_data.has_key("slots"):
@@ -129,9 +129,6 @@ def deleteElement(json_data, dest_json, boneList, slotList, skinList):
                 else:
                     slotIndexMapAfter[slotIndexMapKey] = count
 
-    # for slotIndexMapKey in slotIndexMapKeys:
-    #    debug("{0} : {1}->{2}".format(slotIndexMapKey, slotIndexMap[slotIndexMapKey], slotIndexMapAfter[slotIndexMapKey]))
-
     # drawOrderアニメーションのoffsetを付け替える
     if json_data.has_key("animations"):
         animations = json_data["animations"]
@@ -159,9 +156,6 @@ def deleteElement(json_data, dest_json, boneList, slotList, skinList):
                                     offsetData["offset"] = slotIndexMapAfter[targetName] - slotIndexMapAfter[slot]
 
                                 debug("slot:{0} : offset:{1} : index:{2}->{3} : target:{4}:{5}->{6}".format(slot, offset, slotIndexMap[slot], slotIndexMapAfter[slot], targetName, targetIndex, slotIndexMapAfter[targetName]))
-                                
-
-        #debug("{0}.{1}->{2}".format(key, slotIndexMap[key], slotIndexMapAfter[key]))
 
     # spineツール上でテストするために使用しているR_weaponのスキンオフセットを初期化する
     if json_data.has_key("skins"):
@@ -193,15 +187,12 @@ def deleteElement(json_data, dest_json, boneList, slotList, skinList):
                         weaponData["width"] = 0
                     if weaponData.has_key("height"):
                         weaponData["height"] = 0
+    return json_data
 
-    with open(dest_json, 'w+') as f_new:
-        info("data created {0}".format(dest_json))
-        f_new.write(json.dumps(json_data))
-
-def completeSpine(srcPath, dstPath):
-    src, ext = os.path.splitext(srcPath)
-    dst, ext = os.path.splitext(dstPath)
-    base = os.path.join(os.path.dirname(srcPath), os.path.basename(dst))
+def complete_spine(src_path, dest_path):
+    src, ext = os.path.splitext(src_path)
+    dst, ext = os.path.splitext(dest_path)
+    base = os.path.join(os.path.dirname(src), os.path.basename(dst))
 
     # png
     if not os.path.exists(base + '.png'):
@@ -218,13 +209,13 @@ def completeSpine(srcPath, dstPath):
         with open(dst + '.atlas', 'w') as f:
             f.writelines(contents)
     
-def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail, hasEar, hasMant, hasInside, hasShoulder):
+def get_convert_param(model):
     slot = []
     bone = []
-    # if hasTwinTail:
+    # if model['hasTwinTail']:
     #     slot.append("C_hd_hair_b")
     # else:
-    if not hasTwinTail:
+    if not model['hasTwinTail']:
         slot.append("C_hd_twintail_R")
         slot.append("C_hd_twintail_L")
         bone.append("twintail_L1")
@@ -233,37 +224,37 @@ def getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabbit, hasTail, 
     # if hasPonyTail:
     #     slot.append("C_hd_hair_b")
     # else:
-    if not hasPonyTail:
+    if not model['hasPonyTail']:
         slot.append("C_hd_hair_tail")
         bone.append("hair_tail")
 
-    if not hasEarCat:
+    if not model['hasEarCat']:
         slot.append("C_cat_ear")
         bone.append("cat_earRight1")
         bone.append("cat_earLeft1")
 
-    if not hasEarRabbit:
+    if not model['hasEarRabbit']:
         slot.append("C_rabbit_ear")
         bone.append("rabbit_earLeft1")
         bone.append("rabbit_earLeft1")
 
-    if not hasTail:
+    if not model['hasTail']:
         slot.append("C_tail")
         bone.append("tail")
 
-    if not hasEar:
+    if not model['hasEar']:
         slot.append("C_hd_ear")
 
-    if not hasMant:
+    if not model['hasMant']:
         slot.append("C_bo_mant_b")
 
-    if not hasInside:
+    if not model['hasInside']:
         slot.append("C_bo_gear_inside")
 
-    if not hasShoulder:
+    if not model['hasShoulder']:
         slot.append("L_shoulder")
 
-    return (slot, bone);
+    return (slot, bone, slot)
 
 def export_spine(master_excel, sheet_name, start_row, start_column, input_json, output_dir):
     info("master excel = %s:%s" % (master_excel, sheet_name))
@@ -277,43 +268,60 @@ def export_spine(master_excel, sheet_name, start_row, start_column, input_json, 
     start_col = -1
     book = xlrd.open_workbook(master_excel)
     sheet = book.sheet_by_name(sheet_name)
-
     if sheet.nrows > 0:
         for col in range(sheet.ncols):
             if sheet.cell_value(0, col) == start_column:
                 start_col = col
                 debug("find {0}:{1}".format(start_column, col))
                 break
+    if start_col < 0:
+        return False
 
-    if start_col >= 0:
-        for row in range(sheet.nrows):
-            if (sheet.ncols < start_col+9):
-                info("ncols={0} but paramStartCol={1}".format(sheet.ncols, start_col))
-            else:
-                if (row >= start_row):
-                    model_id = int(sheet.cell_value(row, 0))
-                    hasTwinTail = sheet.cell_value(row, start_col)
-                    hasPonyTail = sheet.cell_value(row, start_col+1)
-                    hasEarCat = sheet.cell_value(row, start_col+2)
-                    hasEarRabitt = sheet.cell_value(row, start_col+3)
-                    hasTail = sheet.cell_value(row, start_col+4)
-                    hasEar = sheet.cell_value(row, start_col+5)
-                    hasMant = sheet.cell_value(row, start_col+6)
-                    hasInside = sheet.cell_value(row, start_col+7)
-                    hasShoulder = sheet.cell_value(row, start_col+8)
-                    debug("Convert Param = {0}:{1},{2},{3},{4},{5},{6},{7},{8},{9}".format(str(model_id), hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail, hasEar, hasMant, hasInside, hasShoulder))
-                    slot, bone = getConvertParam(hasTwinTail, hasPonyTail, hasEarCat, hasEarRabitt, hasTail, hasEar, hasMant, hasInside, hasShoulder)
-                    skin = slot
+    # analyze model flags patterns
+    models = OrderedDict()
+    patterns = OrderedDict()
+    for row in range(sheet.nrows):
+        if (sheet.ncols < start_col+9):
+            raise Exception("ncols={0} but paramStartCol={1}".format(sheet.ncols, start_col))
+        if (row < start_row):
+            continue
 
-                    root, ext = os.path.splitext(input_json)
-                    dest_json = os.path.abspath(output_dir) + "/" + str(model_id) + ext
+        model_id = int(sheet.cell_value(row, 0))
+        model = OrderedDict((
+            ('hasTwinTail',  sheet.cell_value(row, start_col+0)),
+            ('hasPonyTail',  sheet.cell_value(row, start_col+1)),
+            ('hasEarCat',    sheet.cell_value(row, start_col+2)),
+            ('hasEarRabbit', sheet.cell_value(row, start_col+3)),
+            ('hasTail',      sheet.cell_value(row, start_col+4)),
+            ('hasEar',       sheet.cell_value(row, start_col+5)),
+            ('hasMant',      sheet.cell_value(row, start_col+6)),
+            ('hasInside',    sheet.cell_value(row, start_col+7)),
+            ('hasShoulder',  sheet.cell_value(row, start_col+8))
+        ))
+        pattern = json.dumps(model)
+        models[model_id] = pattern
+        if patterns.has_key(pattern):
+            continue
 
-                    debug("output file = {0}".format(dest_json))
-                    debug("bones = {0}".format(bone))
-                    debug("slots = {0}".format(slot))
-                    debug("skins = {0}".format(skin))
-                    deleteElement(copy.deepcopy(json_data), dest_json, slot, bone, skin)
-                    completeSpine(input_json, dest_json)
+        slot, bone, skin = get_convert_param(model)
+        info("pattern = {0}".format(pattern))
+        debug("bones = {0}".format(bone))
+        debug("slots = {0}".format(slot))
+        debug("skins = {0}".format(skin))
+        patterns[pattern] = delete_element(copy.deepcopy(json_data), slot, bone, skin)
+
+    for model_id, pattern in models.iteritems():
+        dest_data = patterns[pattern]
+
+        root, ext = os.path.splitext(input_json)
+        dest_json = os.path.abspath(output_dir) + "/" + str(model_id) + ext
+        debug("output file = {0}".format(dest_json))
+
+        with open(dest_json, 'w+') as f_new:
+            info("data created {0}".format(dest_json))
+            f_new.write(json.dumps(dest_data))
+
+        complete_spine(input_json, dest_json)
 
 def verify_spine(input_json, size_limit):
     limits = []
