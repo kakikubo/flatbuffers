@@ -36,7 +36,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
 
   # get md5 diff
   rm -f $build_log_file
-  for i in `git status --short | grep -e '^[MA]' | grep .md5 | cut -c 4-`; do
+  for i in `git status --short | grep -e '^[MA]' | grep _md5.h | cut -c 4-`; do
     echo $i >> $build_log_file
     #git diff --cached $i >> $commit_log_file || exit $?
   done
