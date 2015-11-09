@@ -14,17 +14,19 @@ from shutil import move, rmtree, copy2
 def pack_textures(src_dir, dest_dir, work_dir=None):
     work_dir = work_dir or dest_dir
     cmdline_base = [
-        'TexturePacker', 
-        '--format', 'cocos2d', 
-        '--texture-format', 'png', 
+        'TexturePacker',
+        '--format', 'cocos2d',
+        '--texture-format', 'png',
         '--replace', '@@SEPARATOR@@=/',
-        #'--max-size', '2048', 
-        '--max-size', '1024', 
-        '--force-squared', 
-        '--force-word-aligned', 
-        '--pack-mode', 'Best', 
-        '--padding', '8',
-        '--algorithm', 'MaxRects', 
+        #'--max-size', '2048',
+        '--max-size', '1024',
+        '--force-squared',
+        '--force-word-aligned',
+        '--pack-mode', 'Best',
+        '--padding', '4',
+        '--size-constraints', 'POT',
+        '--trim-mode', 'Trim',
+        '--algorithm', 'MaxRects',
         '--multipack',
     ]
     for top_dir in glob(src_dir+'/*'):
@@ -36,7 +38,7 @@ def pack_textures(src_dir, dest_dir, work_dir=None):
                     continue
                 if re.search('textures\.[0-9]+\.png', f):
                     continue
-                # include sub dir path to texture name 
+                # include sub dir path to texture name
                 base_dir = re.sub('^'+src_dir+'/', '', root)
                 fname = re.sub('/', '@@SEPARATOR@@', os.path.join(base_dir, f))
                 dest = os.path.join(work_dir, os.path.basename(top_dir), fname)
@@ -92,4 +94,3 @@ example:
     pack_textures(src_dir, dest_dir, args.work_dir)
     copy_json(src_dir, dest_dir)
     exit(0)
-
