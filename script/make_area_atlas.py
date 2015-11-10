@@ -6,6 +6,8 @@ import sys
 import codecs
 import subprocess
 import shutil
+import logging
+from logging import info, warning, debug
 
 def getFileNum(dir):
     if not os.path.isdir(dir): return 0
@@ -132,6 +134,7 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
 #
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
+    logging.basicConfig(level = "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
     if not os.path.exists('/usr/local/bin/TexturePacker'):
         warning("TexturePacker is not installed: /usr/local/bin/TexturePacker")
