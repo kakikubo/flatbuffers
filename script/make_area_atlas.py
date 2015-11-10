@@ -134,7 +134,7 @@ if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
 
     if not os.path.exists('/usr/local/bin/TexturePacker'):
-        warning("TexturePacker is not installed: %s" % gdcl)
+        warning("TexturePacker is not installed: /usr/local/bin/TexturePacker")
         exit(0)
 
     argv = sys.argv
