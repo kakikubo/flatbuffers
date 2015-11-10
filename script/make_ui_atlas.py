@@ -90,7 +90,7 @@ example:
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
     if not os.path.exists('/usr/local/bin/TexturePacker'):
-        warning("TexturePacker is not installed: %s" % gdcl)
+        warning("TexturePacker is not installed: /usr/local/bin/TexturePacker")
         exit(0)
 
     src_dir  = os.path.normpath(args.src_dir)
