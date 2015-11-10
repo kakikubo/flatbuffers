@@ -87,8 +87,8 @@ private:
 public:
   void startState();
   void execState();
+  bool hasExited() const;
   std::string dumpState() const;
-  bool exited() const;
 
 private:
 END
@@ -139,7 +139,7 @@ std::string #{class_name}::dumpState() const {
   return TO_STRING();
 }
 
-bool #{class_name}::exited() const {
+bool #{class_name}::hasExited() const {
   return EXITED();
 }
 END
