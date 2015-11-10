@@ -132,14 +132,15 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
 #
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
+
+    if not os.path.exists('/usr/local/bin/TexturePacker'):
+        warning("TexturePacker is not installed: %s" % gdcl)
+        exit(0)
+
     argv = sys.argv
     argc = len(argv)
     if argc == 3:
         makeAreaAtlas(argv[1], argv[2])
     else:
         print "python makeAreaAtlas.py {srcDir} {dstDir}"
-
-
-
-
 
