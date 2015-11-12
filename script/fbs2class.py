@@ -219,8 +219,19 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
         s += "  // constructer\n"
         inits = []
         for item_name, item in table.iteritems():
+            default_value = ""
+            if item["attribute"] and item["attribute"].has_key("default"):
+                value = item["attribute"].has_key("default")
+                if item_type == 'string':
+                    default_value = '"'+value+'"';
+                elif item_type in ('bool'):
+                    default_value = "true" if value else  "false";
+                else:
+                    default_value = value;
             if not item["is_default_type"] and not item["is_vector"]:
-                inits.append("    _" + item_name + "(std::make_shared<" + item["item_type"] + " >()),\n")
+                inits.append("    _" + item_name + "(std::make_shared<" + item["item_type"] + " >("+default_value+")),\n")
+            elif default_value:
+                inits.append("    _" + item_name + "(" + default_value + "),\n")
         s += "  " + table_name + "() : \n" + "".join(inits) + "    __timestamp(0), __dirty(true) {}\n"
 
         s += "\n  // getters\n"
@@ -408,10 +419,11 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             s += "    return _" + hash_key + ";\n"
             s += "  }\n"
             s += "  long setHashKey(long v) {\n"
-            s += "    if (v != _" + hash_key + ") {\n"
-            s += "      _" + hash_key + " = v;\n" 
-            s += "      __dirty = true;\n"
-            s += "    }\n"
+            if table[hash_key]["item_type"] in ('int', 'long'):
+                s += "    if (v != _" + hash_key + ") {\n"
+                s += "      _" + hash_key + " = v;\n" 
+                s += "      __dirty = true;\n"
+                s += "    }\n"
             s += "    return v;\n"
             s += "  }\n"
         if "range_key" in prop:
@@ -423,10 +435,11 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             s += "    return _" + range_key + ";\n"
             s += "  }\n"
             s += "  int setRangeKey(int v) {\n"
-            s += "    if (!_" + range_key + ") {\n"
-            s += "      _" + range_key + " = v++;\n" 
-            s += "      __dirty = true;\n"
-            s += "    }\n"
+            if table[range_key]["item_type"] in ('int', 'long'):
+                s += "    if (!_" + range_key + ") {\n"
+                s += "      _" + range_key + " = v++;\n" 
+                s += "      __dirty = true;\n"
+                s += "    }\n"
             s += "    return v;\n"
             s += "  }\n"
         s += "  int completeKey(long hashKey, int rangeKey) {\n"
