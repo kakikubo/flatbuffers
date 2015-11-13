@@ -164,9 +164,6 @@ class AssetBuilder():
         self.master_user_schema_dir   = self.master_dir+'/user_derivatives'
         self.master_user_data_dir     = self.master_dir+'/user_data'
 
-        main_editor_schema = self.main_editor_schema_dir+'/editor_schema.json'
-        self.editor_schema = main_editor_schema if os.path.exists(main_editor_schema) else self.master_editor_schema_dir+'/editor_schema.json'
-
         self.manifest_bin           = self_dir+'/manifest_generate.py'
         self.xls2json_bin           = self_dir+'/master_data_xls2json.py'
         self.json2fbs_bin           = self_dir+'/json2fbs.py'
@@ -174,6 +171,7 @@ class AssetBuilder():
         self.flatc_bin              = self_dir+'/flatc'
         self.fbs2class_bin          = self_dir+'/fbs2class.py'
         self.json2font_bin          = self_dir+'/json2font.py'
+        self.merge_editor_json_bin  = self_dir+'/merge_editor_json.py'
         self.sort_master_json_bin   = self_dir+'/sort-master-json.py'
         self.verify_master_json_bin = self_dir+'/verify_master_json.py'
         self.strip_master_json_bin  = self_dir+'/strip_master_json.py'
@@ -285,21 +283,6 @@ class AssetBuilder():
                 return file
         raise Exception("cannot find existing file" % ', '.join(file_list))
 
-    # get editor data files
-    def _get_editor_files(self):
-        editor_dirs = (self.master_editor_dir, self.main_editor_dir)
-        editor_files = {}
-        for editor_dir in editor_dirs:
-            for dirpath, dirnames, filenames in os.walk(editor_dir):
-                for filename in filenames:
-                    base, ext = os.path.splitext(filename)
-                    if ext != ".json":
-                        continue
-                    editor_path = os.path.join(dirpath, filename)
-                    basename = os.path.basename(editor_path)
-                    editor_files[basename] = editor_path
-        return editor_files.values()
-
     def _write_md5(self, src, dest, define):
         content = None
         with open(src, 'r') as f:
@@ -324,33 +307,36 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
-    # merge editor's json data into the master json data
-    def merge_editor_file(self):
-        for master_file, editor_files in \
-                ((self.build_dir+'/'+self.MASTER_JSON_DATA_FILE, self._get_editor_files()), \
-                (self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE, [self.editor_schema])):
-            with open(master_file, 'r') as f:
-                json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
+    # merge data of excel master and one of editor master 
+    def merge_editor_schema(self, master_schema_json=None, editor_schema_json=None):
+        master_schema_json = master_schema_json or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        main_editor_schema = self.main_editor_schema_dir+'/editor_schema.json'
+        editor_schema_default = main_editor_schema if os.path.exists(main_editor_schema) else self.master_editor_schema_dir+'/editor_schema.json'
+        editor_schema_json = editor_schema_json or editor_schema_default
 
-            for editor_file in editor_files:
-                info("merge editor master file: %s + %s" % (os.path.basename(master_file), os.path.basename(editor_file)))
-                with open(editor_file, 'r') as f:
-                    editor_json_data = json.loads(f.read(), object_pairs_hook=OrderedDict)
-                for key in editor_json_data:
-                    data = editor_json_data[key]
-                    if '_' in key:
-                        a = key.split('_')
-                        key = a[0]
-                        if a[1] == "item":
-                            if not key in json_data:
-                                editor_json_data[key] = []
-                            json_data[key].append(data)
-                    else:
-                        json_data[key] = data
+        cmdline = [self.merge_editor_json_bin, master_schema_json, editor_schema_json]
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
 
-            with open(master_file, 'w') as f:
-                j = json.dumps(json_data, ensure_ascii = False, indent = 4)
-                f.write(j.encode("utf-8"))
+    # merge schema of excel master and one of editor master 
+    def merge_editor_data(self, master_data_json=None, editor_dirs=None):
+        master_data_json = master_data_json or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        editor_dirs = editor_dirs or (self.master_editor_dir, self.main_editor_dir)
+        editor_files = {}
+        for editor_dir in editor_dirs:
+            for dirpath, dirnames, filenames in os.walk(editor_dir):
+                for filename in filenames:
+                    base, ext = os.path.splitext(filename)
+                    if ext != ".json":
+                        continue
+                    editor_path = os.path.join(dirpath, filename)
+                    basename = os.path.basename(editor_path)
+                    editor_files[basename] = editor_path
+
+        cmdline = [self.merge_editor_json_bin, master_data_json] + editor_files.values()
+        debug(' '.join(cmdline))
+        check_call(cmdline)
 
     # sort master json
     def sort_master_json(self, src_schema=None, src_data=None):
@@ -363,6 +349,7 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    # check master data + user data + asset
     def verify_master_json(self, src_schema=None, src_data=None, asset_dirs=None, src_user_schema=None, src_user_data=None):
         src_schema      = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         src_data        = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
@@ -830,7 +817,8 @@ class AssetBuilder():
 
         # for standard master data
         self.build_master_json()
-        self.merge_editor_file()
+        self.merge_editor_schema()
+        self.merge_editor_data()
         self.sort_master_json()
         #self.build_master_macro()
         self.build_master_fbs()
