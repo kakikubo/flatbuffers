@@ -14,6 +14,13 @@ from collections import OrderedDict
 from subprocess import check_call
 from glob import glob
 
+# TODO areaInfo.position.id 親の areaList の id とセットで語る必要がある
+# TODO areaList.defaultEnemyGroupId -> enemyPlacement.groupId
+# TODO areaLineEnemy.enemyGroupId -> enemyPlacement.groupId
+# TODO areaObject.resourceId -> characterJob.id, npcSpine.id, spncSpine.id, fieldLwf.id
+# TODO areaObject.paramId -> pickPlace.id, catPlace.id, objectParam.id, warpParam.id
+# TODO objectParam.param1 -> material.id areaObject.id
+
 class MasterDataVerifier():
     def __init__(self, asset_dirs=None):
         self.master_schema      = None
@@ -73,6 +80,10 @@ class MasterDataVerifier():
                             file_ref = k.split('/')
                             if len(file_ref) > 1:
                                 file_reference_map[table][name] = k
+                                continue
+
+                            # FIXME temporary skip  
+                            if k in ('enemyPlacement.groupId', 'areaInfo.position.id'):
                                 continue
 
                             # id reference
@@ -263,6 +274,15 @@ class MasterDataVerifier():
                 raise
         return True
 
+
+    def generate_location_reference_tree(self, location_reference_tree_file):
+        # TODO
+        #print(json.dumps(self.meta_map, indent=2))
+        print(json.dumps(self.schema_map, indent=2))
+        #print(json.dumps(self.reference_map, indent=2))
+        #print(json.dumps(self.file_reference_map, indent=2))
+        #print(json.dumps(self.id_map.keys(), indent=2))
+
 # ---
 # main function
 #
@@ -275,6 +295,7 @@ if __name__ == '__main__':
     parser.add_argument('--user-schema', help = 'input user schema file')
     parser.add_argument('--user-data', help = 'input user data json file ')
     parser.add_argument('--asset-dir', default = [], nargs='*', help = 'asset dir root default: .')
+    parser.add_argument('--location-reference-tree', help = 'generate reference tree by location')
     args = parser.parse_args()
 
     info("input master schema = %s" % args.input_master_schema)
@@ -282,11 +303,13 @@ if __name__ == '__main__':
     info("input user schema = %s", args.user_schema)
     info("input user data = %s", args.user_data)
     info("input asset dir = %s", ', '.join(args.asset_dir))
+    info("output location reference tree = %s", args.location_reference_tree)
     verifier = MasterDataVerifier(args.asset_dir)
     verifier.load_master_data(args.input_master_schema, args.input_master_data)
     verifier.verify_master_data()
     if args.user_schema:
         verifier.load_user_data(args.user_schema, args.user_data)
         verifier.verify_user_data()
+    verifier.generate_location_reference_tree(args.location_reference_tree)
     info("no error is detected")
     exit(0)
