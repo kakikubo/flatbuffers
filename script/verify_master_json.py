@@ -20,6 +20,9 @@ from glob import glob
 # TODO areaObject.resourceId -> characterJob.id, npcSpine.id, spncSpine.id, fieldLwf.id
 # TODO areaObject.paramId -> pickPlace.id, catPlace.id, objectParam.id, warpParam.id
 # TODO objectParam.param1 -> material.id areaObject.id
+# TODO pet.groupId -> petPlace.groupId
+# TODO pet.levelType -> petLevel.levelType
+# TODO treasure.itemId -> material.id, petFood.id, keyItem.id, fish.id
 
 class MasterDataVerifier():
     def __init__(self, asset_dirs=None):
@@ -83,7 +86,7 @@ class MasterDataVerifier():
                                 continue
 
                             # FIXME temporary skip  
-                            if k in ('enemyPlacement.groupId', 'areaInfo.position.id'):
+                            if k in ('enemyPlacement.groupId', 'petPlace.groupId', 'petLevel.levelType', 'areaInfo.position.id'):
                                 continue
 
                             # id reference
