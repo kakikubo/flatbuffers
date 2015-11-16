@@ -109,13 +109,13 @@ commands:
   update_deploy   update then deploy
 examples:
   update webview.json for all environments
-      $ ./script/update_webviews.py --root-dir ${ROOT_DIR} update
+      $ ./script/update_webviews.py --root-dir ${ROOT_DIR} --build-dir ${BUILD_DIR} update
 
   deploy webviews to cdn for dev
-      $ ./script/update_webviews.py --root-dir ${ROOT_DIR} --environment dev deploy
+      $ ./script/update_webviews.py --root-dir ${ROOT_DIR} --build-dir ${BUILD_DIR} --environment dev deploy
 
   update then deploy for all environments
-      $ ./script/update_webviews.py --root-dir ${ROOT_DIR} update_deploy
+      $ ./script/update_webviews.py --root-dir ${ROOT_DIR} --build-dir ${BUILD_DIR} update_deploy
         """)
     parser.add_argument('command',          help = 'command (update|deploy|update_deploy)')
     parser.add_argument('--environment',    help = 'environment (all|dev|qa|release). default: all', default='all')
