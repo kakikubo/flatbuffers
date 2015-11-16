@@ -159,12 +159,12 @@ class MasterDataVerifier():
     def verify_file_reference(self, table, i, d, k, v, fref):
         if fref and self.asset_dirs:
             found = False
+            path = fref.replace('{}', str(v))
             for dir in self.asset_dirs:
-                path = (dir+"/"+fref).replace('{}', str(v))
-                if os.path.exists(path):
+                if os.path.exists(dir+'/'+path):
                     found = True
             if not found:
-                raise Exception("referenced file does not exists: %s[%d].%s -> %s" % (table, i, k, v))
+                raise Exception("referenced file does not exists: %s[%d].%s -> %s (%s)" % (table, i, k, v, path))
         return True
 
     def verify_master_record(self, table, i, d, schema, reference, file_reference):
