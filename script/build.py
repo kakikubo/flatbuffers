@@ -687,8 +687,26 @@ class AssetBuilder():
         ]
         return self.install_list(list, build_dir)
 
-    def update_webviews(self, root_dir, cmd, extra_options=[]):
-        cmdline = [self.update_webviews_bin, '--root-dir', root_dir, '--build-dir', self.build_dir, cmd] + extra_options
+    def build_webviews(self, root_dir=None, build_dir=None, env=None):
+        root_dir  = root_dir  or self.main_dir
+        build_dir = build_dir or self.build_dir
+        env       = env       or 'dev'
+        if not os.path.exists(root_dir+'/webview'):
+            return True
+
+        cmdline = [self.update_webviews_bin, 'update', '--root-dir', root_dir, '--build-dir', build_dir, '--environment', env, '--skip-sync-root', '1']
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    def deploy_webviews(self, root_dir=None, build_dir=None, env=None):
+        root_dir  = root_dir  or self.main_dir
+        build_dir = build_dir or self.build_dir
+        env       = env       or 'dev'
+        if not os.path.exists(root_dir+'/webview'):
+            return True
+        
+        cmdline = [self.update_webviews_bin, 'deploy', '--root-dir', root_dir, '--build-dir', self.build_dir, '--environment', env]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -875,7 +893,7 @@ class AssetBuilder():
         self.build_font()
 
         # webviews
-        self.update_webviews(self.main_dir, 'update', ['--skip-sync-root', '1'])
+        self.build_webviews()
 
         # install
         self.install_generated()
@@ -891,7 +909,7 @@ class AssetBuilder():
     def deploy(self):
         self.deploy_dev_cdn()
         self.deploy_s3_cdn()
-        self.update_webviews(self.main_dir, 'deploy')
+        self.deploy_webviews()
         return True
 
     # clean up
