@@ -14,32 +14,39 @@ from os.path import basename, isfile, isdir, join
 from subprocess import check_call
 
 class WebViewUpdater(object):
-    all_enviroments = ['dev', 'qa', 'release']
     sync_options = ['--exclude', '*.DS_Store', '--exclude', '*.git', '--delete']
     def __init__(self, root_dir, build_dir, env='all'):
         self.root_dir = root_dir
         self.build_dir = build_dir
-        self.envs = [env]
-        if self.envs == ['all']:
-            self.envs = self.all_enviroments
         self.webview_dir = join(self.root_dir, 'webview')
         self.s3_webview_dir = join('s3://gree-kms-assets', 'webview')
+        self.envs = [env]
+        if self.envs == ['all']:
+            self.envs = self.all_enviroments()
 
-    def generate_json(self, platform):
+    def all_enviroments(self):
+        return self.subdirs(self.webview_dir)
+
+    def subdirs(self, path):
+        return [env for env in os.listdir(path) if not env.startswith('.') and isdir(join(path, env))]
+
+    def generate_json(self):
         for env in self.envs:
-            src_path = join(self.root_dir, "webview", env, platform)
-            dst_path = join(self.build_dir, "webview", env, platform)
-            if not isdir(src_path):
-                info("%s does not exists." % src_path)
-                continue
-            html_files = self.list_html_files(src_path, "kms://")
-            if not isdir(dst_path):
-                os.makedirs(dst_path)
-            dst_file = join(dst_path, "webviews.json")
-            info("Generating webview json list for platform %s: %s", platform, dst_file)
-            with open(dst_file, 'w') as fout:
-                json.dump(html_files, fout, indent=2)
-            os.chmod(dst_file, 0664)
+            env_path = join("webview", env)
+            for platform in self.subdirs(join(self.root_dir, env_path)):
+                src_path = join(self.root_dir, env_path, platform)
+                dst_path = join(self.build_dir, env_path, platform)
+                if not isdir(src_path):
+                    info("%s does not exists." % src_path)
+                    continue
+                html_files = self.list_html_files(src_path, "kms://")
+                if not isdir(dst_path):
+                    os.makedirs(dst_path)
+                dst_file = join(dst_path, "webviews.json")
+                info("Generating webview json list for platform %s: %s", platform, dst_file)
+                with open(dst_file, 'w') as fout:
+                    json.dump(html_files, fout, indent=2)
+                os.chmod(dst_file, 0664)
 
     def sync_with_root(self):
         rsync = ['rsync', '-ac', '--exclude', '*.DS_Store']
@@ -122,8 +129,7 @@ examples:
     logging.basicConfig(level=args.log_level, format='%(asctime)-15s %(levelname)s %(message)s')
     updater = WebViewUpdater(args.root_dir, args.build_dir, args.environment)
     if args.command in ('update', 'update_deploy'):
-        updater.generate_json('ios')
-        updater.generate_json('android')
+        updater.generate_json()
         if not args.skip_sync_root:
             updater.sync_with_root()
     if args.command in ('deploy', 'update_deploy'):

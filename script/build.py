@@ -637,14 +637,16 @@ class AssetBuilder():
             list.append((weapon_path, self.files_dir, self.org_files_dir))
             list.append((png_path,  self.files_dir, self.org_files_dir))
         # webviews
-        for env in ('dev', 'qa', 'release'):
-            for platform in ('ios', 'android'):
-                webviews_json_path = os.path.join('webview', env, platform, 'webviews.json')
-                list.append((
-                    webviews_json_path,
-                    os.path.join(self.main_dir),
-                    os.path.join(self.org_main_dir)
-                ))
+        for root, envs, files in os.walk(os.path.join(build_dir, 'webview')):
+            for env in envs:
+                for sub_root, platforms, sub_files in os.walk(os.path.join(root, env)):
+                    for platform in platforms:
+                        webviews_json_path = os.path.join('webview', env, platform, 'webviews.json')
+                        list.append((
+                            webviews_json_path,
+                            os.path.join(self.main_dir),
+                            os.path.join(self.org_main_dir)
+                        ))
 
         return self.install_list(list, build_dir)
 
@@ -886,7 +888,6 @@ class AssetBuilder():
 
         # webviews
         self.update_webviews(self.main_dir, 'update', ['--skip-sync-root', '1'])
-        self.update_webviews(self.org_main_dir, 'update', ['--skip-sync-root', '1'])
 
         # install
         self.install_generated()
