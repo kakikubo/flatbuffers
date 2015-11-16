@@ -15,13 +15,6 @@ from subprocess import check_call
 from glob import glob
 
 # TODO areaInfo.position.id 親の areaList の id とセットで語る必要がある
-# TODO areaList.defaultEnemyGroupId -> enemyPlacement.groupId
-# TODO areaLineEnemy.enemyGroupId -> enemyPlacement.groupId
-# TODO areaObject.resourceId -> characterJob.id, npcSpine.id, spncSpine.id, fieldLwf.id
-# TODO areaObject.paramId -> pickPlace.id, catPlace.id, objectParam.id, warpParam.id
-# TODO objectParam.param1 -> material.id areaObject.id
-# TODO pet.groupId -> petPlace.groupId
-# TODO pet.levelType -> petLevel.levelType
 # TODO treasure.itemId -> material.id, petFood.id, keyItem.id, fish.id
 
 class MasterDataVerifier():
@@ -167,7 +160,7 @@ class MasterDataVerifier():
         if fref and self.asset_dirs:
             found = False
             for dir in self.asset_dirs:
-                path = (dir+"/"+fref).replace('{}', v)
+                path = (dir+"/"+fref).replace('{}', str(v))
                 if os.path.exists(path):
                     found = True
             if not found:
