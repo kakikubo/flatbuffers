@@ -127,6 +127,7 @@ class AssetBuilder():
         self.texturepacker_dir     = self.main_dir+'/texturepacker'
         self.imesta_dir            = self.main_dir+'/imesta'
         self.distribution_dir      = self.main_dir+'/distribution'
+        self.webview_dir           = self.main_dir+'/webview'
 
         self.org_manifest_dir      = self.org_main_dir+'/manifests'
         self.org_master_schema_dir = self.org_main_dir+'/master_derivatives'
@@ -148,6 +149,7 @@ class AssetBuilder():
         self.org_texturepacker_dir = self.org_main_dir+'/texturepacker'
         self.org_imesta_dir        = self.org_main_dir+'/imesta'
         self.org_distribution_dir  = self.org_main_dir+'/distribution'
+        self.org_webview_dir       = self.org_main_dir+'/webview'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -179,6 +181,7 @@ class AssetBuilder():
         self.make_atlas_bin         = self_dir+'/make_atlas.py'
         self.make_ui_atlas_bin      = self_dir+'/make_ui_atlas.py'
         self.make_area_texture_bin  = self_dir+'/make_area_atlas.py'
+        self.update_webviews_bin    = self_dir+'/update_webviews.py'
         
         self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
         self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
@@ -620,6 +623,18 @@ class AssetBuilder():
             png_path  = re.sub('.atlas$', '.png', weapon_path)
             list.append((weapon_path, self.files_dir, self.org_files_dir))
             list.append((png_path,  self.files_dir, self.org_files_dir))
+        # webviews
+        for root, envs, files in os.walk(os.path.join(build_dir, 'webview')):
+            for env in envs:
+                for sub_root, platforms, sub_files in os.walk(os.path.join(root, env)):
+                    for platform in platforms:
+                        webviews_json_path = os.path.join('webview', env, platform, 'webviews.json')
+                        list.append((
+                            webviews_json_path,
+                            os.path.join(self.main_dir),
+                            os.path.join(self.org_main_dir)
+                        ))
+
         return self.install_list(list, build_dir)
 
     def install_texture(self, build_dir=None, files_dir=None, org_files_dir=None, texturepacker_dir=None, org_texturepacker_dir=None, imesta_dir=None, org_imesta_dir=None):
@@ -671,6 +686,12 @@ class AssetBuilder():
             (self.ASSET_LIST_FILE,       self.manifest_dir, self.org_manifest_dir),
         ]
         return self.install_list(list, build_dir)
+
+    def update_webviews(self, root_dir, cmd, extra_options=[]):
+        cmdline = [self.update_webviews_bin, '--root-dir', root_dir, '--build-dir', self.build_dir, cmd] + extra_options
+        debug(' '.join(cmdline))
+        check_call(cmdline)
+        return True
 
     def build_asset_list(self, src_list_file=None, dest_list_file=None):
         src_list_file  = src_list_file  or self.master_manifest_dir+'/'+self.ASSET_LIST_FILE
@@ -853,6 +874,9 @@ class AssetBuilder():
         self.build_ui_atlas()
         self.build_font()
 
+        # webviews
+        self.update_webviews(self.main_dir, 'update', ['--skip-sync-root', '1'])
+
         # install
         self.install_generated()
         self.install_texture()
@@ -860,12 +884,14 @@ class AssetBuilder():
         self.deploy_git_repo() # FIXME can move to deploy?
         self.build_manifest()
         self.install_manifest()
+
         return True
 
     # deploy to cdn
     def deploy(self):
         self.deploy_dev_cdn()
         self.deploy_s3_cdn()
+        self.update_webviews(self.main_dir, 'deploy')
         return True
 
     # clean up
