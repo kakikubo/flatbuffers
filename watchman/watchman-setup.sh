@@ -14,7 +14,8 @@ echo "watch root dir: $root_dir"
 
 base=`basename "$root_dir"`
 # setup dirs
-dirs="master user contents/files contents/master editor/areaInfo editor_schema area ui lua shader glyph_designer webview manifests/dev"
+# TODO webview
+dirs="master user contents/files contents/master editor/areaInfo editor_schema area ui lua shader glyph_designer manifests/dev"
 for dir in $dirs; do
   echo "setup $root_dir/$dir"
   mkdir -p $root_dir/$dir || exit $?
