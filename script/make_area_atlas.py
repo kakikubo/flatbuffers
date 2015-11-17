@@ -11,14 +11,21 @@ import argparse
 import logging
 from logging import info, warning, debug
 
-def getFileNum(dir):
+def verify_filename(src_dir):
+    for root, dirs, files in os.walk(src_dir):
+        for f in dirs + files:
+            if not re.match('^[a-z0-9_./]+$', f):
+                raise Exception("invalid filename is detected: %s" % os.path.join(root, f))
+    return True
+
+def get_file_count(dir):
     if not os.path.isdir(dir): return 0
     i=0
     for root, dirs, files in os.walk(dir):
         i+=len(files)
     return i
 
-def make_area_atlas(src_dir, dest_dir, work_dir=None, verify_filename=False):
+def make_area_atlas(src_dir, dest_dir, work_dir=None):
     work_dir = work_dir or dest_dir + "/_temp"
 
     top_dirs = os.listdir(src_dir)
@@ -48,7 +55,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None, verify_filename=False):
             pvrQuality = "very-low"
             scale = "1.0"
 
-            fnum = getFileNum(work_dir)
+            fnum = get_file_count(work_dir)
             print "{0} : textures num[{1}]".format(category_src_dir, fnum)
             if fnum == 0:
                 continue
@@ -153,5 +160,7 @@ example:
     info("output dir = %s" % dest_dir)
     info("work dir = %s" % args.work_dir)
     info("verify filename = %s" % args.verify_filename)
-    make_area_atlas(src_dir, dest_dir, args.work_dir, args.verify_filename)
+    if args.verify_filename:
+        verify_filename(src_dir)
+    make_area_atlas(src_dir, dest_dir, args.work_dir)
 
