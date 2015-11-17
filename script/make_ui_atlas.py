@@ -11,7 +11,7 @@ from glob import glob
 from subprocess import check_call
 from shutil import move, rmtree, copy2
 
-def pack_textures(src_dir, dest_dir, work_dir=None):
+def pack_textures(src_dir, dest_dir, work_dir=None, verify_filename=False):
     work_dir = work_dir or dest_dir
     cmdline_base = [
         'TexturePacker',
@@ -33,11 +33,16 @@ def pack_textures(src_dir, dest_dir, work_dir=None):
         if not os.path.isdir(top_dir):
             continue
         for root, dirs, files in os.walk(top_dir):
+            for d in dirs:
+                if verify_filename and not re.match('^[a-z0-9_./]+$', d):
+                    raise Exception("invalid dirname is detected: %s" % os.path.join(root, d))
             for f in files:
                 if not re.search('\.png$', f):
                     continue
                 if re.search('textures\.[0-9]+\.png', f):
                     continue
+                if verify_filename and not re.match('^[a-z0-9_./]+$', f):
+                    raise Exception("invalid filename is detected: %s" % os.path.join(root, f))
                 # include sub dir path to texture name
                 base_dir = re.sub('^'+src_dir+'/', '', root)
                 fname = re.sub('/', '@@SEPARATOR@@', os.path.join(base_dir, f))
@@ -85,6 +90,7 @@ example:
     parser.add_argument('src_dir', metavar='src.dir', help='asset dir to be packing source')
     parser.add_argument('dest_dir', metavar='dest.dir', help='dest Resource dir to copy')
     parser.add_argument('--work-dir', help = 'working directory. default: dest_dir')
+    parser.add_argument('--verify-filename', default = False, action = 'store_true', help = 'verify filename is composed only by lower case')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
@@ -95,6 +101,10 @@ example:
 
     src_dir  = os.path.normpath(args.src_dir)
     dest_dir = os.path.normpath(args.dest_dir)
-    pack_textures(src_dir, dest_dir, args.work_dir)
+    info("input dir = %s" % src_dir)
+    info("output dir = %s" % dest_dir)
+    info("work dir = %s" % args.work_dir)
+    info("verify filename = %s" % args.verify_filename)
+    pack_textures(src_dir, dest_dir, args.work_dir, args.verify_filename)
     copy_json(src_dir, dest_dir)
     exit(0)

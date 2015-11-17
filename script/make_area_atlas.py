@@ -3,9 +3,11 @@
 
 import os
 import sys
+import re
 import codecs
 import subprocess
 import shutil
+import argparse
 import logging
 from logging import info, warning, debug
 
@@ -16,31 +18,28 @@ def getFileNum(dir):
         i+=len(files)
     return i
 
-def makeAreaAtlas(srcFolderPath, dstFolderPath):
-    print "src:{0}".format(srcFolderPath)
-    print "dst:{0}".format(dstFolderPath)
-    print "\n"
-    topDirs = os.listdir(srcFolderPath)
-    for topDir in topDirs:
-        categoryPath = "{0}/{1}".format(srcFolderPath, topDir)
-        if not os.path.isdir(categoryPath):
+def make_area_atlas(src_dir, dest_dir, work_dir=None, verify_filename=False):
+    work_dir = work_dir or dest_dir + "/_temp"
+
+    top_dirs = os.listdir(src_dir)
+    for top_dir in top_dirs:
+        category_top_dir = os.path.join(src_dir, top_dir)
+        if not os.path.isdir(category_top_dir):
             continue
-        if topDir == "test1":
-            continue
-        categoryDirs = os.listdir(categoryPath)
-        for categoryDir in categoryDirs:
+        work_top_dir = os.path.join(work_dir, top_dir)
+        category_dirs = os.listdir(category_top_dir)
+        for category_dir in category_dirs:
             # フォルダ階層も名前に含みたいので作業フォルダにコピーしてからコンバートする
-            srcDir = "{0}/{1}/{2}".format(srcFolderPath, topDir, categoryDir)
-            if not os.path.isdir(srcDir):
+            category_src_dir = os.path.join(src_dir, top_dir, category_dir)
+            if not os.path.isdir(category_src_dir):
                 continue
 
-            workTopDir = dstFolderPath + "/_temp"
-            if os.path.isdir(workTopDir):
-                shutil.rmtree(workTopDir)
-            dstDir = workTopDir + "/" + topDir + "/" + categoryDir
-            shutil.copytree(srcDir, dstDir)
+            if os.path.exists(work_dir):
+                shutil.rmtree(work_dir)
+            work_category_dir = os.path.join(work_dir, top_dir, category_dir)
+            shutil.copytree(category_src_dir, work_category_dir)
 
-            base = "{0}/{1}/{1}_{2}".format(dstFolderPath, topDir, categoryDir)
+            base = "{0}/{1}/{1}_{2}".format(dest_dir, top_dir, category_dir)
 
             plistFile = base + "_{n}.plist"
             imageFile = base + "_{n}.png"
@@ -49,8 +48,8 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
             pvrQuality = "very-low"
             scale = "1.0"
 
-            fnum = getFileNum(workTopDir)
-            print "{0} : textures num[{1}]".format(srcDir, fnum)
+            fnum = getFileNum(work_dir)
+            print "{0} : textures num[{1}]".format(category_src_dir, fnum)
             if fnum == 0:
                 continue
 
@@ -83,7 +82,7 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
                 "--extrude", "4",
                 "--scale", scale,
                 "--scale-mode", "Smooth",
-                 workTopDir])
+                 work_dir])
 
             #現在png側をコンバートした時のplistを使っているので特に要らないファイル。が、上書きしちゃうと再ビルドの時に全部ビルドが走ってしまうらしい。。。
             plistFile = base + "_{n}.pvr.plist"
@@ -126,24 +125,33 @@ def makeAreaAtlas(srcFolderPath, dstFolderPath):
                 "--extrude", "4",
                 "--scale", scale,
                 "--scale-mode", "Smooth",
-                 workTopDir])
-
-            shutil.rmtree(workTopDir)
+                 work_dir])
 # ---
 # main function
 #
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
+    parser = argparse.ArgumentParser(description='pack area textures (PNG) by TexturePacker CLI', epilog="""\
+example:
+    $ ./make_area_atlas.py asset/area asset/texturepacker/areaAtlas""")
+
+    parser.add_argument('src_dir', metavar='src.dir', help='asset dir to be packing source')
+    parser.add_argument('dest_dir', metavar='dest.dir', help='dest Resource dir to copy')
+    parser.add_argument('--work-dir', help = 'working directory. default: dest_dir')
+    parser.add_argument('--verify-filename', default = False, action = 'store_true', help = 'verify filename is composed only by lower case')
+    parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
+    args = parser.parse_args()
     logging.basicConfig(level = "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
     if not os.path.exists('/usr/local/bin/TexturePacker'):
         warning("TexturePacker is not installed: /usr/local/bin/TexturePacker")
         exit(0)
 
-    argv = sys.argv
-    argc = len(argv)
-    if argc == 3:
-        makeAreaAtlas(argv[1], argv[2])
-    else:
-        print "python makeAreaAtlas.py {srcDir} {dstDir}"
+    src_dir  = os.path.normpath(args.src_dir)
+    dest_dir = os.path.normpath(args.dest_dir)
+    info("input dir = %s" % src_dir)
+    info("output dir = %s" % dest_dir)
+    info("work dir = %s" % args.work_dir)
+    info("verify filename = %s" % args.verify_filename)
+    make_area_atlas(src_dir, dest_dir, args.work_dir, args.verify_filename)
 
