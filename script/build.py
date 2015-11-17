@@ -639,6 +639,8 @@ class AssetBuilder():
         # webviews
         for root, envs, files in os.walk(os.path.join(build_dir, 'webview')):
             for env in envs:
+                if root != os.path.join(build_dir, 'webview'):
+                    continue
                 for sub_root, platforms, sub_files in os.walk(os.path.join(root, env)):
                     for platform in platforms:
                         webviews_json_path = os.path.join('webview', env, platform, 'webviews.json')
