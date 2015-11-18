@@ -180,7 +180,7 @@ class AssetBuilder():
         self.delete_element_bin     = self_dir+'/delete-element.py'
         self.make_atlas_bin         = self_dir+'/make_atlas.py'
         self.make_ui_atlas_bin      = self_dir+'/make_ui_atlas.py'
-        self.make_area_texture_bin  = self_dir+'/make_area_atlas.py'
+        self.make_area_atlas_bin    = self_dir+'/make_area_atlas.py'
         self.update_webviews_bin    = self_dir+'/update_webviews.py'
         
         self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
@@ -498,21 +498,23 @@ class AssetBuilder():
             return True
 
         info("build ui texture atlas: %s:" % src_dir)
+        #cmdline = [self.make_ui_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir, '--verify-filename']
         cmdline = [self.make_ui_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
 
     # create ui texture atlas by texture packer
-    def build_area_atlas(self, src_dir=None, dest_dir=None):
+    def build_area_atlas(self, src_dir=None, dest_dir=None, work_dir=None):
         src_dir  = src_dir  or self.area_texture_dir
         dest_dir = dest_dir or self.build_dir+'/areaAtlas'
+        work_dir = work_dir or self.build_dir+'/area_work'
 
         if not os.path.exists(src_dir):
             return True
 
         info("build area texture atlas: %s:" % src_dir)
-        cmdline = [self.make_area_texture_bin, src_dir, dest_dir]
+        cmdline = [self.make_area_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir, '--verify-filename']
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
