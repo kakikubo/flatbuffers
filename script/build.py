@@ -498,7 +498,8 @@ class AssetBuilder():
             return True
 
         info("build ui texture atlas: %s:" % src_dir)
-        cmdline = [self.make_ui_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir, '--verify-filename']
+        #cmdline = [self.make_ui_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir, '--verify-filename']
+        cmdline = [self.make_ui_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
