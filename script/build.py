@@ -12,8 +12,9 @@ import json
 import xlrd
 import md5
 import logging
+import subprocess
 from time import strftime
-from subprocess import check_call, check_output, call
+from subprocess import check_call, check_output, call, STDOUT
 from shutil import move, rmtree, copy2, copytree
 from glob import glob
 from logging import info, warning, debug
@@ -580,7 +581,7 @@ class AssetBuilder():
                 if not os.path.exists(os.path.dirname(dest)):
                     os.makedirs(os.path.dirname(dest))
                 if re.search('\.plist$', src):
-                    if os.path.exists(dest) and call(['diff', '-I', '<string>$TexturePacker:SmartUpdate:.*$</string>', src, dest]) == 0:
+                    if os.path.exists(dest) and call(['diff', '-I', '<string>$TexturePacker:SmartUpdate:.*$</string>', src, dest], stdout=None, stderr=STDOUT) == 0:
                         continue
                 else:   # general files
                     if call(['cmp', '--quiet', src, dest]) == 0:
