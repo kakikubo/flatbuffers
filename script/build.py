@@ -217,6 +217,8 @@ class AssetBuilder():
         self.USER_HEADER_FILE               = 'user_data_generated.h'
         self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
+        self.LOCATION_FILE_LIST             = 'location_file_list.json'
+        self.CHARACTER_FILE_LIST            = 'character_file_list.json'
         self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
         self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets'
         self.S3_INTERNAL_URL                = 's3://gree-kms-assets'
@@ -353,15 +355,16 @@ class AssetBuilder():
         return True
 
     # check master data + user data + asset
-    def verify_master_json(self, src_schema=None, src_data=None, asset_dirs=None, src_user_schema=None, src_user_data=None):
+    def verify_master_json(self, src_schema=None, src_data=None, asset_dirs=None, src_user_schema=None, src_user_data=None, dest_dir=None):
         src_schema      = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         src_data        = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         src_user_schema = self._get_exist_file((src_user_schema, self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE, self.master_user_schema_dir+'/'+self.USER_JSON_SCHEMA_FILE))
         src_user_data   = self._get_exist_file((src_user_data, self.user_data_dir+'/'+self.USER_JSON_DATA_FILE, self.master_user_data_dir+'/'+self.USER_JSON_DATA_FILE))
         asset_dirs      = asset_dirs or [self.org_main_dir, self.org_master_dir]
+        dest_dir        = dest_dir or self.build_dir
         info("verify master data: %s + %s (%s + %s)" % (os.path.basename(src_schema), os.path.basename(src_data), os.path.basename(src_user_schema), os.path.basename(src_user_data)))
 
-        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-data', src_user_data]
+        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-data', src_user_data, '--file-reference-list', dest_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -689,6 +692,8 @@ class AssetBuilder():
             (self.PROJECT_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
             (self.VERSION_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
             (self.ASSET_LIST_FILE,       self.manifest_dir, self.org_manifest_dir),
+            (self.LOCATION_FILE_LIST,    self.manifest_dir, self.org_manifest_dir),
+            (self.CHARACTER_FILE_LIST,   self.manifest_dir, self.org_manifest_dir),
         ]
         return self.install_list(list, build_dir)
 

@@ -9,13 +9,14 @@ import argparse
 import json
 import logging
 from traceback import print_exc
-from logging import info, warning, error
+from logging import info, debug, warning, error
 from collections import OrderedDict
 from subprocess import check_call
 from glob import glob
 
 # TODO areaInfo.position.id 親の areaList の id とセットで語る必要がある
-# TODO treasure.itemId -> material.id, petFood.id, keyItem.id, fish.id
+# TODO enemySpine.id -> contents/files/spine/enemySpine/{}.png, contents/files/spine/enemySpine/{}.atlas, contents/files/spine/enemySpine/{}.json
+# x characterJob.id -> contents/files/thumb/job/{}.png
 
 class MasterDataVerifier():
     def __init__(self, asset_dirs=None):
@@ -27,18 +28,27 @@ class MasterDataVerifier():
 
         self.meta_map           = None
         self.schema_map         = None
+        self.index_map          = None
         self.reference_map      = None
+        self.referenced_map     = None
         self.file_reference_map = None
         self.id_map             = None
+        self.referenced_id_map  = None
 
         self.user_meta_map           = None
         self.user_schema_map         = None
+        self.user_index_map          = None
         self.user_reference_map      = None
+        self.user_referenced_map     = None
         self.user_file_reference_map = None
         self.user_id_map             = None
+        self.user_referenced_id_map  = None
 
     def upper_camel_case(self, src):
         return src[0:1].upper() + src[1:]
+
+    def lower_camel_case(self, src):
+        return src[0:1].lower() + src[1:]
 
     def setup_data(self, schemas, data, meta_table_name):
         meta_map           = OrderedDict()
@@ -70,7 +80,9 @@ class MasterDataVerifier():
                             # file reference
                             file_ref = k.split('/')
                             if len(file_ref) > 1:
-                                file_reference_map[table][name] = k
+                                if not file_reference_map[table].has_key(name):
+                                    file_reference_map[table][name] = []
+                                file_reference_map[table][name].append(k)
                                 continue
 
                             # FIXME temporary skip  
@@ -96,20 +108,21 @@ class MasterDataVerifier():
             datum = data[meta['name']] if data.has_key(meta['name']) else data[meta['type']]
             datum = datum if isinstance(datum, list) else [datum]
             for name, sch in index_keys.iteritems():
-                id_map_key = table+'.'+name
-                id_map[id_map_key] = OrderedDict()
+                if not id_map.has_key(table):
+                    id_map[table] = OrderedDict()
+                id_map[table][name] = OrderedDict()
                 for i, d in enumerate(datum):
                     if not d.has_key(name):
                         raise KeyError("%s(%d) : %s" % (table, i, json.dumps(d)))
                     if d[name] <= 0:
                         continue
-                    if id_map[id_map_key].has_key(d[name]) and sch['attribute'].has_key('key'):
+                    if id_map[table][name].has_key(d[name]) and sch['attribute'].has_key('key'):
                         raise Exception("duplicated id: %s[%d].%s(%s)" % (table, i, name, d[name]))
-                    if not id_map[id_map_key].has_key(d[name]):
-                        id_map[id_map_key][d[name]] = []
-                    id_map[id_map_key][d[name]].append(d)
+                    if not id_map[table][name].has_key(d[name]):
+                        id_map[table][name][d[name]] = []
+                    id_map[table][name][d[name]].append(d)
 
-        return (meta_map, schema_map, reference_map, file_reference_map, id_map)
+        return (meta_map, schema_map, index_map, reference_map, file_reference_map, id_map)
 
     def load_master_data(self, src_schema_file, src_data_file):
         with open(src_schema_file, 'r') as f:
@@ -118,7 +131,7 @@ class MasterDataVerifier():
             self.master_data = json.load(f, object_pairs_hook=OrderedDict)
 
         # create schema and reference map
-        self.meta_map, self.schema_map, self.reference_map, self.file_reference_map, self.id_map = \
+        self.meta_map, self.schema_map, self.index_map, self.reference_map, self.file_reference_map, self.id_map = \
                 self.setup_data(self.master_schema, self.master_data, '_meta')
         return True
 
@@ -131,49 +144,50 @@ class MasterDataVerifier():
         for ref in refs:
             if ref[0] == 'UserDataFBS':
                 # user data reference
-                id_map_key = 'User' + self.upper_camel_case(ref[1]) + '.' + ref[2]
-                if not self.user_id_map.has_key(id_map_key):
-                    raise Exception("no reference target table: %s.%s -> %s (%s.%s.%s)" % (table, k, id_map_key, ref[0], ref[1], ref[2]))
-                id_map_keys.append(id_map_key)
+                ref_table = 'User' + self.upper_camel_case(ref[1])
+                if not self.user_id_map.has_key(ref_table) or not self.user_id_map[ref_table].has_key(ref[2]):
+                    raise Exception("no reference target table: %s.%s -> %s.%s (%s.%s.%s)" % (table, k, ref_table, ref[2], ref[0], ref[1], ref[2]))
+                id_map_keys.append([ref_table, ref[2]])
                 if d.has_key(ref[2]):
                     src_id = d[ref[2]]
             else:
                 # master data reference
-                id_map_key = ref[0]+'.'+ref[1]
-                if not self.id_map.has_key(id_map_key):
-                    raise Exception("no reference target table: %s.%s -> %s" % (table, k, id_map_key))
-                id_map_keys.append(id_map_key)
+                if not self.id_map.has_key(ref[0]) or not self.id_map[ref[0]].has_key(ref[1]):
+                    raise Exception("no reference target table: %s.%s -> %s.%s" % (table, k, ref[0], ref[1]))
+                id_map_keys.append([ref[0], ref[1]])
                 if d.has_key(ref[1]):
                     src_id = d[ref[1]]
 
         found = False
-        for id_map_key in id_map_keys:
-            ref_data = self.id_map[id_map_key] if self.id_map.has_key(id_map_key) else self.user_id_map[id_map_key]
-            if ref_data.has_key(v):
+        for ref in id_map_keys:
+            ref_data = self.id_map[ref[0]] if self.id_map.has_key(ref[0]) else self.user_id_map[ref[0]]
+            if ref_data.has_key(ref[1]) and ref_data[ref[1]].has_key(v):
                 found = True
         if not found:
-            raise Exception("no reference data: %s[%d](%s).%s -> %s(%s)" % (table, i, src_id, k, ' or '.join(id_map_keys), v))
+            keys = [key[0]+'.'+key[1] for key in id_map_keys]
+            raise Exception("no reference data: %s[%d](%s).%s -> %s(%s)" % (table, i, src_id, k, ' or '.join(keys), v))
 
         return True
 
-    def verify_file_reference(self, table, i, d, k, v, fref):
-        if fref and self.asset_dirs:
-            found = False
-            path = fref.replace('{}', str(v))
-            for dir in self.asset_dirs:
-                if os.path.exists(dir+'/'+path):
-                    found = True
-            if not found:
-                raise Exception("referenced file does not exists: %s[%d].%s -> %s (%s)" % (table, i, k, v, path))
+    def verify_file_reference(self, table, i, d, k, v, frefs):
+        if frefs and self.asset_dirs:
+            for fref in frefs:
+                found = False
+                path = fref.replace('{}', str(v))
+                for dir in self.asset_dirs:
+                    if glob(os.path.join(dir, path)):
+                        found = True
+                if not found:
+                    raise Exception("referenced file does not exists: %s[%d].%s -> %s (%s)" % (table, i, k, v, path))
         return True
 
     def verify_master_record(self, table, i, d, schema, reference, file_reference):
         for k, v in d.iteritems():
             sch  = schema[k]
             refs = reference[k] if reference and reference.has_key(k) else []
-            fref = file_reference[k] if file_reference and file_reference.has_key(k) else None
+            frefs = file_reference[k] if file_reference and file_reference.has_key(k) else None
             self.verify_reference(table, i, d, k, v, refs)
-            self.verify_file_reference(table, i, d, k, v, fref)
+            self.verify_file_reference(table, i, d, k, v, frefs)
         return True
 
     def verify_master_data(self):
@@ -216,7 +230,7 @@ class MasterDataVerifier():
             raise e
 
         # create schema and reference map
-        self.user_meta_map, self.user_schema_map, self.user_reference_map, self.user_file_reference_map, self.user_id_map = \
+        self.user_meta_map, self.user_schema_map, self.user_index_map, self.user_reference_map, self.user_file_reference_map, self.user_id_map = \
                 self.setup_data(self.user_schema, self.user_data, 'UserDataFBS')
         return True
 
@@ -273,14 +287,128 @@ class MasterDataVerifier():
                 raise
         return True
 
+    def create_referenced_map(self, reference_map):
+        # create referenced map
+        referenced_map = OrderedDict()
+        for table, ref_map in reference_map.iteritems():
+            for ref, refed_list in ref_map.iteritems():
+                for refed in refed_list:
+                    if refed[0] == 'UserDataFBS':
+                        prefix      = ''
+                        #ref_table   = 'User'+table
+                        ref_table   = table
+                        refed_table = 'User'+self.upper_camel_case(refed[1])
+                        refed_name  = refed[2]
+                        index_map   = self.user_index_map
+                    else:
+                        #prefix      = 'Master'
+                        prefix      = ''
+                        #ref_table   = 'Master'+table
+                        ref_table   = table # TODO index_map or user_index_map
+                        refed_table = self.upper_camel_case(refed[0])
+                        refed_name  = refed[1]
+                        index_map   = self.index_map
+                    if index_map.has_key(refed_table) and index_map[refed_table].has_key(refed_name):
+                        refed_table_key = prefix+refed_table
+                        if not referenced_map.has_key(refed_table_key):
+                            referenced_map[refed_table_key] = OrderedDict()
+                        if not referenced_map[refed_table_key].has_key(refed_name):
+                            referenced_map[refed_table_key][refed_name] = []
+                        referenced_map[refed_table_key][refed_name].append({ref_table: ref})
+                    elif refed_name == 'position':
+                        continue    # TODO
+                    else:
+                        raise Exception("cannot find index table: %s.%s -> %s.%s" % (ref_table, ref, refed_table, refed_name))
+                        continue
+        return referenced_map
 
-    def generate_location_reference_tree(self, location_reference_tree_file):
-        # TODO
-        #print(json.dumps(self.meta_map, indent=2))
-        #print(json.dumps(self.schema_map, indent=2))
-        #print(json.dumps(self.reference_map, indent=2))
-        #print(json.dumps(self.file_reference_map, indent=2))
-        print(json.dumps(self.id_map, indent=2))
+    def create_referenced_id_map(self, referenced_map, data, id_map):
+        referenced_id_map = OrderedDict()
+        for table, refed_map in referenced_map.iteritems():
+            referenced_id_map[table] = OrderedDict()
+            for refed, ref_list in refed_map.iteritems():
+                for ref in ref_list:
+                    for ref_table, ref_name in ref.iteritems():
+                        if not isinstance(data[self.lower_camel_case(ref_table)], list):
+                            continue
+                        for d in data[self.lower_camel_case(ref_table)]:
+                            ref_id = d[ref_name]
+                            if not id_map[table][refed].has_key(ref_id):
+                                continue
+                            refed_data = id_map[table][refed][ref_id]
+                            if not referenced_id_map[table].has_key(refed):
+                                referenced_id_map[table][refed] = OrderedDict()
+                            if not referenced_id_map[table][refed].has_key(refed):
+                                referenced_id_map[table][refed][ref_id] = []
+                            referenced_id_map[table][refed][ref_id].append({ref_table: {ref_name: d}})
+        return referenced_id_map
+
+    # TODO support user data
+    def collect_file_list(self, table, key, id, visited_map):
+        if visited_map.has_key(table) and visited_map[table].has_key(key) and visited_map[table][key].has_key(id):
+            return []
+        if not self.id_map[table].has_key(key) or not self.id_map[table][key].has_key(id):
+            return []
+        if not visited_map.has_key(table):
+            visited_map[table] = OrderedDict()
+        if not visited_map[table].has_key(key):
+            visited_map[table][key] = OrderedDict()
+        visited_map[table][key][id] = True
+
+        dest = []
+        for d in self.id_map[table][key][id]:
+            # add file reference
+            if self.file_reference_map.has_key(table):
+                for fref, paths in self.file_reference_map[table].iteritems():
+                    for path in paths:
+                        debug('file %s.%s(%d) -> %s(%s)' % (table, key, id, fref, d[fref]))
+                        for asset_dir in self.asset_dirs:
+                            for file in glob(os.path.join(asset_dir, path.replace('{}', str(d[fref])))):
+                                dest.append(re.sub('^'+asset_dir+'/', '', file))
+
+            # recursive for referenced
+            if self.referenced_id_map.has_key(table) and self.referenced_id_map[table].has_key(key) and self.referenced_id_map[table][key].has_key(id):
+                for ref in self.referenced_id_map[table][key][id]:
+                    for ref_table, ref_data in ref.iteritems():
+                        schema = self.schema_map[ref_table]
+                        for name, sch in schema.iteritems():
+                            if sch['attribute'] and sch['attribute'].has_key('key'):
+                                for ref_name, data in ref_data.iteritems():
+                                    debug('from %s.%s(%d) -> %s.%s -> %s.%s(%d)' % (table, key, id, ref_table, ref_name, ref_table, name, data[name]))
+                                    dest += self.collect_file_list(ref_table, name, data[name], visited_map)
+
+            # recursive for reference
+            if self.reference_map.has_key(table):
+                for name, refs in self.reference_map[table].iteritems():
+                    for ref in refs:
+                        debug('to %s.%s(%d) -> %s.%s(%d)' % (table, name, id, ref[0], ref[1], d[name]))
+                        dest += self.collect_file_list(ref[0], ref[1], d[name], visited_map)
+        return dest
+
+    def generate_file_reference_list(self, dest_dir):
+        self.referenced_map      = self.create_referenced_map(self.reference_map)
+        #self.user_referenced_map = self.create_referenced_map(self.user_reference_map)
+        self.referenced_id_map   = self.create_referenced_id_map(self.referenced_map, self.master_data, self.id_map)
+
+        # create referenced file list from Location
+        info("generate file reference list: location_file_list.json")
+        location_file_list = OrderedDict()
+        for d in self.master_data['location']:
+            l = self.collect_file_list('Location', 'id', d['id'], OrderedDict())
+            location_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
+        with open(os.path.join(dest_dir, 'location_file_list.json'), 'w') as f:
+            json.dump(location_file_list, f, indent=2)
+
+        # create referenced file list from Character
+        info("generate file reference list: character_file_list.json")
+        character_file_list = OrderedDict()
+        for d in self.master_data['character']:
+            l = self.collect_file_list('Character', 'id', d['id'], OrderedDict())
+            character_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
+        with open(os.path.join(dest_dir, 'character_file_list.json'), 'w') as f:
+            json.dump(character_file_list, f, indent=2)
+
+        return True
 
 # ---
 # main function
@@ -294,7 +422,7 @@ if __name__ == '__main__':
     parser.add_argument('--user-schema', help = 'input user schema file')
     parser.add_argument('--user-data', help = 'input user data json file ')
     parser.add_argument('--asset-dir', default = [], nargs='*', help = 'asset dir root default: .')
-    parser.add_argument('--location-reference-tree', help = 'generate reference tree by location')
+    parser.add_argument('--file-reference-list', help = 'output dir of referenced file lists generated')
     args = parser.parse_args()
 
     info("input master schema = %s" % args.input_master_schema)
@@ -302,13 +430,14 @@ if __name__ == '__main__':
     info("input user schema = %s", args.user_schema)
     info("input user data = %s", args.user_data)
     info("input asset dir = %s", ', '.join(args.asset_dir))
-    info("output location reference tree = %s", args.location_reference_tree)
+    info("output file reference list = %s", args.file_reference_list)
     verifier = MasterDataVerifier(args.asset_dir)
     verifier.load_master_data(args.input_master_schema, args.input_master_data)
     verifier.verify_master_data()
     if args.user_schema:
         verifier.load_user_data(args.user_schema, args.user_data)
         verifier.verify_user_data()
-    #verifier.generate_location_reference_tree(args.location_reference_tree)
+    if args.file_reference_list:
+        verifier.generate_file_reference_list(args.file_reference_list)
     info("no error is detected")
     exit(0)
