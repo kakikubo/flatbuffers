@@ -466,7 +466,7 @@ class AssetBuilder():
         return True
 
     # create weapon atlas from json
-    def build_weapon(self, src_xlsxes=None, src_weapon_dir=None, dest_dir=None):
+    def build_weapon(self, src_xlsxes=None, src_weapon_dir=None, dest_dir=None, dummy_png=None):
         src_xlsxes     = src_xlsxes     or self._get_xlsxes()
         src_weapon_dir = src_weapon_dir or self.weapon_dir
         dest_dir       = dest_dir       or self.build_dir
