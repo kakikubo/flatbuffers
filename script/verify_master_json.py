@@ -81,8 +81,9 @@ class MasterDataVerifier():
                             file_ref = k.split('/')
                             if len(file_ref) > 1:
                                 if not file_reference_map[table].has_key(name):
-                                    file_reference_map[table][name] = []
-                                file_reference_map[table][name].append(k)
+                                    file_reference_map[table][name] = {}
+                                v = True if v and v != "false" else False
+                                file_reference_map[table][name][k] = v
                                 continue
 
                             # FIXME temporary skip  
@@ -171,7 +172,9 @@ class MasterDataVerifier():
 
     def verify_file_reference(self, table, i, d, k, v, frefs):
         if frefs and self.asset_dirs:
-            for fref in frefs:
+            for fref, required in frefs.iteritems():
+                if not required:
+                    continue
                 found = False
                 path = fref.replace('{}', str(v))
                 for dir in self.asset_dirs:
@@ -360,7 +363,7 @@ class MasterDataVerifier():
             # add file reference
             if self.file_reference_map.has_key(table):
                 for fref, paths in self.file_reference_map[table].iteritems():
-                    for path in paths:
+                    for path, required in paths.iteritems():
                         debug('file %s.%s(%d) -> %s(%s)' % (table, key, id, fref, d[fref]))
                         for asset_dir in self.asset_dirs:
                             for file in glob(os.path.join(asset_dir, path.replace('{}', str(d[fref])))):
