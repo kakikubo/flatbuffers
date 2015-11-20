@@ -13,7 +13,7 @@ from shutil import copy2
 import logging
 from logging import info, warning, debug
 
-def make_weapon_atlas(master_excel, sheet_name, start_row, start_col, dest_dir, complete_png):
+def make_weapon_atlas(master_excel, sheet_name, start_row, start_col, dest_dir, complete_png, src_dir):
     book = xlrd.open_workbook(master_excel)
     sheet = book.sheet_by_name(sheet_name)
 
@@ -51,7 +51,7 @@ def make_weapon_atlas(master_excel, sheet_name, start_row, start_col, dest_dir, 
             offset_y = y - center_y - orig_y/s
             f.write(base.format(model_id, model_id, size_x, size_y, orig_x, orig_y, offset_x, offset_y))
 
-        png_path = os.path.join(dest_dir, str(model_id)+'.png')
+        png_path = os.path.join(src_dir, str(model_id)+'.png')
         if not os.path.exists(png_path):
             copy2(complete_png, png_path)
 
@@ -69,8 +69,9 @@ example:
     parser.add_argument('start_col', help='start column in target sheet')
     parser.add_argument('dest_dir', help='atlases output dir')
     parser.add_argument('--complete-png', help = 'complete png file if it does not exist')
+    parser.add_argument('--src-dir', help = 'src png dir (just with --complete-png)')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
-    make_weapon_atlas(args.master_xlsx, args.sheet_name, args.start_row, args.start_col, args.dest_dir, args.complete_png)
+    make_weapon_atlas(args.master_xlsx, args.sheet_name, args.start_row, args.start_col, args.dest_dir, args.complete_png, args.src_dir)

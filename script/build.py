@@ -484,7 +484,7 @@ class AssetBuilder():
                         os.makedirs(dest_weapon_dir)
 
                     info("build weapon atlas: %s:" % os.path.basename(xlsx))
-                    cmdline = [self.make_weapon_atlas_bin, xlsx, "weaponPosition", str(self.MASTER_DATA_ROW_START), "positionX", dest_weapon_dir, '--complete-png', dummy_png]
+                    cmdline = [self.make_weapon_atlas_bin, xlsx, "weaponPosition", str(self.MASTER_DATA_ROW_START), "positionX", dest_weapon_dir, '--complete-png', dummy_png, '--src-dir', src_weapon_dir]
                     debug(' '.join(cmdline))
                     check_call(cmdline)
         return True
