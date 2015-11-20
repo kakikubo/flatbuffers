@@ -364,9 +364,6 @@ class AssetBuilder():
         dest_dir        = dest_dir or self.build_dir
         info("verify master data: %s + %s (%s + %s)" % (os.path.basename(src_schema), os.path.basename(src_data), os.path.basename(src_user_schema), os.path.basename(src_user_data)))
 
-        if not os.path.exists(dest_dir):
-            os.makedirs(dest_dir)
-
         cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-data', src_user_data, '--file-reference-list', dest_dir]
         debug(' '.join(cmdline))
         check_call(cmdline)
