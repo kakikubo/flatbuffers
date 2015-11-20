@@ -467,15 +467,15 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += "    auto a_" + item_name + " = json_array();\n"
                     s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
                     if item_type == 'string':
-                        s += "      json_array_append(a_" + item_name + ", json_string((*it).c_str()));\n"
+                        s += "      json_array_append_new(a_" + item_name + ", json_string((*it).c_str()));\n"
                     elif item_type in ('int', 'long'):
-                        s += "      json_array_append(a_" + item_name + ", json_integer(*it));\n"
+                        s += "      json_array_append_new(a_" + item_name + ", json_integer(*it));\n"
                     elif item_type in ('float', 'double'):
-                        s += "      json_array_append(a_" + item_name + ", json_real(*it));\n"
+                        s += "      json_array_append_new(a_" + item_name + ", json_real(*it));\n"
                     elif item_type in ('bool'):
-                        s += "      json_array_append(a_" + item_name + ", json_boolean(*it));\n"
+                        s += "      json_array_append_new(a_" + item_name + ", json_boolean(*it));\n"
                     else:
-                        s += "      json_array_append(a_" + item_name + ", (*it)->toJson(false));\n"
+                        s += "      json_array_append_new(a_" + item_name + ", (*it)->toJson(false));\n"
                     s += "    }\n"
                     s += '    json_object_set_new(json, "' + item_name + '", a_' + item_name + ');\n'
                 elif item_type == 'string':
