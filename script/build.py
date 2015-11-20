@@ -178,7 +178,7 @@ class AssetBuilder():
         self.verify_master_json_bin = self_dir+'/verify_master_json.py'
         self.strip_master_json_bin  = self_dir+'/strip_master_json.py'
         self.delete_element_bin     = self_dir+'/delete-element.py'
-        self.make_atlas_bin         = self_dir+'/make_atlas.py'
+        self.make_weapon_atlas_bin  = self_dir+'/make_weapon_atlas.py'
         self.make_ui_atlas_bin      = self_dir+'/make_ui_atlas.py'
         self.make_area_atlas_bin    = self_dir+'/make_area_atlas.py'
         self.update_webviews_bin    = self_dir+'/update_webviews.py'
@@ -470,6 +470,7 @@ class AssetBuilder():
         src_xlsxes     = src_xlsxes     or self._get_xlsxes()
         src_weapon_dir = src_weapon_dir or self.weapon_dir
         dest_dir       = dest_dir       or self.build_dir
+        dummy_png      = dummy_png      or os.path.join(self.weapon_dir, 'dummy.png')
 
         if not os.path.exists(src_weapon_dir):
             return True
@@ -483,7 +484,7 @@ class AssetBuilder():
                         os.makedirs(dest_weapon_dir)
 
                     info("build weapon atlas: %s:" % os.path.basename(xlsx))
-                    cmdline = [self.make_atlas_bin, xlsx, "weaponPosition", str(self.MASTER_DATA_ROW_START), "positionX", dest_weapon_dir]
+                    cmdline = [self.make_weapon_atlas_bin, xlsx, "weaponPosition", str(self.MASTER_DATA_ROW_START), "positionX", dest_weapon_dir, '--complete-png', dummy_png]
                     debug(' '.join(cmdline))
                     check_call(cmdline)
         return True
@@ -886,15 +887,15 @@ class AssetBuilder():
         # user data
         self.build_user_class()
 
-        # verify
-        self.verify_master_json()
-
         # asset
         self.build_spine()
         self.build_weapon()
         self.build_area_atlas()
         self.build_ui_atlas()
         self.build_font()
+
+        # verify
+        self.verify_master_json()
 
         # webviews
         self.build_webviews()
