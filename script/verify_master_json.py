@@ -19,7 +19,7 @@ from glob import glob
 # x characterJob.id -> contents/files/thumb/job/{}.png
 
 class MasterDataVerifier():
-    def __init__(self, asset_dirs=None):
+    def __init__(self, asset_dirs=None, verify_file_reference=True):
         self.master_schema      = None
         self.master_data        = None
         self.user_schema        = None
@@ -43,6 +43,8 @@ class MasterDataVerifier():
         self.user_file_reference_map = None
         self.user_id_map             = None
         self.user_referenced_id_map  = None
+
+        self.do_verify_file_reference = verify_file_reference
 
     def upper_camel_case(self, src):
         return src[0:1].upper() + src[1:]
@@ -190,7 +192,8 @@ class MasterDataVerifier():
             refs = reference[k] if reference and reference.has_key(k) else []
             frefs = file_reference[k] if file_reference and file_reference.has_key(k) else None
             self.verify_reference(table, i, d, k, v, refs)
-            self.verify_file_reference(table, i, d, k, v, frefs)
+            if self.do_verify_file_reference:
+                self.verify_file_reference(table, i, d, k, v, frefs)
         return True
 
     def verify_master_data(self):
@@ -249,7 +252,8 @@ class MasterDataVerifier():
             if isinstance(v, OrderedDict) or isinstance(v, list):
                 continue    # FIXME recursive
             self.verify_reference(table, i, d, k, v, refs)
-            self.verify_file_reference(table, i, d, k, v, fref)
+            if self.do_verify_file_reference:
+                self.verify_file_reference(table, i, d, k, v, fref)
         return True
 
     def verify_user_data(self, user_data=None):
@@ -425,6 +429,7 @@ if __name__ == '__main__':
     parser.add_argument('--user-schema', help = 'input user schema file')
     parser.add_argument('--user-data', help = 'input user data json file ')
     parser.add_argument('--asset-dir', default = [], nargs='*', help = 'asset dir root default: .')
+    parser.add_argument('--verify-file-reference', default = False, action = 'store_true', help = 'verify file reference')
     parser.add_argument('--file-reference-list', help = 'output dir of referenced file lists generated')
     args = parser.parse_args()
 
@@ -433,8 +438,9 @@ if __name__ == '__main__':
     info("input user schema = %s", args.user_schema)
     info("input user data = %s", args.user_data)
     info("input asset dir = %s", ', '.join(args.asset_dir))
+    info("verify file reference = %s", args.verify_file_reference)
     info("output file reference list = %s", args.file_reference_list)
-    verifier = MasterDataVerifier(args.asset_dir)
+    verifier = MasterDataVerifier(args.asset_dir, args.verify_file_reference)
     verifier.load_master_data(args.input_master_schema, args.input_master_data)
     verifier.verify_master_data()
     if args.user_schema:

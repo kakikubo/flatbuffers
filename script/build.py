@@ -308,7 +308,7 @@ class AssetBuilder():
         cmdline = [self.xls2json_bin] + src_xlsxes + ['--schema-json', dest_schema, '--data-json', dest_data]
         if except_json:
             cmdline.append('--except-json') 
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -320,7 +320,7 @@ class AssetBuilder():
         editor_schema_json = editor_schema_json or editor_schema_default
 
         cmdline = [self.merge_editor_json_bin, master_schema_json, editor_schema_json]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -340,7 +340,7 @@ class AssetBuilder():
                     editor_files[basename] = editor_path
 
         cmdline = [self.merge_editor_json_bin, master_data_json] + editor_files.values()
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
 
     # sort master json
@@ -350,22 +350,26 @@ class AssetBuilder():
         info("sort master json: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
 
         cmdline = [self.sort_master_json_bin, src_schema, src_data, src_data]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
     # check master data + user data + asset
-    def verify_master_json(self, src_schema=None, src_data=None, asset_dirs=None, src_user_schema=None, src_user_data=None, dest_dir=None):
+    def verify_master_json(self, src_schema=None, src_data=None, asset_dirs=None, src_user_schema=None, src_user_data=None, dest_dir=None, verify_file_reference=False):
         src_schema      = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         src_data        = src_data or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
-        src_user_schema = self._get_exist_file((src_user_schema, self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE, self.master_user_schema_dir+'/'+self.USER_JSON_SCHEMA_FILE))
-        src_user_data   = self._get_exist_file((src_user_data, self.user_data_dir+'/'+self.USER_JSON_DATA_FILE, self.master_user_data_dir+'/'+self.USER_JSON_DATA_FILE))
+        src_user_schema = self._get_exist_file((src_user_schema, self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE, self.master_user_schema_dir+'/'+self.USER_JSON_SCHEMA_FILE)) if src_user_schema != False else False
+        src_user_data   = self._get_exist_file((src_user_data, self.user_data_dir+'/'+self.USER_JSON_DATA_FILE, self.master_user_data_dir+'/'+self.USER_JSON_DATA_FILE)) if src_user_data != False else False
         asset_dirs      = asset_dirs or [self.org_main_dir, self.org_master_dir]
         dest_dir        = dest_dir or self.build_dir
-        info("verify master data: %s + %s (%s + %s)" % (os.path.basename(src_schema), os.path.basename(src_data), os.path.basename(src_user_schema), os.path.basename(src_user_data)))
+        info("verify master data: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
 
-        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + ['--user-schema', src_user_schema, '--user-data', src_user_data, '--file-reference-list', dest_dir]
-        debug(' '.join(cmdline))
+        opt_verify_file_reference = ['--verify-file-reference']        if verify_file_reference else []
+        opt_user_schema           = ['--user-schema', src_user_schema] if src_user_schema else []
+        opt_user_data             = ['--user-data', src_user_data]     if src_user_data else []
+
+        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--file-reference-list', dest_dir, '--asset-dir'] + asset_dirs + opt_user_schema + opt_user_data + opt_verify_file_reference
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -378,7 +382,7 @@ class AssetBuilder():
         info("build master fbs: %s" % os.path.basename(dest_fbs))
 
         cmdline = [self.json2fbs_bin, src_json, dest_fbs, '--root-name', root_name, '--namespace', namespace]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -389,7 +393,7 @@ class AssetBuilder():
         info("build master macro: %s" % os.path.basename(dest_macro))
 
         cmdline = [self.json2macro_bin, src_json, dest_macro]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -407,7 +411,7 @@ class AssetBuilder():
             raise Exception("%s and %s must be same dir" % (dest_bin, dest_header))
 
         cmdline = [self.flatc_bin, '-c', '-b', '-o', dest_dir, src_fbs, src_json]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
 
         return self._write_md5(dest_header, dest_md5, dest_define)
@@ -427,11 +431,11 @@ class AssetBuilder():
         info("build master bundled json + bin: %s + %s" % (os.path.basename(dest_bundled_json), os.path.basename(dest_bundled_bin)))
 
         cmdline = [self.strip_master_json_bin, src_json, dest_bundled_json, src_bundled_keys]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
 
         cmdline = [self.flatc_bin, '-b', '-o', dest_dir, src_fbs, dest_bundled_json]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
 
         return True
@@ -464,7 +468,7 @@ class AssetBuilder():
 
                 info("build spine: %s:%s %s" % (os.path.basename(xlsx), sheet_name, os.path.basename(src_spine_json)))
                 cmdline = [self.delete_element_bin, xlsx, sheet_name, str(self.MASTER_DATA_ROW_START), "hasTwinTail", src_spine_json, dest_spine_dir, '--size-limit', size_limit]
-                debug(' '.join(cmdline))
+                info(' '.join(cmdline))
                 check_call(cmdline)
         return True
 
@@ -488,7 +492,7 @@ class AssetBuilder():
 
                     info("build weapon atlas: %s:" % os.path.basename(xlsx))
                     cmdline = [self.make_weapon_atlas_bin, xlsx, "weaponPosition", str(self.MASTER_DATA_ROW_START), "positionX", dest_weapon_dir, '--complete-png', dummy_png, '--src-dir', src_weapon_dir]
-                    debug(' '.join(cmdline))
+                    info(' '.join(cmdline))
                     check_call(cmdline)
         return True
 
@@ -503,7 +507,7 @@ class AssetBuilder():
 
         info("build ui texture atlas: %s:" % src_dir)
         cmdline = [self.make_ui_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir, '--verify-filename']
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -518,7 +522,7 @@ class AssetBuilder():
 
         info("build area texture atlas: %s:" % src_dir)
         cmdline = [self.make_area_atlas_bin, src_dir, dest_dir, '--work-dir', work_dir, '--verify-filename']
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -535,7 +539,7 @@ class AssetBuilder():
 
         info("build user class: %s + %s" % (os.path.basename(dest_class), os.path.basename(dest_schema)))
         cmdline = [self.fbs2class_bin, src_fbs, dest_class, dest_schema, '--namespace', namespace]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
 
         return self._write_md5(dest_class, dest_md5, dest_define)
@@ -548,7 +552,7 @@ class AssetBuilder():
         info("build user header: %s" % os.path.basename(dest_header))
 
         cmdline = [self.flatc_bin, '-c', '-o', dest_dir, src_fbs]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -559,7 +563,7 @@ class AssetBuilder():
         src_gd_dir    = src_gd_dir    or self.master_gd_dir
         dest_font_dir = dest_font_dir or self.build_dir
         cmdline = [self.json2font_bin, src_json, src_gd_dir, dest_font_dir]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -704,7 +708,7 @@ class AssetBuilder():
             return True
 
         cmdline = [self.update_webviews_bin, 'update', '--root-dir', root_dir, '--build-dir', build_dir, '--environment', env, '--skip-sync-root', '1']
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -716,7 +720,7 @@ class AssetBuilder():
             return True
         
         cmdline = [self.update_webviews_bin, 'deploy', '--root-dir', root_dir, '--build-dir', self.build_dir, '--environment', env]
-        debug(' '.join(cmdline))
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -734,16 +738,6 @@ class AssetBuilder():
         with open(dest_list_file, 'w') as f:
             json.dump(asset_list, f, indent=2)
         os.chmod(dest_list_file, 0664)
-        return True
-
-    def deploy_git_repo(self):
-        if not self.is_master or not self.git_dir:
-            return
-
-        info("deploy to git repo: %s -> %s" % (self.main_dir, self.git_dir))
-        cmdline = ['rsync', '-ac', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
-        info(' '.join(cmdline))
-        check_call(cmdline)
         return True
 
     # create manifest json from
@@ -769,8 +763,18 @@ class AssetBuilder():
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
                    self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
         if keep_ref_entries:
-          cmdline.append('--keep-ref-entries')
-        debug(' '.join(cmdline))
+            cmdline.append('--keep-ref-entries')
+        info(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    def deploy_git_repo(self):
+        if not self.is_master or not self.git_dir:
+            return
+
+        info("deploy to git repo: %s -> %s" % (self.main_dir, self.git_dir))
+        cmdline = ['rsync', '-ac', '--exclude', '.DS_Store', '--exclude', '.git', '--delete', self.main_dir+'/', self.git_dir]
+        info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
@@ -891,15 +895,15 @@ class AssetBuilder():
         # user data
         self.build_user_class()
 
+        # verify
+        self.verify_master_json()
+
         # asset
         self.build_spine()
         self.build_weapon()
         self.build_area_atlas()
         self.build_ui_atlas()
         self.build_font()
-
-        # verify
-        self.verify_master_json()
 
         # webviews
         self.build_webviews()
@@ -908,6 +912,9 @@ class AssetBuilder():
         self.install_generated()
         self.install_texture()
         self.build_asset_list()
+        self.verify_master_json(src_user_schema = False, src_user_data = False, verify_file_reference = True)
+
+        # setup to deploy
         self.deploy_git_repo() # FIXME can move to deploy?
         self.build_manifest()
         self.install_manifest()
