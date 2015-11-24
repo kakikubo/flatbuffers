@@ -916,7 +916,6 @@ class AssetBuilder():
         self.verify_master_json(src_user_schema = False, src_user_data = False, verify_file_reference = True)
 
         # setup to deploy
-        self.deploy_git_repo() # FIXME can move to deploy?
         self.build_manifest()
         self.install_manifest()
 
@@ -924,6 +923,7 @@ class AssetBuilder():
 
     # deploy to cdn
     def deploy(self):
+        self.deploy_git_repo()
         self.deploy_dev_cdn()
         self.deploy_s3_cdn()
         self.deploy_webviews()
