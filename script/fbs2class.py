@@ -37,6 +37,7 @@ def parse_default(line):
     global fbs_data
     global fbs_root_type
     global fbs_namespace
+    line = re.sub('\/\/.*', '', line)   # cut comment
     m = re.search('namespace\s+([^;]+);', line)
     if m != None:
         fbs_namespace = m.group(1)
