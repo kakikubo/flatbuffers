@@ -19,7 +19,7 @@ class ManifestGenerator():
                  remote_dir_asset, local_asset_search_path, 
                  filter_fnmatch_path, location_list_path, character_list_path, ui_list_path,
                  reference_manifest_path, keep_ref_entries):
-        self.version = version,
+        self.version = version
         self.url_project_manifest = url_project_manifest
         self.url_version_manifest = url_version_manifest
         self.url_asset = url_asset
