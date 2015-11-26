@@ -188,7 +188,7 @@ class ManifestGenerator():
     def create_project_manifest(self, version_manifest):
         manifest = version_manifest
 
-        filter_list = ext_list = None
+        filter_list = ext_list = location_list = character_list = ui_list = None
         if self.filter_fnmatch_path:
             filter_list, ext_list, location_list, character_list, ui_list = self.load_filter_list(self.filter_fnmatch_path)
         if location_list and self.location_list_path:
@@ -237,6 +237,8 @@ example:
 
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
+    info("output project.manifest = %s" % args.dst_file_project_manifest)
+    info("output version.manifest = %s" % args.dst_file_version_manifest)
     info("version = %s" % args.version)
     info("url project.manifest = %s" % args.url_project_manifest)
     info("url version.manifest = %s" % args.url_version_manifest)

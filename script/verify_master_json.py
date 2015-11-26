@@ -415,6 +415,15 @@ class MasterDataVerifier():
         with open(os.path.join(dest_dir, 'character_file_list.json'), 'w') as f:
             json.dump(character_file_list, f, indent=2)
 
+        # create referenced file list from LayoutLoader
+        info("generate file reference list: ui_file_list.json")
+        ui_file_list = OrderedDict()
+        for d in self.master_data['layoutLoader']:
+            l = self.collect_file_list('LayoutLoader', 'id', d['id'], OrderedDict())
+            ui_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
+        with open(os.path.join(dest_dir, 'ui_file_list.json'), 'w') as f:
+            json.dump(ui_file_list, f, indent=2)
+
         return True
 
 # ---

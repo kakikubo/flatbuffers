@@ -113,6 +113,7 @@ class AssetBuilder():
         self.master_data_dir       = self.main_dir+'/master_derivatives'
         self.master_fbs_dir        = self.main_dir+'/master_derivatives'
         self.master_bin_dir        = self.main_dir+'/contents/master'
+        self.manifest_bin_dir      = self.main_dir+'/contents/manifests'
         self.master_header_dir     = self.main_dir+'/master_header'
         self.user_class_dir        = self.main_dir+'/user_header'
         self.user_schema_dir       = self.main_dir+'/user_derivatives'
@@ -135,6 +136,7 @@ class AssetBuilder():
         self.org_master_data_dir   = self.org_main_dir+'/master_derivatives'
         self.org_master_fbs_dir    = self.org_main_dir+'/master_derivatives'
         self.org_master_bin_dir    = self.org_main_dir+'/contents/master'
+        self.org_manifest_bin_dir  = self.org_main_dir+'/contents/manifests'
         self.org_master_header_dir = self.org_main_dir+'/master_header'
         self.org_user_class_dir    = self.org_main_dir+'/user_header'
         self.org_user_schema_dir   = self.org_main_dir+'/user_derivatives'
@@ -166,8 +168,10 @@ class AssetBuilder():
         self.master_gd_dir            = self.master_dir+'/glyph_designer'
         self.master_user_schema_dir   = self.master_dir+'/user_derivatives'
         self.master_user_data_dir     = self.master_dir+'/user_data'
+        self.master_distribution_dir  = self.master_dir+"/distribution"
 
-        self.manifest_bin           = self_dir+'/manifest_generate.py'
+        self.manifest_generate_bin  = self_dir+'/manifest_generate.py'
+        self.manifest_queue_bin     = self_dir+'/manifest_queue.py'
         self.xls2json_bin           = self_dir+'/master_data_xls2json.py'
         self.json2fbs_bin           = self_dir+'/json2fbs.py'
         self.json2macro_bin         = self_dir+'/json2macro.py'
@@ -220,6 +224,7 @@ class AssetBuilder():
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
         self.LOCATION_FILE_LIST             = 'location_file_list.json'
         self.CHARACTER_FILE_LIST            = 'character_file_list.json'
+        self.UI_FILE_LIST                   = 'ui_file_list.json'
         self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
         self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets'
         self.S3_INTERNAL_URL                = 's3://gree-kms-assets'
@@ -692,13 +697,20 @@ class AssetBuilder():
                     copy2(src, dest)
 
     def install_manifest(self, build_dir=None):
+        build_dir = build_dir or self.build_dir
         list = [
             (self.PROJECT_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
             (self.VERSION_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
             (self.ASSET_LIST_FILE,       self.manifest_dir, self.org_manifest_dir),
             (self.LOCATION_FILE_LIST,    self.manifest_dir, self.org_manifest_dir),
             (self.CHARACTER_FILE_LIST,   self.manifest_dir, self.org_manifest_dir),
+            (self.UI_FILE_LIST,          self.manifest_dir, self.org_manifest_dir),
         ]
+        phase_manifests  = glob(build_dir+'/'+self.PROJECT_MANIFEST_FILE+'.*')
+        phase_manifests += glob(build_dir+'/'+self.VERSION_MANIFEST_FILE+'.*')
+        for manifest_path in phase_manifests:
+            manifest_path = re.sub('^'+build_dir+'/', '', manifest_path)
+            list.append((manifest_path, self.manifest_bin_dir, self.org_manifest_bin_dir))
         return self.install_list(list, build_dir)
 
     def build_webviews(self, root_dir=None, build_dir=None, env=None):
@@ -742,7 +754,7 @@ class AssetBuilder():
         return True
 
     # create manifest json from
-    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None):
+    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None, filter_file=None, location_list=None, character_list=None, ui_list=None):
         asset_version           = asset_version or self.asset_version
         dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
         dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
@@ -751,20 +763,45 @@ class AssetBuilder():
         url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
         url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
         if self.is_master:
-            reference_manifest    = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
-            keep_ref_entries      = False
+            reference_manifest = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
+            keep_ref_entries   = False
         else:
-            reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-            keep_ref_entries      = True
+            reference_manifest = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
+            keep_ref_entries   = True
 
         info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
         info("reference manifest: %s" % reference_manifest)
+        info("filter file: %s" % filter_file)
 
-        cmdline = [self.manifest_bin, dest_project_manifest, dest_version_manifest,
+        cmdline = [self.manifest_generate_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
                    self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
         if keep_ref_entries:
             cmdline.append('--keep-ref-entries')
+        if filter_file:
+            location_list  = location_list  or self.build_dir+'/'+self.LOCATION_FILE_LIST
+            character_list = character_list or self.build_dir+'/'+self.CHARACTER_FILE_LIST
+            ui_list        = ui_list        or self.build_dir+'/'+self.UI_FILE_LIST
+            cmdline += ['--filter', filter_file, '--location-list', location_list, '--character-list', character_list, '--ui-list', ui_list]
+
+        info(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    def build_manifest_queue(self, src_dir=None, dest_dir=None):
+        src_dir  = src_dir  or self.master_distribution_dir
+        dest_dir = dest_dir or self.build_dir
+
+        manifest_paths = []
+        for filter_file in glob(src_dir+'/phase_*.list'):
+            m = re.match('phase_([0-9]+).list', os.path.basename(filter_file))
+            dest_project_manifest = os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE+'.'+m.group(1))
+            dest_version_manifest = os.path.join(dest_dir, self.VERSION_MANIFEST_FILE+'.'+m.group(1))
+            self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, filter_file = filter_file)
+            manifest_paths.append(dest_project_manifest)
+        manifest_paths.append(os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE))
+
+        cmdline = [self.manifest_queue_bin, '--dest-dir', dest_dir, '--remote-dir', self.remote_dir_asset] + manifest_paths
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -917,6 +954,7 @@ class AssetBuilder():
 
         # setup to deploy
         self.build_manifest()
+        self.build_manifest_queue()
         self.install_manifest()
 
         return True
