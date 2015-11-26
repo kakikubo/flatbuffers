@@ -24,15 +24,30 @@ def load_filter_list(filter_fnmatch_path):
             l = l.strip()
             if not l:
                 continue
-            m1 = re.match('\s*D\s+(.*)', l)
-            m2 = re.match('\s*EXT\s+(.*)', l)
-            m3 = re.match('\s*([^\s]+)\s+([^\s]+)', l)
+            m1 = re.match('^\s*D\s+(.*)', l)
+            m2 = re.match('^\s*EXT\s+(.*)', l)
+            m3 = re.match('^\s*LOCATION\s+(.*)', l)
+            m4 = re.match('^\s*CHRACTER\s+(.*)', l)
+            m5 = re.match('^\s*UI\s+(.*)', l)
+            m6 = re.match('^\s*INCLUDE\s+(.*)', l)
+            m7 = re.match('^\s*([^\s]+)\s+([^\s]+)', l)
             if m1:
                 cleanup_list.append(os.path.normpath(m1.group(1)))
             elif m2:
                 ext_list = re.split('\s+', m2.group(1))
-            elif m3:
-                rename_list.append((os.path.normpath(m3.group(1)), os.path.normpath(m3.group(2))))
+            elif m3 or m4 or m5:
+                info("skip command: %s" % l)
+            elif m6:
+                include_path = m6.group(1)
+                if include_path[0] != '/':
+                    include_path = os.path.join(os.path.dirname(filter_fnmatch_path), include_path)
+                in_filter_list, in_rename_list, in_cleanup_list, in_ext_list = load_filter_list(include_path)
+                filter_list  += in_filter_list
+                rename_list  += in_rename_list
+                cleanup_list += in_cleanup_list
+                ext_list     += in_ext_list
+            elif m7:
+                rename_list.append((os.path.normpath(m7.group(1)), os.path.normpath(m7.group(2))))
             else:
                 filter_list.append(os.path.normpath(l))
     return (filter_list, rename_list, cleanup_list, ext_list)

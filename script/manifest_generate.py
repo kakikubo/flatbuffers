@@ -140,6 +140,7 @@ class ManifestGenerator():
             m3 = re.match('^\s*CHRACTER\s+(.*)', l)
             m4 = re.match('^\s*UI\s+(.*)', l)
             m5 = re.match('^\s*INCLUDE\s+(.*)', l)
+            m6 = re.match('^\s*([^\s]+)\s+([^\s]+)', l)
             if m1: # extension
                 if ext_list:
                     raise Exception("extension list must appear just 1 line in filter file: %s" % l)
@@ -160,11 +161,12 @@ class ManifestGenerator():
                 location_list  += in_location_list
                 character_list += in_character_list
                 ui_list        += in_ui_list
+            elif m6: # rename
+                info("skip command: %s" % l)
             else: # real file path
-                for path in re.split('\s+', l):
-                    if path[0] != '/':
-                        path = os.path.join(self.local_asset_search_path, path)
-                    filter_list.append(os.path.normpath(path))
+                if l != '/':
+                    l = os.path.join(self.local_asset_search_path, l)
+                filter_list.append(os.path.normpath(l))
         return (filter_list, ext_list, location_list, character_list, ui_list)
 
     def expand_filter_list(self, expand_list, expand_file):
