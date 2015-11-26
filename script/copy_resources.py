@@ -27,7 +27,7 @@ def load_filter_list(filter_fnmatch_path):
             m1 = re.match('^\s*D\s+(.*)', l)
             m2 = re.match('^\s*EXT\s+(.*)', l)
             m3 = re.match('^\s*LOCATION\s+(.*)', l)
-            m4 = re.match('^\s*CHRACTER\s+(.*)', l)
+            m4 = re.match('^\s*CHARACTER\s+(.*)', l)
             m5 = re.match('^\s*UI\s+(.*)', l)
             m6 = re.match('^\s*INCLUDE\s+(.*)', l)
             m7 = re.match('^\s*([^\s]+)\s+([^\s]+)', l)

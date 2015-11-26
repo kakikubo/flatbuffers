@@ -137,7 +137,7 @@ class ManifestGenerator():
                 continue
             m1 = re.match('^\s*EXT\s+(.*)', l)
             m2 = re.match('^\s*LOCATION\s+(.*)', l)
-            m3 = re.match('^\s*CHRACTER\s+(.*)', l)
+            m3 = re.match('^\s*CHARACTER\s+(.*)', l)
             m4 = re.match('^\s*UI\s+(.*)', l)
             m5 = re.match('^\s*INCLUDE\s+(.*)', l)
             m6 = re.match('^\s*([^\s]+)\s+([^\s]+)', l)
@@ -182,6 +182,7 @@ class ManifestGenerator():
                         l = l.replace('contents/', '') # FIXME
                         l = os.path.join(self.local_asset_search_path, l)
                     filter_list.append(os.path.normpath(l))
+        debug("expand_filter_list: %s: %s" % (expand_file, json.dumps(filter_list, indent=2)))
         return filter_list
 
     def create_project_manifest(self, version_manifest):
@@ -190,11 +191,11 @@ class ManifestGenerator():
         filter_list = ext_list = None
         if self.filter_fnmatch_path:
             filter_list, ext_list, location_list, character_list, ui_list = self.load_filter_list(self.filter_fnmatch_path)
-        if filter_list and location_list and self.location_list_path:
+        if location_list and self.location_list_path:
             filter_list += self.expand_filter_list(location_list, self.location_list_path)
-        if filter_list and character_list and self.character_list_path:
+        if character_list and self.character_list_path:
             filter_list += self.expand_filter_list(character_list, self.character_list_path)
-        if filter_list and ui_list and self.ui_list_path:
+        if ui_list and self.ui_list_path:
             filter_list += self.expand_filter_list(ui_list, self.ui_list_path)
         debug("filter_list: "+json.dumps(filter_list, indent=2))
 
