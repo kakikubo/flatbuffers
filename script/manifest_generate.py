@@ -121,7 +121,12 @@ class ManifestGenerator():
         return manifest
 
     def load_filter_list(self, filter_fnmatch_path):
-        filter_list = ext_list = location_list = character_list = ui_list = []
+        debug("load filter list: %s", filter_fnmatch_path)
+        filter_list = []
+        ext_list = []
+        location_list = []
+        character_list = []
+        ui_list = []
         with open(filter_fnmatch_path, 'r') as f:
             lines = f.readlines()
         for i, l in enumerate(lines):
@@ -134,6 +139,7 @@ class ManifestGenerator():
             m2 = re.match('^\s*LOCATION\s+(.*)', l)
             m3 = re.match('^\s*CHRACTER\s+(.*)', l)
             m4 = re.match('^\s*UI\s+(.*)', l)
+            m5 = re.match('^\s*INCLUDE\s+(.*)', l)
             if m1: # extension
                 if ext_list:
                     raise Exception("extension list must appear just 1 line in filter file: %s" % l)
@@ -143,11 +149,22 @@ class ManifestGenerator():
             elif m3: # character
                 character_list += re.split('\s+', m3.group(1))
             elif m4: # ui
-                character_list += re.split('\s+', m4.group(1))
+                ui_list += re.split('\s+', m4.group(1))
+            elif m5: # include
+                include_path = m5.group(1)
+                if include_path[0] != '/':
+                    include_path = os.path.join(os.path.dirname(filter_fnmatch_path), include_path)
+                in_filter_list, in_ext_list, in_location_list, in_character_list, in_ui_list = self.load_filter_list(include_path)
+                filter_list    += in_filter_list
+                ext_list       += in_ext_list
+                location_list  += in_location_list
+                character_list += in_character_list
+                ui_list        += in_ui_list
             else: # real file path
-                if l[0] != '/':
-                    l = os.path.join(self.local_asset_search_path, l)
-                filter_list.append(os.path.normpath(l))
+                for path in re.split('\s+', l):
+                    if path[0] != '/':
+                        path = os.path.join(self.local_asset_search_path, path)
+                    filter_list.append(os.path.normpath(path))
         return (filter_list, ext_list, location_list, character_list, ui_list)
 
     def expand_filter_list(self, expand_list, expand_file):
@@ -163,7 +180,6 @@ class ManifestGenerator():
                         l = l.replace('contents/', '') # FIXME
                         l = os.path.join(self.local_asset_search_path, l)
                     filter_list.append(os.path.normpath(l))
-        info(json.dumps(filter_list, indent=2))
         return filter_list
 
     def create_project_manifest(self, version_manifest):
@@ -178,6 +194,7 @@ class ManifestGenerator():
             filter_list += self.expand_filter_list(character_list, self.character_list_path)
         if filter_list and ui_list and self.ui_list_path:
             filter_list += self.expand_filter_list(ui_list, self.ui_list_path)
+        debug("filter_list: "+json.dumps(filter_list, indent=2))
 
         assets = self.create_asset_list(self.remote_dir_asset, filter_list, ext_list)
         if self.reference_manifest_path:
@@ -238,12 +255,12 @@ example:
     version_manifest = generator.create_version_manifest()
     with open(args.dst_file_version_manifest, 'w') as f:
         json.dump(version_manifest, f, sort_keys=True, indent=2)
-    info(json.dumps(version_manifest, indent=2))
+    debug(json.dumps(version_manifest, indent=2))
 
     # project.manifest
     project_manifest = generator.create_project_manifest(version_manifest)
     with open(args.dst_file_project_manifest, 'w') as f:
         json.dump(project_manifest, f, sort_keys=True, indent=2)
-    info(json.dumps(project_manifest, indent=2))
+    debug(json.dumps(project_manifest, indent=2))
 
     exit(0)
