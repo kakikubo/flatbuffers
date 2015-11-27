@@ -178,7 +178,7 @@ class MasterDataVerifier():
                 if not required:
                     continue
                 found = False
-                path = fref.replace('{}', str(v))
+                path = self.complete_file_path(fref, v, d)
                 for dir in self.asset_dirs:
                     if glob(os.path.join(dir, path)):
                         found = True
@@ -350,6 +350,16 @@ class MasterDataVerifier():
                             referenced_id_map[table][refed][ref_id].append({ref_table: {ref_name: d}})
         return referenced_id_map
 
+    def complete_file_path(self, path, v, d):
+        path = path.replace('{}', str(v))
+        m = re.search('\{([^}]+)\}', path)
+        if m:
+            for k in m.groups():
+                if not d.has_key(k):
+                    raise Exception("invalid path string: %s: %s" % (k, path))
+                path = path.replace('{'+k+'}', str(d[k]))
+        return path
+
     # TODO support user data
     def collect_file_list(self, table, key, id, visited_map):
         if visited_map.has_key(table) and visited_map[table].has_key(key) and visited_map[table][key].has_key(id):
@@ -368,9 +378,11 @@ class MasterDataVerifier():
             if self.file_reference_map.has_key(table):
                 for fref, paths in self.file_reference_map[table].iteritems():
                     for path, required in paths.iteritems():
-                        debug('file %s.%s(%d) -> %s(%s)' % (table, key, id, fref, d[fref]))
+                        debug('file %s.%s(%d) -> %s(%s): %s' % (table, key, id, fref, d[fref], path))
                         for asset_dir in self.asset_dirs:
-                            for file in glob(os.path.join(asset_dir, path.replace('{}', str(d[fref])))):
+                            glob_path = os.path.join(asset_dir, self.complete_file_path(path, d[fref], d))
+                            debug("glob: %s" % glob_path)
+                            for file in glob(glob_path):
                                 dest.append(re.sub('^'+asset_dir+'/', '', file))
 
             # recursive for referenced
@@ -430,9 +442,10 @@ class MasterDataVerifier():
 # main function
 #
 if __name__ == '__main__':
-    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
-
     parser = argparse.ArgumentParser(description = 'verify master data json')
+    parser = argparse.ArgumentParser(description='verify master data and default user data, and generate file reference list', epilog="""\
+example:
+    $ ./verify_master_json.py master_derivatives/master_schema.json master_derivatives/master_data.json --file-reference-list manifests --asset-dir kms_master_asset kms_master_asset --user-schema user_derivatives/user_schema.json --user-data user_data/default.json --verify-file-reference""")
     parser.add_argument('input_master_schema', metavar = 'input.master_schema', help = 'input master data schema json file')
     parser.add_argument('input_master_data',   metavar = 'input.master_data',   help = 'input master data json file')
     parser.add_argument('--user-schema', help = 'input user schema file')
@@ -440,7 +453,10 @@ if __name__ == '__main__':
     parser.add_argument('--asset-dir', default = [], nargs='*', help = 'asset dir root default: .')
     parser.add_argument('--verify-file-reference', default = False, action = 'store_true', help = 'verify file reference')
     parser.add_argument('--file-reference-list', help = 'output dir of referenced file lists generated')
+    parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
+
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
     info("input master schema = %s" % args.input_master_schema)
     info("input master data = %s" % args.input_master_data)
