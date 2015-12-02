@@ -380,6 +380,24 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += '    if (target == "' + item["item_type"] + '") return "' + item_name + '";\n'
             s += '    return "";\n'
             s += "  }\n"
+            s += "  const char* getHashKey(const std::string& target) {\n"
+            for item_name, item in table.iteritems():
+                if item["is_vector"]:
+                  s += '    if (target == "' + item["item_type"] + '" && _' + item_name + '.size() > 0) return _' + item_name + '.at(0)->hashKey();\n'
+                else:
+                  s += '    if (target == "' + item["item_type"] + '") return _' + item_name + '->hashKey();\n'
+            s += '    return "";\n'
+            s += "  }\n"
+            s += "  const char* getRangeKey(const std::string& target) {\n"
+            for item_name, item in table.iteritems():
+                if not "range_key" in table_property[item["item_type"]]:
+                    continue
+                if item["is_vector"]:
+                  s += '    if (target == "' + item["item_type"] + '" && _' + item_name + '.size() > 0) return _' + item_name + '.at(0)->rangeKey();\n'
+                else:
+                  s += '    if (target == "' + item["item_type"] + '") return _' + item_name + '->rangeKey();\n'
+            s += '    return "";\n'
+            s += "  }\n"
             s += "  std::vector<int> collectRangeKey(const std::string& target) {\n"
             s += '    std::vector<int> rangeKeys;\n'
             for item_name, item in table.iteritems():
