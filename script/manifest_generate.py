@@ -12,7 +12,7 @@ from collections import OrderedDict
 import logging
 from logging import info, warning, debug
 
-ENGINE_VERSION = 'Cocos2d-x v3.8'
+ENGINE_VERSION = 'Cocos2d-x v3.9'
 
 class ManifestGenerator():
     def __init__(self, version, url_project_manifest, url_version_manifest, url_asset,
