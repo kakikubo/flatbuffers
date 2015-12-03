@@ -801,7 +801,7 @@ class AssetBuilder():
             manifest_paths.append(dest_project_manifest)
         manifest_paths.append(os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE))
 
-        cmdline = [self.manifest_queue_bin, '--dest-dir', dest_dir, '--remote-dir', self.remote_dir_asset] + manifest_paths
+        cmdline = [self.manifest_queue_bin, '--dest-dir', dest_dir, '--remote-dir', self.remote_dir_asset+'/manifests'] + manifest_paths
         info(' '.join(cmdline))
         check_call(cmdline)
         return True

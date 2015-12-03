@@ -11,9 +11,9 @@ import logging
 from logging import info, warning, debug
 
 class ManifestQueue():
-    def __init__(self, dest_dir, remote_dir_asset):
+    def __init__(self, dest_dir, remote_dir_manifests):
         self.dest_dir = dest_dir
-        self.remote_dir_asset = remote_dir_asset
+        self.remote_dir_manifests = remote_dir_manifests
 
     def normalize(self, manifest_paths):
         # create file reference list from fist manifest
@@ -42,7 +42,7 @@ class ManifestQueue():
         # add all following manifests to first manifest
         for i, manifest_path in enumerate(manifest_paths[1:]):
             entry = os.path.join('manifests', os.path.basename(manifest_path))
-            path  = os.path.join(self.remote_dir_asset, 'manifests', os.path.basename(manifest_path))
+            path  = os.path.join(self.remote_dir_manifests, os.path.basename(manifest_path))
             j     = json.dumps(manifests[i+1], indent=2)
             md5   = hashlib.md5(j).hexdigest()
             asset = OrderedDict([('md5', md5), ('path', path)])
@@ -63,12 +63,14 @@ example:
 
     parser.add_argument('manifests', default = [], nargs='*', help='input manifests')
     parser.add_argument('--dest-dir', required=True, help = 'dest dir')
-    parser.add_argument('--remote-dir', required=True, help = 'remote dir asset')
+    parser.add_argument('--remote-dir', required=True, help = 'remote dir manifests')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
     info("manifests: %s" % ', '.join(args.manifests))
+    info("output dir: %s" % args.dest_dir)
+    info("remote dir of manifests: %s" % args.remote_dir)
     queue = ManifestQueue(args.dest_dir, args.remote_dir)
 
     # project.manifest
