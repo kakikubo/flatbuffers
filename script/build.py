@@ -866,7 +866,7 @@ class AssetBuilder():
         info("deploy to dev cdn: %s" % self.main_dir+'/contents/')
         check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
         check_call(['chmod', '775', dest_dir+'/contents'])
-        info("deploy to dev cdn: manifests: %s", % ', '.join(manifests))
+        info("deploy to dev cdn: manifests: %s" % ', '.join(manifests))
         check_call(rsync + manifests + [dest_dir+'/'])
         info("deploy to dev cdn: %s" % asset_list_file)
         check_call(rsync + [asset_list_file, self.cdn_dir+'/'])
