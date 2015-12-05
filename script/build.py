@@ -803,8 +803,8 @@ class AssetBuilder():
             manifest_paths.append(dest_project_manifest)
 
         # last one (all-in-one)
-        dest_project_manifest = os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE+'.'+(len(phase_list)+1))
-        dest_version_manifest = os.path.join(dest_dir, self.VERSION_MANIFEST_FILE+'.'+(len(phase_list)+1))
+        dest_project_manifest = os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE+'.'+str(len(phase_list)+1))
+        dest_version_manifest = os.path.join(dest_dir, self.VERSION_MANIFEST_FILE+'.'+str(len(phase_list)+1))
         self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest)
         manifest_paths.append(dest_project_manifest)
 
