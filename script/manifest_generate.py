@@ -193,10 +193,13 @@ class ManifestGenerator():
             filter_list, ext_list, location_list, character_list, ui_list = self.load_filter_list(self.filter_fnmatch_path)
         if location_list and self.location_list_path:
             filter_list += self.expand_filter_list(location_list, self.location_list_path)
+            manifest['locations'] = location_list
         if character_list and self.character_list_path:
             filter_list += self.expand_filter_list(character_list, self.character_list_path)
+            manifest['characters'] = character_list
         if ui_list and self.ui_list_path:
             filter_list += self.expand_filter_list(ui_list, self.ui_list_path)
+            manifest['uis'] = ui_list
         debug("filter_list: "+json.dumps(filter_list, indent=2))
 
         assets = self.create_asset_list(self.remote_dir_asset, filter_list, ext_list)

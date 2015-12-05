@@ -791,16 +791,24 @@ class AssetBuilder():
     def build_manifest_queue(self, src_dir=None, dest_dir=None):
         src_dir  = src_dir  or self.master_distribution_dir
         dest_dir = dest_dir or self.build_dir
-
         manifest_paths = []
-        for filter_file in glob(src_dir+'/phase_*.list'):
+
+        # create phased manifests
+        phase_list = glob(src_dir+'/phase_*.list')
+        for filter_file in phase_list:
             m = re.match('phase_([0-9]+).list', os.path.basename(filter_file))
             dest_project_manifest = os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE+'.'+m.group(1))
             dest_version_manifest = os.path.join(dest_dir, self.VERSION_MANIFEST_FILE+'.'+m.group(1))
             self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, filter_file = filter_file)
             manifest_paths.append(dest_project_manifest)
-        manifest_paths.append(os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE))
 
+        # last one (all-in-one)
+        dest_project_manifest = os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE+'.'+(len(phase_list)+1))
+        dest_version_manifest = os.path.join(dest_dir, self.VERSION_MANIFEST_FILE+'.'+(len(phase_list)+1))
+        self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest)
+        manifest_paths.append(dest_project_manifest)
+
+        # build manifest queue
         cmdline = [self.manifest_queue_bin, '--dest-dir', dest_dir, '--remote-dir', self.remote_dir_asset+'/manifests'] + manifest_paths
         info(' '.join(cmdline))
         check_call(cmdline)
