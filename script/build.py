@@ -108,51 +108,51 @@ class AssetBuilder():
         info("git-dir = %s", self.git_dir)
         info("remote-dir-asset = %s", self.remote_dir_asset)
 
-        self.manifest_dir          = self.main_dir+'/manifests'
-        self.master_schema_dir     = self.main_dir+'/master_derivatives'
-        self.master_data_dir       = self.main_dir+'/master_derivatives'
-        self.master_fbs_dir        = self.main_dir+'/master_derivatives'
-        self.master_bin_dir        = self.main_dir+'/contents/master'
-        self.manifest_bin_dir      = self.main_dir+'/contents/manifests'
-        self.master_header_dir     = self.main_dir+'/master_header'
-        self.user_class_dir        = self.main_dir+'/user_header'
-        self.user_schema_dir       = self.main_dir+'/user_derivatives'
-        self.user_header_dir       = self.main_dir+'/user_header'
-        self.files_dir             = self.main_dir+'/contents/files'
-        self.user_data_dir         = self.main_dir+'/user_data'
-        self.spine_dir             = self.main_dir+'/contents/files/spine'
-        self.font_dir              = self.main_dir+'/contents/files/font'
-        self.weapon_dir            = self.main_dir+'/contents/files/weapon'
-        self.files_ui_dir          = self.main_dir+'/contents/files/ui'
-        self.area_texture_dir      = self.main_dir+'/area'
-        self.ui_dir                = self.main_dir+'/ui'
-        self.texturepacker_dir     = self.main_dir+'/texturepacker'
-        self.imesta_dir            = self.main_dir+'/imesta'
-        self.distribution_dir      = self.main_dir+'/distribution'
-        self.webview_dir           = self.main_dir+'/webview'
+        self.manifest_dir           = self.main_dir+'/manifests'
+        self.master_schema_dir      = self.main_dir+'/master_derivatives'
+        self.master_data_dir        = self.main_dir+'/master_derivatives'
+        self.master_fbs_dir         = self.main_dir+'/master_derivatives'
+        self.master_bin_dir         = self.main_dir+'/contents/master'
+        self.manifest_phase_dir     = self.main_dir+'/contents/manifests'
+        self.master_header_dir      = self.main_dir+'/master_header'
+        self.user_class_dir         = self.main_dir+'/user_header'
+        self.user_schema_dir        = self.main_dir+'/user_derivatives'
+        self.user_header_dir        = self.main_dir+'/user_header'
+        self.files_dir              = self.main_dir+'/contents/files'
+        self.user_data_dir          = self.main_dir+'/user_data'
+        self.spine_dir              = self.main_dir+'/contents/files/spine'
+        self.font_dir               = self.main_dir+'/contents/files/font'
+        self.weapon_dir             = self.main_dir+'/contents/files/weapon'
+        self.files_ui_dir           = self.main_dir+'/contents/files/ui'
+        self.area_texture_dir       = self.main_dir+'/area'
+        self.ui_dir                 = self.main_dir+'/ui'
+        self.texturepacker_dir      = self.main_dir+'/texturepacker'
+        self.imesta_dir             = self.main_dir+'/imesta'
+        self.distribution_dir       = self.main_dir+'/distribution'
+        self.webview_dir            = self.main_dir+'/webview'
 
-        self.org_manifest_dir      = self.org_main_dir+'/manifests'
-        self.org_master_schema_dir = self.org_main_dir+'/master_derivatives'
-        self.org_master_data_dir   = self.org_main_dir+'/master_derivatives'
-        self.org_master_fbs_dir    = self.org_main_dir+'/master_derivatives'
-        self.org_master_bin_dir    = self.org_main_dir+'/contents/master'
-        self.org_manifest_bin_dir  = self.org_main_dir+'/contents/manifests'
-        self.org_master_header_dir = self.org_main_dir+'/master_header'
-        self.org_user_class_dir    = self.org_main_dir+'/user_header'
-        self.org_user_schema_dir   = self.org_main_dir+'/user_derivatives'
-        self.org_user_header_dir   = self.org_main_dir+'/user_header'
-        self.org_files_dir         = self.org_main_dir+'/contents/files'
-        self.org_user_data_dir     = self.org_main_dir+'/user_data'
-        self.org_spine_dir         = self.org_main_dir+'/contents/files/spine'
-        self.org_font_dir          = self.org_main_dir+'/contents/files/font'
-        self.org_weapon_dir        = self.org_main_dir+'/contents/files/weapon'
-        self.org_files_ui_dir      = self.org_main_dir+'/contents/files/ui'
-        self.org_area_texture_dir  = self.org_main_dir+'/area'
-        self.org_ui_dir            = self.org_main_dir+'/ui'
-        self.org_texturepacker_dir = self.org_main_dir+'/texturepacker'
-        self.org_imesta_dir        = self.org_main_dir+'/imesta'
-        self.org_distribution_dir  = self.org_main_dir+'/distribution'
-        self.org_webview_dir       = self.org_main_dir+'/webview'
+        self.org_manifest_dir       = self.org_main_dir+'/manifests'
+        self.org_master_schema_dir  = self.org_main_dir+'/master_derivatives'
+        self.org_master_data_dir    = self.org_main_dir+'/master_derivatives'
+        self.org_master_fbs_dir     = self.org_main_dir+'/master_derivatives'
+        self.org_master_bin_dir     = self.org_main_dir+'/contents/master'
+        self.org_manifest_phase_dir = self.org_main_dir+'/contents/manifests'
+        self.org_master_header_dir  = self.org_main_dir+'/master_header'
+        self.org_user_class_dir     = self.org_main_dir+'/user_header'
+        self.org_user_schema_dir    = self.org_main_dir+'/user_derivatives'
+        self.org_user_header_dir    = self.org_main_dir+'/user_header'
+        self.org_files_dir          = self.org_main_dir+'/contents/files'
+        self.org_user_data_dir      = self.org_main_dir+'/user_data'
+        self.org_spine_dir          = self.org_main_dir+'/contents/files/spine'
+        self.org_font_dir           = self.org_main_dir+'/contents/files/font'
+        self.org_weapon_dir         = self.org_main_dir+'/contents/files/weapon'
+        self.org_files_ui_dir       = self.org_main_dir+'/contents/files/ui'
+        self.org_area_texture_dir   = self.org_main_dir+'/area'
+        self.org_ui_dir             = self.org_main_dir+'/ui'
+        self.org_texturepacker_dir  = self.org_main_dir+'/texturepacker'
+        self.org_imesta_dir         = self.org_main_dir+'/imesta'
+        self.org_distribution_dir   = self.org_main_dir+'/distribution'
+        self.org_webview_dir        = self.org_main_dir+'/webview'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -188,8 +188,9 @@ class AssetBuilder():
         self.make_area_atlas_bin    = self_dir+'/make_area_atlas.py'
         self.update_webviews_bin    = self_dir+'/update_webviews.py'
         
-        self.PROJECT_MANIFEST_FILE          = 'dev.project.manifest'
-        self.VERSION_MANIFEST_FILE          = 'dev.version.manifest'
+        self.PROJECT_MANIFEST_FILE          = 'project.manifest'
+        self.VERSION_MANIFEST_FILE          = 'version.manifest'
+        self.PHASE_MANIFEST_FILE            = 'phase.manifest'
         self.REFERENCE_MANIFEST_FILE        = 'dev.reference.manifest'
         self.ASSET_LIST_FILE                = 'dev.asset_list.json'
         self.MASTER_JSON_SCHEMA_FILE        = 'master_schema.json'
@@ -698,6 +699,7 @@ class AssetBuilder():
 
     def install_manifest(self, build_dir=None):
         build_dir = build_dir or self.build_dir
+        # TODO obsoleted all-in-one manifest
         list = [
             (self.PROJECT_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
             (self.VERSION_MANIFEST_FILE, self.manifest_dir, self.org_manifest_dir),
@@ -706,11 +708,14 @@ class AssetBuilder():
             (self.CHARACTER_FILE_LIST,   self.manifest_dir, self.org_manifest_dir),
             (self.UI_FILE_LIST,          self.manifest_dir, self.org_manifest_dir),
         ]
-        phase_manifests  = glob(build_dir+'/'+self.PROJECT_MANIFEST_FILE+'.*')
-        phase_manifests += glob(build_dir+'/'+self.VERSION_MANIFEST_FILE+'.*')
-        for manifest_path in phase_manifests:
+        phased_manifests  = glob(build_dir+'/'+self.PROJECT_MANIFEST_FILE+'.*')
+        phased_manifests += glob(build_dir+'/'+self.VERSION_MANIFEST_FILE+'.*')
+        for manifest_path in phased_manifests:
             manifest_path = re.sub('^'+build_dir+'/', '', manifest_path)
-            list.append((manifest_path, self.manifest_bin_dir, self.org_manifest_bin_dir))
+            list.append((manifest_path, self.manifest_dir, self.org_manifest_dir))
+        for manifest_path in glob(build_dir+'/'+self.PHASE_MANIFEST_FILE+'.*'):
+            manifest_path = re.sub('^'+build_dir+'/', '', manifest_path)
+            list.append((manifest_path, self.manifest_phase_dir, self.org_manifest_phase_dir))
         return self.install_list(list, build_dir)
 
     def build_webviews(self, root_dir=None, build_dir=None, env=None):
@@ -754,14 +759,13 @@ class AssetBuilder():
         return True
 
     # create manifest json from
-    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None, filter_file=None, location_list=None, character_list=None, ui_list=None):
+    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None, url_project_manifest=None, url_version_manifest=None, filter_file=None, location_list=None, character_list=None, ui_list=None):
         asset_version           = asset_version or self.asset_version
         dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
         dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
+        url_project_manifest    = url_project_manifest or self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
+        url_version_manifest    = url_version_manifest or self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
         url_asset               = self.DEV_CDN_URL+'/'
-        
-        url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
-        url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
         if self.is_master:
             reference_manifest = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
             keep_ref_entries   = False
@@ -788,28 +792,35 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
-    def build_manifest_queue(self, src_dir=None, dest_dir=None):
-        src_dir  = src_dir  or self.master_distribution_dir
-        dest_dir = dest_dir or self.build_dir
+    def build_manifest_queue(self, src_dir=None, project_dir=None, phase_dir=None):
+        src_dir     = src_dir     or self.master_distribution_dir
+        project_dir = project_dir or self.build_dir
+        phase_dir   = phase_dir   or self.build_dir
         manifest_paths = []
 
         # create phased manifests
         phase_list = glob(src_dir+'/phase_*.list')
         for filter_file in phase_list:
             m = re.match('phase_([0-9]+).list', os.path.basename(filter_file))
-            dest_project_manifest = os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE+'.'+m.group(1))
-            dest_version_manifest = os.path.join(dest_dir, self.VERSION_MANIFEST_FILE+'.'+m.group(1))
-            self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, filter_file = filter_file)
+            phase = m.group(1)
+            dest_project_manifest = os.path.join(project_dir, self.PROJECT_MANIFEST_FILE+'.'+phase)
+            dest_version_manifest = os.path.join(project_dir, self.VERSION_MANIFEST_FILE+'.'+phase)
+            url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE+'.'+phase
+            url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE+'.'+phase
+            self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, url_project_manifest = url_project_manifest, url_version_manifest = url_version_manifest, filter_file = filter_file)
             manifest_paths.append(dest_project_manifest)
 
         # last one (all-in-one)
-        dest_project_manifest = os.path.join(dest_dir, self.PROJECT_MANIFEST_FILE+'.'+str(len(phase_list)+1))
-        dest_version_manifest = os.path.join(dest_dir, self.VERSION_MANIFEST_FILE+'.'+str(len(phase_list)+1))
-        self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest)
+        phase = str(len(phase_list)+1)
+        dest_project_manifest = os.path.join(project_dir, self.PROJECT_MANIFEST_FILE+'.'+phase)
+        dest_version_manifest = os.path.join(project_dir, self.VERSION_MANIFEST_FILE+'.'+phase)
+        url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE+'.'+phase
+        url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE+'.'+phase
+        self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, url_project_manifest = url_project_manifest, url_version_manifest = url_version_manifest)
         manifest_paths.append(dest_project_manifest)
 
         # build manifest queue
-        cmdline = [self.manifest_queue_bin, '--dest-dir', dest_dir, '--remote-dir', self.remote_dir_asset+'/manifests'] + manifest_paths
+        cmdline = [self.manifest_queue_bin, '--project-dir', project_dir, '--phase-dir', phase_dir, '--remote-dir', self.remote_dir_asset+'/manifests'] + manifest_paths
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -829,23 +840,11 @@ class AssetBuilder():
         version_file    = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
         asset_list_file = self.build_dir+'/'+self.ASSET_LIST_FILE
 
-        with open(project_file, 'r') as f:
-            manifest = json.load(f, object_pairs_hook=OrderedDict)
-        assets = manifest.get('assets')
-        keep_files = []
-        for key, asset in assets.iteritems():
-            path = asset.get('path')
-            if path == self.remote_dir_asset+"/"+key:
-                keep_files.append(path)
-        for root, dirs, files in os.walk(self.main_dir+'/contents'):
-            for file in files:
-                key = root.replace(self.main_dir+'/contents', self.remote_dir_asset)+'/'+file
-                if not key in keep_files:
-                    info("except from cdn: %s" % key)
-                    os.remove(root+'/'+file)
-
-        for manifest_file in (project_file, version_file):
-            with open(manifest_file, 'r+') as f:
+        manifests = [project_file, version_file]
+        manifests += glob(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE+'*')
+        manifests += glob(self.build_dir+'/'+self.VERSION_MANIFEST_FILE+'*')
+        for manifest_path in manifests:
+            with open(manifest_path, 'r+') as f:
                 manifest = json.load(f, object_pairs_hook=OrderedDict)
                 manifest["version"] += " "+self.timestamp
                 f.seek(0)
@@ -864,12 +863,12 @@ class AssetBuilder():
 
         check_call("find " + self.main_dir+'/contents' + " -type f -print | xargs chmod 664", shell=True)
         check_call("find " + self.main_dir+'/contents' + " -type d -print | xargs chmod 775", shell=True)
-        info("deploy %s" % self.main_dir+'/contents/')
+        info("deploy to dev cdn: %s" % self.main_dir+'/contents/')
         check_call(rsync + ['--delete', self.main_dir+'/contents/', dest_dir+'/contents'])
         check_call(['chmod', '775', dest_dir+'/contents'])
-        info("deploy %s + %s" % (project_file, version_file))
-        check_call(rsync + [project_file, version_file, dest_dir+'/'])
-        info("deploy %s" % asset_list_file)
+        info("deploy to dev cdn: manifests: %s", % ', '.join(manifests))
+        check_call(rsync + manifests + [dest_dir+'/'])
+        info("deploy to dev cdn: %s" % asset_list_file)
         check_call(rsync + [asset_list_file, self.cdn_dir+'/'])
         info("deploy to dev cdn: done")
         return True
@@ -883,10 +882,14 @@ class AssetBuilder():
         version_file    = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
         asset_list_file = self.build_dir+'/'+self.ASSET_LIST_FILE
 
-        for manifest_file in (project_file, version_file):
-            with open(manifest_file, 'r+') as f:
+        manifests = [project_file, version_file]
+        manifests += glob(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE+'*')
+        manifests += glob(self.build_dir+'/'+self.VERSION_MANIFEST_FILE+'*')
+        for manifest_path in manifests:
+            with open(manifest_path, 'r+') as f:
                 manifest = json.load(f, object_pairs_hook=OrderedDict)
                 prevUrl = manifest["packageUrl"]
+                #manifest["version"] += " "+self.timestamp
                 manifest["packageUrl"] = self.S3_CDN_URL+'/'
                 manifest["remoteManifestUrl"] = re.sub('^'+prevUrl, self.S3_CDN_URL+'/', manifest["remoteManifestUrl"])
                 manifest["remoteVersionUrl"]  = re.sub('^'+prevUrl, self.S3_CDN_URL+'/', manifest["remoteVersionUrl"])
@@ -898,13 +901,12 @@ class AssetBuilder():
 
         aws_s3 = ['aws', 's3']
         s3_internal_url = self.S3_INTERNAL_URL+'/'+self.asset_version_dir
-        info("deploy %s" % self.main_dir+'/contents/')
+        info("deploy to s3: %s" % self.main_dir+'/contents/')
         check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/contents/', s3_internal_url+'/contents'])
-        info("deploy %s" % project_file)
-        check_call(aws_s3 + ['cp', project_file, s3_internal_url+'/'])
-        info("deploy %s" % version_file)
-        check_call(aws_s3 + ['cp', version_file, s3_internal_url+'/'])
-        info("deploy %s" % asset_list_file)
+        for manifest in manifests:
+          info("deploy to s3: %s" % manifest)
+          check_call(aws_s3 + ['cp', manifest, s3_internal_url+'/'])
+        info("deploy to s3: %s" % asset_list_file)
         check_call(aws_s3 + ['cp', asset_list_file, self.S3_INTERNAL_URL+'/'])
         info("deploy to s3 cdn: done")
         return True
