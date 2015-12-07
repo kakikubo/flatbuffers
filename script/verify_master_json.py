@@ -214,8 +214,6 @@ class MasterDataVerifier():
                 print('=======================')
                 print('   MASTER DATA ERROR   ')
                 print('=======================')
-                print_exc()
-                print('=======================')
                 raise
         return True
 
