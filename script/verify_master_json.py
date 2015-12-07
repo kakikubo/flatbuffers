@@ -345,7 +345,7 @@ class MasterDataVerifier():
                             refed_data = id_map[table][refed][ref_id]
                             if not referenced_id_map[table].has_key(refed):
                                 referenced_id_map[table][refed] = OrderedDict()
-                            if not referenced_id_map[table][refed].has_key(refed):
+                            if not referenced_id_map[table][refed].has_key(ref_id):
                                 referenced_id_map[table][refed][ref_id] = []
                             referenced_id_map[table][refed][ref_id].append({ref_table: {ref_name: d}})
         return referenced_id_map
