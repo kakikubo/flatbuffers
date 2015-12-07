@@ -836,13 +836,13 @@ class AssetBuilder():
         return True
 
     def deploy_dev_cdn(self):
-        project_file    = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
-        version_file    = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
-        asset_list_file = self.build_dir+'/'+self.ASSET_LIST_FILE
+        #FIXME dev.project.manifest and dev.version.manifest are deprecated 
+        copy2(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE, self.build_dir+'/dev.project.manifest')
+        copy2(self.build_dir+'/'+self.VERSION_MANIFEST_FILE, self.build_dir+'/dev.version.manifest')
 
-        manifests = [project_file, version_file]
-        manifests += glob(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE+'*')
+        manifests  = glob(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE+'*')
         manifests += glob(self.build_dir+'/'+self.VERSION_MANIFEST_FILE+'*')
+        manifests += [self.build_dir+'/dev.project.manifest', self.build_dir+'/dev.version.manifest']
         for manifest_path in manifests:
             with open(manifest_path, 'r+') as f:
                 manifest = json.load(f, object_pairs_hook=OrderedDict)
@@ -868,8 +868,8 @@ class AssetBuilder():
         check_call(['chmod', '775', dest_dir+'/contents'])
         info("deploy to dev cdn: manifests: %s" % ', '.join(manifests))
         check_call(rsync + manifests + [dest_dir+'/'])
-        info("deploy to dev cdn: %s" % asset_list_file)
-        check_call(rsync + [asset_list_file, self.cdn_dir+'/'])
+        info("deploy to dev cdn: %s" % self.ASSET_LIST_FILE)
+        check_call(rsync + [self.build_dir+'/'+self.ASSET_LIST_FILE, self.cdn_dir+'/'])
         info("deploy to dev cdn: done")
         return True
 
@@ -878,13 +878,9 @@ class AssetBuilder():
             warning("aws credentials file is not found. skip deploy to s3")
             return False
 
-        project_file    = self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
-        version_file    = self.build_dir+'/'+self.VERSION_MANIFEST_FILE
-        asset_list_file = self.build_dir+'/'+self.ASSET_LIST_FILE
-
-        manifests = [project_file, version_file]
-        manifests += glob(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE+'*')
+        manifests  = glob(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE+'*')
         manifests += glob(self.build_dir+'/'+self.VERSION_MANIFEST_FILE+'*')
+        manifests += [self.build_dir+'/dev.project.manifest', self.build_dir+'/dev.version.manifest']
         for manifest_path in manifests:
             with open(manifest_path, 'r+') as f:
                 manifest = json.load(f, object_pairs_hook=OrderedDict)
@@ -904,10 +900,10 @@ class AssetBuilder():
         info("deploy to s3: %s" % self.main_dir+'/contents/')
         check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/contents/', s3_internal_url+'/contents'])
         for manifest in manifests:
-          info("deploy to s3: %s" % manifest)
-          check_call(aws_s3 + ['cp', manifest, s3_internal_url+'/'])
-        info("deploy to s3: %s" % asset_list_file)
-        check_call(aws_s3 + ['cp', asset_list_file, self.S3_INTERNAL_URL+'/'])
+            info("deploy to s3: %s" % os.path.basename(manifest))
+            check_call(aws_s3 + ['cp', manifest, s3_internal_url+'/'])
+        info("deploy to s3: %s" % self.ASSET_LIST_FILE)
+        check_call(aws_s3 + ['cp', self.build_dir+'/'+self.ASSET_LIST_FILE, self.S3_INTERNAL_URL+'/'])
         info("deploy to s3 cdn: done")
         return True
 
