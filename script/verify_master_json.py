@@ -359,7 +359,7 @@ class MasterDataVerifier():
         return path
 
     # TODO support user data
-    def collect_file_list(self, table, key, id, visited_map):
+    def collect_file_list(self, table, key, id, root_id, septums, is_septum, visited_map):
         if visited_map.has_key(table) and visited_map[table].has_key(key) and visited_map[table][key].has_key(id):
             return []
         if not self.id_map[table].has_key(key) or not self.id_map[table][key].has_key(id):
@@ -376,42 +376,51 @@ class MasterDataVerifier():
             if self.file_reference_map.has_key(table):
                 for fref, paths in self.file_reference_map[table].iteritems():
                     for path, required in paths.iteritems():
-                        debug('file %s.%s(%d) -> %s(%s): %s' % (table, key, id, fref, d[fref], path))
+                        debug('%d: file %s.%s(%d) -> %s(%s): %s' % (root_id, table, key, id, fref, d[fref], path))
                         for asset_dir in self.asset_dirs:
                             glob_path = os.path.join(asset_dir, self.complete_file_path(path, d[fref], d))
-                            debug("glob: %s" % glob_path)
+                            debug("%d: glob: %s" % (root_id, glob_path))
                             for file in glob(glob_path):
                                 dest.append(re.sub('^'+asset_dir+'/', '', file))
+            if is_septum:
+                continue
 
             # recursive for referenced
             if self.referenced_id_map.has_key(table) and self.referenced_id_map[table].has_key(key) and self.referenced_id_map[table][key].has_key(id):
                 for ref in self.referenced_id_map[table][key][id]:
                     for ref_table, ref_data in ref.iteritems():
+                        is_septum = ref_table in septums
                         schema = self.schema_map[ref_table]
                         for name, sch in schema.iteritems():
                             if sch['attribute'] and sch['attribute'].has_key('key'):
                                 for ref_name, data in ref_data.iteritems():
-                                    debug('from %s.%s(%d) -> %s.%s -> %s.%s(%d)' % (table, key, id, ref_table, ref_name, ref_table, name, data[name]))
-                                    dest += self.collect_file_list(ref_table, name, data[name], visited_map)
+                                    debug('%d: from %s.%s(%d) -> %s.%s -> %s.%s(%d): %s' % (root_id, table, key, id, ref_table, ref_name, ref_table, name, data[name], is_septum))
+                                    dest += self.collect_file_list(ref_table, name, data[name], root_id, septums, is_septum, visited_map)
 
             # recursive for reference
             if self.reference_map.has_key(table):
                 for name, refs in self.reference_map[table].iteritems():
                     for ref in refs:
-                        debug('to %s.%s(%d) -> %s.%s(%d)' % (table, name, id, ref[0], ref[1], d[name]))
-                        dest += self.collect_file_list(ref[0], ref[1], d[name], visited_map)
+                        is_septum = ref[0] in septums
+                        debug('%d: to %s(%d).%s -> %s.%s(%d): %s' % (root_id, table, id, name, ref[0], ref[1], d[name], is_septum))
+                        dest += self.collect_file_list(ref[0], ref[1], d[name], root_id, septums, is_septum, visited_map)
         return dest
 
     def generate_file_reference_list(self, dest_dir):
         self.referenced_map      = self.create_referenced_map(self.reference_map)
         #self.user_referenced_map = self.create_referenced_map(self.user_reference_map)
         self.referenced_id_map   = self.create_referenced_id_map(self.referenced_map, self.master_data, self.id_map)
+        septums = []
+        for sheet in self.master_data['sheet']:
+            if sheet['referenceSeptum']:
+                septums.append(self.upper_camel_case(sheet['name']))
+        info("reference septums: %s" % ', '.join(septums))
 
         # create referenced file list from Location
         info("generate file reference list: location_file_list.json")
         location_file_list = OrderedDict()
         for d in self.master_data['location']:
-            l = self.collect_file_list('Location', 'id', d['id'], OrderedDict())
+            l = self.collect_file_list('Location', 'id', d['id'], d['id'], septums, False, OrderedDict())
             location_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
         with open(os.path.join(dest_dir, 'location_file_list.json'), 'w') as f:
             json.dump(location_file_list, f, indent=2)
@@ -420,7 +429,7 @@ class MasterDataVerifier():
         info("generate file reference list: character_file_list.json")
         character_file_list = OrderedDict()
         for d in self.master_data['character']:
-            l = self.collect_file_list('Character', 'id', d['id'], OrderedDict())
+            l = self.collect_file_list('Character', 'id', d['id'], d['id'], septums, False, OrderedDict())
             character_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
         with open(os.path.join(dest_dir, 'character_file_list.json'), 'w') as f:
             json.dump(character_file_list, f, indent=2)
@@ -429,7 +438,7 @@ class MasterDataVerifier():
         info("generate file reference list: ui_file_list.json")
         ui_file_list = OrderedDict()
         for d in self.master_data['layoutLoader']:
-            l = self.collect_file_list('LayoutLoader', 'id', d['id'], OrderedDict())
+            l = self.collect_file_list('LayoutLoader', 'id', d['id'], d['id'], septums, False, OrderedDict())
             ui_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
         with open(os.path.join(dest_dir, 'ui_file_list.json'), 'w') as f:
             json.dump(ui_file_list, f, indent=2)
