@@ -881,7 +881,8 @@ class AssetBuilder():
         manifests  = glob(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE+'*')
         manifests += glob(self.build_dir+'/'+self.VERSION_MANIFEST_FILE+'*')
         manifests += [self.build_dir+'/dev.project.manifest', self.build_dir+'/dev.version.manifest']
-        for manifest_path in manifests:
+        phase_manifests = glob(build_dir+'/'+self.PHASE_MANIFEST_FILE+'.*'):
+        for manifest_path in manifests + phase_manifests:
             with open(manifest_path, 'r+') as f:
                 manifest = json.load(f, object_pairs_hook=OrderedDict)
                 prevUrl = manifest["packageUrl"]
@@ -902,6 +903,9 @@ class AssetBuilder():
         for manifest in manifests:
             info("deploy to s3: %s" % os.path.basename(manifest))
             check_call(aws_s3 + ['cp', manifest, s3_internal_url+'/'])
+        for manifest in phase_manifests:
+            info("deploy to s3: %s" % os.path.basename(manifest))
+            check_call(aws_s3 + ['cp', manifest, s3_internal_url+'/contents/manifests/'])
         info("deploy to s3: %s" % self.ASSET_LIST_FILE)
         check_call(aws_s3 + ['cp', self.build_dir+'/'+self.ASSET_LIST_FILE, self.S3_INTERNAL_URL+'/'])
         info("deploy to s3 cdn: done")
