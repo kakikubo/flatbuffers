@@ -66,7 +66,9 @@ class ManifestQueue():
             size = 0;
             if self.real_asset_dir:
                 for key, asset in manifests[i]['assets'].iteritems():
-                    size += os.path.getsize(os.path.join(self.real_asset_dir, key))
+                    path = os.path.join(self.real_asset_dir, key)
+                    if os.path.exists(path):
+                        size += os.path.getsize(path)
             info("output %i: %s (%dMB)" % (i, dest_path, size/1024/1024))
             with open(dest_path, 'w') as f:
                 json.dump(manifests[i], f, indent=2)
