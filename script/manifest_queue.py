@@ -12,10 +12,11 @@ import logging
 from logging import info, warning, debug
 
 class ManifestQueue():
-    def __init__(self, project_dir, phase_dir, remote_dir_manifests):
+    def __init__(self, project_dir, phase_dir, remote_dir_manifests, real_asset_dir):
         self.project_dir = project_dir
         self.phase_dir = phase_dir
         self.remote_dir_manifests = remote_dir_manifests
+        self.real_asset_dir = real_asset_dir
 
     def normalize(self, manifest_paths):
         # create file reference list from fist manifest
@@ -59,11 +60,20 @@ class ManifestQueue():
             manifests[0]['assets'][entry] = asset
 
         # write project.manifests
+        total = 0;
         for i, manifest_path in enumerate(manifest_paths):
             dest_path = os.path.join(self.project_dir, os.path.basename(manifest_path))
-            info("output %i: %s" % (i, dest_path))
+            size = 0;
+            if self.real_asset_dir:
+                for key, asset in manifests[i]['assets'].iteritems():
+                    size += os.path.getsize(os.path.join(self.real_asset_dir, key))
+            info("output %i: %s (%dMB)" % (i, dest_path, size/1024/1024))
             with open(dest_path, 'w') as f:
                 json.dump(manifests[i], f, indent=2)
+            total += size
+
+        if total > 0:
+            info("total asset size = %dMB" % (total/1024/1024))
         return True
 
 if __name__ == '__main__':
@@ -75,6 +85,7 @@ example:
     parser.add_argument('--project-dir', required=True, help = 'output project.manifest dir')
     parser.add_argument('--phase-dir', required=True, help = 'output phase.manifest dir')
     parser.add_argument('--remote-dir', required=True, help = 'remote dir manifests')
+    parser.add_argument('--asset-dir', required=True, help = 'real asset root path (to use calcurate data size)')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
@@ -83,7 +94,8 @@ example:
     info("output project.manifest dir: %s" % args.project_dir)
     info("output phase.manifest dir: %s" % args.phase_dir)
     info("remote dir of manifests: %s" % args.remote_dir)
-    queue = ManifestQueue(args.project_dir, args.phase_dir, args.remote_dir)
+    info("real asset root dir: %s" % args.asset_dir)
+    queue = ManifestQueue(args.project_dir, args.phase_dir, args.remote_dir, args.asset_dir)
 
     # project.manifest
     queue.normalize(args.manifests)
