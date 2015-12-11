@@ -823,7 +823,7 @@ class AssetBuilder():
         manifest_paths.append(dest_project_manifest)
 
         # build manifest queue
-        cmdline = [self.manifest_queue_bin, '--project-dir', project_dir, '--phase-dir', phase_dir, '--remote-dir', self.remote_dir_asset+'/manifests'] + manifest_paths
+        cmdline = [self.manifest_queue_bin, '--project-dir', project_dir, '--phase-dir', phase_dir, '--remote-dir', self.remote_dir_asset+'/manifests', '--asset-dir', self.main_dir+'/contents'] + manifest_paths
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
