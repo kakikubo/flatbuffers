@@ -454,9 +454,12 @@ class AssetBuilder():
         dest_dir      = dest_dir      or self.build_dir
 
         config = [
-            ['characterSpine', '300:550'],
-            ['npcSpine',       '450:550'],
-            ['snpcSpine',      '350:550']
+            #['characterSpine', '300:550'],
+            #['npcSpine',       '450:550'],
+            #['snpcSpine',      '350:550']
+            ['characterSpine', '0:2000'],
+            ['npcSpine',       '0:2000'],
+            ['snpcSpine',      '0:2000']
         ]
         for xlsx in self._get_xlsxes():
             sheets = self._get_xlsx_sheets(xlsx)
@@ -881,7 +884,7 @@ class AssetBuilder():
         manifests  = glob(self.build_dir+'/'+self.PROJECT_MANIFEST_FILE+'*')
         manifests += glob(self.build_dir+'/'+self.VERSION_MANIFEST_FILE+'*')
         manifests += [self.build_dir+'/dev.project.manifest', self.build_dir+'/dev.version.manifest']
-        phase_manifests = glob(build_dir+'/'+self.PHASE_MANIFEST_FILE+'.*'):
+        phase_manifests = glob(self.build_dir+'/'+self.PHASE_MANIFEST_FILE+'.*')
         for manifest_path in manifests + phase_manifests:
             with open(manifest_path, 'r+') as f:
                 manifest = json.load(f, object_pairs_hook=OrderedDict)
