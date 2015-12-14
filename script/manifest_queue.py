@@ -40,7 +40,6 @@ class ManifestQueue():
                 if queue_assign_map[key] == i:
                     assets[key] = asset
             manifest['assets'] = assets
-            info("output %d = %d" % (i, len(manifest['assets'])))
 
         # add and write phase manifests
         for i, manifest_path in enumerate(manifest_paths):
@@ -49,7 +48,7 @@ class ManifestQueue():
             remote_path = os.path.join(self.remote_dir_manifests, 'phase.manifest'+ext)
             phase_manifest = copy(manifests[i])
             phase_manifest['assets'] = {}
-            info("output %i: %s" % (i, dest_path))
+            info("output %i: %s" % (i+1, dest_path))
             with open(dest_path, 'w') as f:
                 json.dump(phase_manifest, f, indent=2)
 
@@ -69,7 +68,7 @@ class ManifestQueue():
                     path = os.path.join(self.real_asset_dir, key)
                     if os.path.exists(path):
                         size += os.path.getsize(path)
-            info("output %i: %s (%dMB)" % (i, dest_path, size/1024/1024))
+            info("output %i: %s (%d:%dMB)" % (i+1, dest_path, len(manifests[i]['assets']), size/1024/1024))
             with open(dest_path, 'w') as f:
                 json.dump(manifests[i], f, indent=2)
             total += size
