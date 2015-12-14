@@ -139,8 +139,15 @@ class MasterDataVerifier():
         return True
 
     def verify_reference(self, table, i, d, k, v, refs):
-        if not refs or int(v) <= 0:
+        if not refs
             return False
+        try:
+            int_v = int(v)
+            if int_v <= 0:
+                return False
+        except:
+            if not v:
+                return False
 
         src_id = None
         id_map_keys = []
