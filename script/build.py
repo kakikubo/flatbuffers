@@ -771,10 +771,12 @@ class AssetBuilder():
         url_asset               = self.DEV_CDN_URL+'/'
         if self.is_master:
             reference_manifest = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
-            keep_ref_entries   = False
+            keep_ref_entries   = []
+            validate_filter    = ['--validate-filter']
         else:
             reference_manifest = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
-            keep_ref_entries   = True
+            keep_ref_entries   = ['--keep-ref-entries']
+            validate_filter    = []
 
         info("build manifest: %s + %s" % (os.path.basename(dest_project_manifest), os.path.basename(dest_version_manifest)))
         info("reference manifest: %s" % reference_manifest)
@@ -782,9 +784,7 @@ class AssetBuilder():
 
         cmdline = [self.manifest_generate_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
-                   self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest]
-        if keep_ref_entries:
-            cmdline.append('--keep-ref-entries')
+                   self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest] + keep_ref_entries + validate_filter
         if filter_file:
             location_list  = location_list  or self.build_dir+'/'+self.LOCATION_FILE_LIST
             character_list = character_list or self.build_dir+'/'+self.CHARACTER_FILE_LIST

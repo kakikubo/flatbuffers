@@ -17,7 +17,8 @@ ENGINE_VERSION = 'Cocos2d-x v3.9'
 class ManifestGenerator():
     def __init__(self, version, url_project_manifest, url_version_manifest, url_asset,
                  remote_dir_asset, local_asset_search_path, 
-                 filter_fnmatch_path, location_list_path, character_list_path, ui_list_path,
+                 filter_fnmatch_path, validate_filter,
+                 location_list_path, character_list_path, ui_list_path,
                  reference_manifest_path, keep_ref_entries):
         self.version = version
         self.url_project_manifest = url_project_manifest
@@ -29,6 +30,7 @@ class ManifestGenerator():
         self.character_list_path = character_list_path
         self.ui_list_path = ui_list_path
         self.filter_fnmatch_path = filter_fnmatch_path
+        self.validate_filter = validate_filter
         self.reference_manifest_path = reference_manifest_path
         self.keep_ref_entries = keep_ref_entries
 
@@ -54,7 +56,7 @@ class ManifestGenerator():
         else:
             for l in filter_list:
                 filtered = fnmatch.filter(walk_files, l)
-                if not filtered:
+                if not filtered and self.validate_filter:
                     raise Exception("filter targets does not exist: %s" % l)
                 filtered_files += filtered
 
@@ -179,7 +181,7 @@ class ManifestGenerator():
         filter_list = []
         for expand_target in expand_list:
             filtered = fnmatch.filter(file_list.keys(), expand_target)
-            if not filtered:
+            if not filtered and self.validate_filter:
                 raise Exception("filter targets does not exist: %s" % expand_target)
             for key in filtered:
                 for l in file_list[key]:
@@ -235,6 +237,7 @@ example:
     parser.add_argument('remote_dir_asset', metavar='remote.dir.asset', help='remote directory for asset files')
     parser.add_argument('local_asset_search_path', metavar='local.asset.search.path', help='local asset path')
     parser.add_argument('--filter', metavar='filter.fnmatch', help='asset filter list (fnmatch format)')
+    parser.add_argument('--validate-filter', default = False, action = 'store_true', help='validate filter paths')
     parser.add_argument('--location-list', metavar='location_file_list.json', help='character file list by id')
     parser.add_argument('--character-list', metavar='character_file_list.json', help='character file list by id')
     parser.add_argument('--ui-list', metavar='ui_file_list.json', help='ui file list by id')
@@ -254,6 +257,7 @@ example:
     info("remote dir asset = %s" % args.remote_dir_asset)
     info("local asset search path = %s" % args.local_asset_search_path)
     info("filter = %s" % args.filter)
+    info("validate filter = %s" % args.validate_filter)
     info("location list = %s" % args.location_list)
     info("character list = %s" % args.character_list)
     info("ui list = %s" % args.ui_list)
@@ -261,7 +265,7 @@ example:
     info("keep_ref_entries = %s" % args.keep_ref_entries)
     generator = ManifestGenerator(args.version, args.url_project_manifest, args.url_version_manifest, 
             args.url_asset, args.remote_dir_asset, args.local_asset_search_path, 
-            args.filter, args.location_list, args.character_list, args.ui_list, 
+            args.filter, args.validate_filter, args.location_list, args.character_list, args.ui_list, 
             args.ref, args.keep_ref_entries)
 
     # version.manifest
