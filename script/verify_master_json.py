@@ -139,15 +139,10 @@ class MasterDataVerifier():
         return True
 
     def verify_reference(self, table, i, d, k, v, refs):
-        if not refs
+        if not refs or not v:
             return False
-        try:
-            int_v = int(v)
-            if int_v <= 0:
-                return False
-        except:
-            if not v:
-                return False
+        if (isinstance(v, str) and v.isdigit() and int(v) <= 0) or v <= 0:
+            return False
 
         src_id = None
         id_map_keys = []
@@ -383,7 +378,7 @@ class MasterDataVerifier():
             if self.file_reference_map.has_key(table):
                 for fref, paths in self.file_reference_map[table].iteritems():
                     for path, required in paths.iteritems():
-                        debug('%d: file %s.%s(%d) -> %s(%s): %s' % (root_id, table, key, id, fref, d[fref], path))
+                        debug('%d: file %s.%s(%s) -> %s(%s): %s' % (root_id, table, key, id, fref, d[fref], path))
                         for asset_dir in self.asset_dirs:
                             glob_path = os.path.join(asset_dir, self.complete_file_path(path, d[fref], d))
                             debug("%d: glob: %s" % (root_id, glob_path))
@@ -401,7 +396,7 @@ class MasterDataVerifier():
                         for name, sch in schema.iteritems():
                             if sch['attribute'] and sch['attribute'].has_key('key'):
                                 for ref_name, data in ref_data.iteritems():
-                                    debug('%d: from %s.%s(%d) -> %s.%s -> %s.%s(%d): %s' % (root_id, table, key, id, ref_table, ref_name, ref_table, name, data[name], is_septum))
+                                    debug('%d: from %s.%s(%s) -> %s.%s -> %s.%s(%s): %s' % (root_id, table, key, id, ref_table, ref_name, ref_table, name, data[name], is_septum))
                                     dest += self.collect_file_list(ref_table, name, data[name], root_id, septums, is_septum, visited_map)
 
             # recursive for reference
@@ -409,7 +404,7 @@ class MasterDataVerifier():
                 for name, refs in self.reference_map[table].iteritems():
                     for ref in refs:
                         is_septum = ref[0] in septums
-                        debug('%d: to %s(%d).%s -> %s.%s(%d): %s' % (root_id, table, id, name, ref[0], ref[1], d[name], is_septum))
+                        debug('%d: to %s(%s).%s -> %s.%s(%s): %s' % (root_id, table, id, name, ref[0], ref[1], d[name], is_septum))
                         dest += self.collect_file_list(ref[0], ref[1], d[name], root_id, septums, is_septum, visited_map)
         return dest
 
