@@ -679,7 +679,9 @@ class AssetBuilder():
                         packer_file = os.path.join(tp_dir, path)
                         imesta_file = os.path.join(im_dir, path)
                         if os.path.exists(packer_file) and os.path.exists(imesta_file) and call(['cmp', '--quiet', build_file, packer_file]) != 0:
-                            os.remove(imesta_file)
+                            base, ext = os.path.splitext(imesta_file)
+                            for im_file in glob(base+'.*'):
+                                os.remove(im_file)
                     list.append((path, texturepacker_dir, org_texturepacker_dir))
         self.install_list(list, build_dir)
 
@@ -689,16 +691,17 @@ class AssetBuilder():
                 for file in files:
                     path = packer_file = os.path.join(root, file)
                     path = re.sub('^'+tp_dir+'/', '', path)
-                    imesta_file = os.path.join(im_dir, path)
-                    dest = os.path.join(dest_dir, path)
-                    src  = imesta_file if os.path.exists(imesta_file) else packer_file
-                    debug("install texture if updated: %s" % src)
-                    if call(['cmp', '--quiet', src, dest]) == 0:
-                        continue
-                    info("install texture: %s -> %s" % (src, dest))
-                    if not os.path.exists(os.path.dirname(dest)):
-                        os.makedirs(os.path.dirname(dest))
-                    copy2(src, dest)
+                    base, ext = os.path.splitext(path)
+                    for imesta_file in glob(os.path.join(im_dir, base+'.*')):
+                        dest = os.path.join(dest_dir, path)
+                        src  = imesta_file if os.path.exists(imesta_file) else packer_file
+                        debug("install texture if updated: %s" % src)
+                        if call(['cmp', '--quiet', src, dest]) == 0:
+                            continue
+                        info("install texture: %s -> %s" % (src, dest))
+                        if not os.path.exists(os.path.dirname(dest)):
+                            os.makedirs(os.path.dirname(dest))
+                        copy2(src, dest)
 
     def install_manifest(self, build_dir=None):
         build_dir = build_dir or self.build_dir
