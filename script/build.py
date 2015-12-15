@@ -769,7 +769,7 @@ class AssetBuilder():
         return True
 
     # create manifest json from
-    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None, url_project_manifest=None, url_version_manifest=None, filter_file=None, location_list=None, character_list=None, ui_list=None):
+    def build_manifest(self, asset_version=None, dest_project_manifest=None, dest_version_manifest=None, url_project_manifest=None, url_version_manifest=None, reference_manifest=None, filter_file=None, location_list=None, character_list=None, ui_list=None):
         asset_version           = asset_version or self.asset_version
         dest_project_manifest   = dest_project_manifest or self.build_dir+'/'+self.PROJECT_MANIFEST_FILE
         dest_version_manifest   = dest_version_manifest or self.build_dir+'/'+self.VERSION_MANIFEST_FILE
@@ -791,11 +791,11 @@ class AssetBuilder():
                         dest.write(content+'\n')
 
         if self.is_master:
-            reference_manifest = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
+            reference_manifest = reference_manifest or self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
             keep_ref_entries   = []
             validate_filter    = ['--validate-filter']
         else:
-            reference_manifest = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
+            reference_manifest = reference_manifest or self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE
             keep_ref_entries   = ['--keep-ref-entries']
             validate_filter    = []
 
@@ -829,7 +829,8 @@ class AssetBuilder():
             dest_version_manifest = os.path.join(project_dir, self.VERSION_MANIFEST_FILE+'.'+phase)
             url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE+'.'+phase
             url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE+'.'+phase
-            self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, url_project_manifest = url_project_manifest, url_version_manifest = url_version_manifest, filter_file = filter_file)
+            reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE+'.'+phase if not self.is_master else None
+            self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, url_project_manifest = url_project_manifest, url_version_manifest = url_version_manifest, reference_manifest = reference_manifest, filter_file = filter_file)
             manifest_paths.append(dest_project_manifest)
 
         # last one (all-in-one)
@@ -838,7 +839,8 @@ class AssetBuilder():
         dest_version_manifest = os.path.join(project_dir, self.VERSION_MANIFEST_FILE+'.'+phase)
         url_project_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE+'.'+phase
         url_version_manifest  = self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE+'.'+phase
-        self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, url_project_manifest = url_project_manifest, url_version_manifest = url_version_manifest)
+        reference_manifest    = self.master_manifest_dir+'/'+self.PROJECT_MANIFEST_FILE+'.'+phase if not self.is_master else None
+        self.build_manifest(dest_project_manifest = dest_project_manifest, dest_version_manifest = dest_version_manifest, url_project_manifest = url_project_manifest, url_version_manifest = url_version_manifest, reference_manifest = reference_manifest)
         manifest_paths.append(dest_project_manifest)
 
         # build manifest queue
