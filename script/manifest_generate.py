@@ -72,7 +72,7 @@ class ManifestGenerator():
                     prior_file = name + '.' + alter_ext
                     if f == prior_file:
                         break
-                    elif prior_file in file_map:
+                    elif prior_file in file_map and f in file_map:
                         del file_map[f]
             filtered_files = file_map.keys()
 

@@ -774,6 +774,20 @@ class AssetBuilder():
         url_project_manifest    = url_project_manifest or self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.PROJECT_MANIFEST_FILE
         url_version_manifest    = url_version_manifest or self.DEV_CDN_URL+'/'+self.asset_version_dir+'/'+self.VERSION_MANIFEST_FILE
         url_asset               = self.DEV_CDN_URL+'/'
+        location_list           = self.build_dir+'/'+self.LOCATION_FILE_LIST
+        character_list          = self.build_dir+'/'+self.CHARACTER_FILE_LIST
+        ui_list                 = self.build_dir+'/'+self.UI_FILE_LIST
+        base_filter_file        = self.distribution_dir+'/dev_ios.list'
+        if not filter_file:
+            real_filter_file = base_filter_file
+        else:
+            real_filter_file = self.build_dir+'/'+os.path.basename(filter_file)+'.tmp'
+            with open(real_filter_file, 'w') as dest:
+                for cat_file in (base_filter_file, filter_file):
+                    with open(cat_file, 'r') as src:
+                        content = src.read()
+                        dest.write(content+'\n')
+
         if self.is_master:
             reference_manifest = self.master_manifest_dir+'/'+self.REFERENCE_MANIFEST_FILE
             keep_ref_entries   = []
@@ -789,12 +803,10 @@ class AssetBuilder():
 
         cmdline = [self.manifest_generate_bin, dest_project_manifest, dest_version_manifest,
                    asset_version, url_project_manifest, url_version_manifest, url_asset,
-                   self.remote_dir_asset, self.main_dir+'/contents', "--ref", reference_manifest] + keep_ref_entries + validate_filter
-        if filter_file:
-            location_list  = location_list  or self.build_dir+'/'+self.LOCATION_FILE_LIST
-            character_list = character_list or self.build_dir+'/'+self.CHARACTER_FILE_LIST
-            ui_list        = ui_list        or self.build_dir+'/'+self.UI_FILE_LIST
-            cmdline += ['--filter', filter_file, '--location-list', location_list, '--character-list', character_list, '--ui-list', ui_list]
+                   self.remote_dir_asset, self.main_dir+'/contents', 
+                   "--ref", reference_manifest, '--filter', real_filter_file, 
+                   '--location-list', location_list, '--character-list', character_list, '--ui-list', ui_list] \
+                           + keep_ref_entries + validate_filter
 
         info(' '.join(cmdline))
         check_call(cmdline)
