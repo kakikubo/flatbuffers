@@ -589,6 +589,8 @@ class AssetBuilder():
                 dest = dest_dir+'/'+filename
                 if not os.path.exists(os.path.dirname(dest)):
                     os.makedirs(os.path.dirname(dest))
+                if re.search('\.pvr\.plist$', src):
+                    continue
                 if re.search('\.plist$', src):
                     if os.path.exists(dest) and call(['diff', '-I', '<string>$TexturePacker:SmartUpdate:.*$</string>', src, dest], stdout=None, stderr=STDOUT) == 0:
                         continue
