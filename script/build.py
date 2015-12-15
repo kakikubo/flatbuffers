@@ -688,20 +688,22 @@ class AssetBuilder():
         # select imesta or texture packer output and install
         for dest_dir, tp_dir, im_dir in ((files_dir, texturepacker_dir, imesta_dir), (org_files_dir, org_texturepacker_dir, org_imesta_dir)):
             for root, dirs, files in os.walk(tp_dir):
+                update_files = []
                 for file in files:
                     path = packer_file = os.path.join(root, file)
                     path = re.sub('^'+tp_dir+'/', '', path)
                     base, ext = os.path.splitext(path)
+                    update_files.append((packer_file, os.path.join(dest_dir, path)))
                     for imesta_file in glob(os.path.join(im_dir, base+'.*')):
-                        dest = os.path.join(dest_dir, path)
-                        src  = imesta_file if os.path.exists(imesta_file) else packer_file
-                        debug("install texture if updated: %s" % src)
-                        if call(['cmp', '--quiet', src, dest]) == 0:
-                            continue
-                        info("install texture: %s -> %s" % (src, dest))
-                        if not os.path.exists(os.path.dirname(dest)):
-                            os.makedirs(os.path.dirname(dest))
-                        copy2(src, dest)
+                        update_files.append((imesta_file, os.path.join(dest_dir, re.sub('^'+im_dir+'/', '', imesta_file))))
+                for src, dest in update_files:
+                    debug("install texture if updated: %s" % src)
+                    if call(['cmp', '--quiet', src, dest]) == 0:
+                        continue
+                    info("install texture: %s -> %s" % (src, dest))
+                    if not os.path.exists(os.path.dirname(dest)):
+                        os.makedirs(os.path.dirname(dest))
+                    copy2(src, dest)
 
     def install_manifest(self, build_dir=None):
         build_dir = build_dir or self.build_dir
