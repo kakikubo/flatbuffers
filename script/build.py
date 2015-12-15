@@ -777,7 +777,7 @@ class AssetBuilder():
         location_list           = self.build_dir+'/'+self.LOCATION_FILE_LIST
         character_list          = self.build_dir+'/'+self.CHARACTER_FILE_LIST
         ui_list                 = self.build_dir+'/'+self.UI_FILE_LIST
-        base_filter_file        = self.distribution_dir+'/dev_ios.list'
+        base_filter_file        = self.master_distribution_dir+'/dev_ios.list'
         if not filter_file:
             real_filter_file = base_filter_file
         else:
