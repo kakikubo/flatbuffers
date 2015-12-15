@@ -53,7 +53,10 @@ class ManifestGenerator():
             filtered_files = walk_files
         else:
             for l in filter_list:
-                filtered_files += fnmatch.filter(walk_files, l)
+                filtered = fnmatch.filter(walk_files, l)
+                if not filtered:
+                    raise Exception("filter targets does not exist: %s" % l)
+                filtered_files += filtered
 
         if ext_list:
             file_map = OrderedDict()
@@ -176,6 +179,8 @@ class ManifestGenerator():
         filter_list = []
         for expand_target in expand_list:
             filtered = fnmatch.filter(file_list.keys(), expand_target)
+            if not filtered:
+                raise Exception("filter targets does not exist: %s" % expand_target)
             for key in filtered:
                 for l in file_list[key]:
                     if l[0] != '/':
