@@ -48,6 +48,7 @@ class ManifestQueue():
             remote_path = os.path.join(self.remote_dir_manifests, 'phase.manifest'+ext)
             phase_manifest = copy(manifests[i])
             phase_manifest['assets'] = {}
+            phase_manifest['version'] += ' phased'
             info("output %i: %s" % (i+1, dest_path))
             with open(dest_path, 'w') as f:
                 json.dump(phase_manifest, f, indent=2)
