@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import sys
 import os
 import re
 from copy import copy
@@ -69,7 +70,7 @@ class ManifestQueue():
                     path = os.path.join(self.real_asset_dir, key)
                     if os.path.exists(path):
                         size += os.path.getsize(path)
-            print("output %i: %s (%d files %dMB)" % (i+1, os.path.basename(dest_path), len(manifests[i]['assets']), size/1024/1024))
+            sys.stderr.write("output %i: %s (%d files %dMB)\n" % (i+1, os.path.basename(dest_path), len(manifests[i]['assets']), size/1024/1024))
             with open(dest_path, 'w') as f:
                 json.dump(manifests[i], f, indent=2)
             total += size
