@@ -9,6 +9,10 @@ jenkins_url="http://127.0.0.1:8081/jenkins/job/102_KMS_UserAsset_Update/build"
 jenkins_url_global="http://dev-kms.dev.gree.jp/jenkins/job/102_KMS_UserAsset_Update/build"
 tool_dir=`dirname $0`/..
 
+# merge changed files log
+head_file=/tmp/watchman-callback.$target.head.json
+sonya_file=/tmp/watchman-callback.$target.sonya.log
+
 # logging
 echo "\n\n\n\n\n---- $WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
 read json
@@ -19,10 +23,6 @@ echo "=== BOX SYNC UPDATED === " >> $sonya_file
 $tool_dir/script/sonya.sh "(yawn) watchman '$WATCHMAN_TRIGGER' of '$target' is updated" $jenkins_url_global $sonya_file || exit $?
 exit 0
 #### followings are deprected
-
-# merge changed files log
-head_file=/tmp/watchman-callback.$target.head.json
-sonya_file=/tmp/watchman-callback.$target.sonya.log
 
 touch $head_file || exit $?
 echo "`cat $head_file` $json" | jq -s '.[0] + .[1]' > $head_file.tmp || exit $?
