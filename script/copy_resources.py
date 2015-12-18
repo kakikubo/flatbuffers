@@ -74,6 +74,7 @@ def copy_resources(src_dir, dest_dir, filter_list, rename_list, ext_list):
         info("copy %s" % l)
         if l[0] != '/':
             l = os.path.join(src_dir, l)
+        matched = False
         for root, dirs, files in os.walk(os.path.dirname(l)):
             if ext_list:
                 file_map = OrderedDict()
@@ -102,6 +103,10 @@ def copy_resources(src_dir, dest_dir, filter_list, rename_list, ext_list):
                         os.makedirs(os.path.dirname(dest))
                     debug("%s -> %s" % (src, dest))
                     copy(src, dest)
+                    matched = True
+        if not matched:
+            raise Exception("filter target file is not found: '%s'" % l)
+
     for l in rename_list:
         info("copy with rename: '%s' -> '%s'" % (l[0], l[1]))
         src  = os.path.join(src_dir,  l[0]) if l[0][0] != '/' else l[0]
