@@ -611,6 +611,7 @@ class AssetBuilder():
             (self.MASTER_JSON_DATA_FILE,          self.master_data_dir,   self.org_master_data_dir),
             (self.MASTER_JSON_DATA_FILE,          self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_data_dir,   self.org_master_data_dir),
+            (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_MACRO_FILE,              self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_FBS_FILE,                self.master_fbs_dir,    self.org_master_fbs_dir),
             (self.MASTER_FBS_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
