@@ -51,12 +51,12 @@ class AssetBuilder():
             master_dir_list = [
                 os.path.normpath(os.curdir+'/kms_master_asset')
             ]
-        elif target in ('hiroto.furuya'):
-            master_dir_list = [
-                git_dir,
-                os.path.normpath(self_dir+'/../client/asset'),
-                os.path.normpath(os.path.expanduser('~/kms/asset'))
-            ]
+        #elif target in ('hiroto.furuya'):
+        #    master_dir_list = [
+        #        git_dir,
+        #        os.path.normpath(self_dir+'/../client/asset'),
+        #        os.path.normpath(os.path.expanduser('~/kms/asset'))
+        #    ]
         else:   # build standard
             master_dir_list = [
                 os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
