@@ -51,12 +51,12 @@ class AssetBuilder():
             master_dir_list = [
                 os.path.normpath(os.curdir+'/kms_master_asset')
             ]
-        elif target in ('hiroto.furuya'):
-            master_dir_list = [
-                git_dir,
-                os.path.normpath(self_dir+'/../client/asset'),
-                os.path.normpath(os.path.expanduser('~/kms/asset'))
-            ]
+        #elif target in ('hiroto.furuya'):
+        #    master_dir_list = [
+        #        git_dir,
+        #        os.path.normpath(self_dir+'/../client/asset'),
+        #        os.path.normpath(os.path.expanduser('~/kms/asset'))
+        #    ]
         else:   # build standard
             master_dir_list = [
                 os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
@@ -609,17 +609,22 @@ class AssetBuilder():
         list = [
             (self.MASTER_JSON_SCHEMA_FILE,        self.master_schema_dir, self.org_master_schema_dir),
             (self.MASTER_JSON_DATA_FILE,          self.master_data_dir,   self.org_master_data_dir),
+            (self.MASTER_JSON_DATA_FILE,          self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_data_dir,   self.org_master_data_dir),
+            (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_MACRO_FILE,              self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_FBS_FILE,                self.master_fbs_dir,    self.org_master_fbs_dir),
+            (self.MASTER_FBS_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_BIN_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_BUNDLED_BIN_FILE,        self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_MD5_FILE,                self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
             (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir,   self.org_master_data_dir),
+            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_MACRO_FILE,       self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_FBS_FILE,         self.master_fbs_dir,    self.org_master_fbs_dir),
+            (self.EDITOR_MASTER_FBS_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_MD5_FILE,         self.master_header_dir, self.org_master_header_dir),
