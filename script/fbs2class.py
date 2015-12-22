@@ -474,6 +474,18 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += "    rangeKey = _" + item_name + "->completeKey(hashKey, rangeKey);\n"
         s += "    return rangeKey;\n"
         s += "  }\n"
+        s += "  void completeHashKey(long hashKey) {\n"
+        for item_name, item in table.iteritems():
+            if item["is_hash_key"]:
+                s += "    setHashKey(hashKey);\n"
+            elif not item["is_default_type"]:
+                if item["is_vector"]:
+                    s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
+                    s += "      (*it)->completeHashKey(hashKey);\n"
+                    s += "    }\n"
+                else:
+                    s += "    _" + item_name + "->completeHashKey(hashKey);\n"
+        s += "  }\n"
 
         if with_json:
             s += "\n  // getter via json\n"
