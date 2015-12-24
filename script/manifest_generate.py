@@ -71,10 +71,8 @@ class ManifestGenerator():
                 prior_file = f
                 for alter_ext in ext_list:
                     prior_file = name + '.' + alter_ext
-                    print(['a', prior_file, f])
                     if file_map.has_key(prior_file):
                         break
-                print(['b', prior_file, f])
                 if prior_file != f:
                     del file_map[f]
             filtered_files = file_map.keys()
