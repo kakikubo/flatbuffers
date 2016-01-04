@@ -228,7 +228,8 @@ class AssetBuilder():
         self.UI_FILE_LIST                   = 'ui_file_list.json'
         self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
         self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets'
-        self.S3_INTERNAL_URL                = 's3://gree-kms-assets'
+        self.S3_CDN_INTERNAL_URL            = 's3://gree-kms-assets'
+        self.S3_DEPLOY_INTERNAL_URL         = 's3://gree-kms-deploy'
         self.S3_CREDENTIALS_FILE            = '~/.aws/credentials'
         self.MASTER_DATA_ROW_START          = 3
 
@@ -923,21 +924,30 @@ class AssetBuilder():
                 f.truncate(0)
                 json.dump(manifest, f, indent=2)
 
-        info("deploy to s3 cdn: %s -> %s: %s" % (self.main_dir, self.S3_INTERNAL_URL, self.S3_CDN_URL))
+        info("deploy to s3 cdn: %s -> %s: %s" % (self.main_dir, self.S3_CDN_INTERNAL_URL, self.S3_CDN_URL))
 
         aws_s3 = ['aws', 's3']
-        s3_internal_url = self.S3_INTERNAL_URL+'/'+self.asset_version_dir
-        info("deploy to s3: %s" % self.main_dir+'/contents/')
+        s3_internal_url = self.S3_CDN_INTERNAL_URL+'/'+self.asset_version_dir
+        info("deploy to s3 cdn: %s" % self.main_dir+'/contents/')
         check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/contents/', s3_internal_url+'/contents'])
         for manifest in manifests:
-            info("deploy to s3: %s" % os.path.basename(manifest))
+            info("deploy to s3 cdn: %s" % os.path.basename(manifest))
             check_call(aws_s3 + ['cp', manifest, s3_internal_url+'/'])
         for manifest in phase_manifests:
-            info("deploy to s3: %s" % os.path.basename(manifest))
+            info("deploy to s3 cdn: %s" % os.path.basename(manifest))
             check_call(aws_s3 + ['cp', manifest, s3_internal_url+'/contents/manifests/'])
-        info("deploy to s3: %s" % self.ASSET_LIST_FILE)
-        check_call(aws_s3 + ['cp', self.build_dir+'/'+self.ASSET_LIST_FILE, self.S3_INTERNAL_URL+'/'])
+        info("deploy to s3 cdn: %s" % self.ASSET_LIST_FILE)
+        check_call(aws_s3 + ['cp', self.build_dir+'/'+self.ASSET_LIST_FILE, self.S3_CDN_INTERNAL_URL+'/'])
         info("deploy to s3 cdn: done")
+        return True
+
+    def deploy_s3_server(self):
+        aws_s3 = ['aws', 's3']
+        s3_internal_url = self.S3_DEPLOY_INTERNAL_URL+'/asset/'+self.asset_version_dir
+        for dir in ('master_derivatives', 'user_derivatives'):
+            info("deploy to s3 server: %s" % self.main_dir+'/'+dir)
+            check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/'+dir+'/', s3_internal_url+'/'+dir])
+        info("deploy to s3 server: done")
         return True
 
     # do all processes
@@ -1003,6 +1013,7 @@ class AssetBuilder():
         self.deploy_git_repo()
         self.deploy_dev_cdn()
         self.deploy_s3_cdn()
+        self.deploy_s3_server()
         self.deploy_webviews()
         return True
 
