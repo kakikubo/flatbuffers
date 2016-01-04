@@ -68,12 +68,13 @@ class ManifestGenerator():
                 name, ext = os.path.splitext(f)
                 if not ext[1:] in ext_list:
                     continue
+                prior_file = f
                 for alter_ext in ext_list:
                     prior_file = name + '.' + alter_ext
-                    if f == prior_file:
+                    if file_map.has_key(prior_file):
                         break
-                    elif prior_file in file_map and f in file_map:
-                        del file_map[f]
+                if prior_file != f:
+                    del file_map[f]
             filtered_files = file_map.keys()
 
         assetsDic = OrderedDict()
