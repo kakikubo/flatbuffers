@@ -944,9 +944,10 @@ class AssetBuilder():
     def deploy_s3_server(self):
         aws_s3 = ['aws', 's3']
         s3_internal_url = self.S3_DEPLOY_INTERNAL_URL+'/asset/'+self.asset_version_dir
-        for dir in ('master_derivatives', 'user_derivatives'):
-            info("deploy to s3 server: %s" % self.main_dir+'/'+dir)
-            check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/'+dir+'/', s3_internal_url+'/'+dir])
+        for dir in ('master_derivatives', 'user_derivatives', 'user_data'):
+            if os.path.exists(self.main_dir+'/'+dir+'/'):
+                info("deploy to s3 server: %s" % self.main_dir+'/'+dir)
+                check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/'+dir+'/', s3_internal_url+'/'+dir])
         info("deploy to s3 server: done")
         return True
 
