@@ -130,6 +130,7 @@ class AssetBuilder():
         self.imesta_dir             = self.main_dir+'/imesta'
         self.distribution_dir       = self.main_dir+'/distribution'
         self.webview_dir            = self.main_dir+'/webview'
+        self.crypto_dir             = self.main_dir+'/crypto'
 
         self.org_manifest_dir       = self.org_main_dir+'/manifests'
         self.org_master_schema_dir  = self.org_main_dir+'/master_derivatives'
@@ -153,6 +154,7 @@ class AssetBuilder():
         self.org_imesta_dir         = self.org_main_dir+'/imesta'
         self.org_distribution_dir   = self.org_main_dir+'/distribution'
         self.org_webview_dir        = self.org_main_dir+'/webview'
+        self.org_crypto_dir         = self.org_main_dir+'/crypto'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -187,6 +189,7 @@ class AssetBuilder():
         self.make_ui_atlas_bin      = self_dir+'/make_ui_atlas.py'
         self.make_area_atlas_bin    = self_dir+'/make_area_atlas.py'
         self.update_webviews_bin    = self_dir+'/update_webviews.py'
+        self.crypto_key_bin         = self_dir+'/crypto_key.py'
         
         self.PROJECT_MANIFEST_FILE          = 'project.manifest'
         self.VERSION_MANIFEST_FILE          = 'version.manifest'
@@ -223,6 +226,10 @@ class AssetBuilder():
         self.USER_HEADER_FILE               = 'user_data_generated.h'
         self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
+        self.AES_KEY_TEXT_FILE              = 'aes_256_key.txt'
+        self.AES_IV_TEXT_FILE               = 'aes_iv.txt'
+        self.AES_KEY_HEADER_FILE            = 'AesKey.h'
+        self.AES_IV_HEADER_FILE             = 'AesIv.h'
         self.LOCATION_FILE_LIST             = 'location_file_list.json'
         self.CHARACTER_FILE_LIST            = 'character_file_list.json'
         self.UI_FILE_LIST                   = 'ui_file_list.json'
@@ -578,6 +585,34 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    # build webview contents
+    def build_webviews(self, root_dir=None, build_dir=None, env=None):
+        root_dir  = root_dir  or self.main_dir
+        build_dir = build_dir or self.build_dir
+        env       = env       or 'dev'
+        if not os.path.exists(root_dir+'/webview'):
+            return True
+
+        cmdline = [self.update_webviews_bin, 'update', '--root-dir', root_dir, '--build-dir', build_dir, '--environment', env, '--skip-sync-root', '1']
+        info(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    def build_crypto_key(self, src_aes_key=None, src_aes_iv=None, dest_aes_key=None, dest_aes_iv=None):
+        src_aes_key  = src_aes_key  or self.crypto_dir+'/'+self.AES_KEY_TEXT_FILE
+        src_aes_iv   = src_aes_iv   or self.crypto_dir+'/'+self.AES_IV_TEXT_FILE
+        dest_aes_key = dest_aes_key or self.build_dir+'/'+self.AES_KEY_HEADER_FILE
+        dest_aes_iv  = dest_aes_iv  or self.build_dir+'/'+self.AES_IV_HEADER_FILE
+        if not os.path.exists(src_aes_key) or not os.path.exists(src_aes_iv):
+            return False
+
+        info("build crypto key: %s + %s" % (os.path.basename(dest_aes_key), os.path.basename(dest_aes_iv)))
+
+        cmdline = [self.crypto_key_bin, src_aes_key, src_aes_iv, dest_aes_key, dest_aes_iv]
+        info(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
     # copy all generated files 
     def install_list(self, list, build_dir=None):
         build_dir = build_dir or self.build_dir
@@ -633,6 +668,8 @@ class AssetBuilder():
             (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
             (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
             (self.USER_MD5_FILE,                  self.user_header_dir,   self.org_user_header_dir),
+            (self.AES_KEY_HEADER_FILE,            self.crypto_dir,        self.org_crypto_dir),
+            (self.AES_IV_HEADER_FILE,             self.crypto_dir,        self.org_crypto_dir),
         ]
         # spine
         for spine_path in glob("%s/*Spine/*" % build_dir):
@@ -733,18 +770,6 @@ class AssetBuilder():
             manifest_path = re.sub('^'+build_dir+'/', '', manifest_path)
             list.append((manifest_path, self.manifest_phase_dir, self.org_manifest_phase_dir))
         return self.install_list(list, build_dir)
-
-    def build_webviews(self, root_dir=None, build_dir=None, env=None):
-        root_dir  = root_dir  or self.main_dir
-        build_dir = build_dir or self.build_dir
-        env       = env       or 'dev'
-        if not os.path.exists(root_dir+'/webview'):
-            return True
-
-        cmdline = [self.update_webviews_bin, 'update', '--root-dir', root_dir, '--build-dir', build_dir, '--environment', env, '--skip-sync-root', '1']
-        info(' '.join(cmdline))
-        check_call(cmdline)
-        return True
 
     def deploy_webviews(self, root_dir=None, build_dir=None, env=None):
         root_dir  = root_dir  or self.main_dir
@@ -995,6 +1020,9 @@ class AssetBuilder():
 
         # webviews
         self.build_webviews()
+
+        # crypto key
+        self.build_crypto_key()
 
         # install
         self.install_generated()
