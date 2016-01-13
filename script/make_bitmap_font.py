@@ -59,6 +59,16 @@ def load_char_map_from_lua(lua_dirs):
                             char_map[font_name][char] += 1
     return char_map
 
+def join_char_map(base_char_map, joining_char_map):
+    for font_name, chars in joining_char_map.items():
+        for char, count in chars.items():
+            if not base_char_map.has_key(font_name):
+                base_char_map[font_name] = OrderedDict()
+            if not char_map[font_name].has_key(char):
+                base_char_map[font_name][char] = 0
+            base_char_map[font_name][char] += count
+    return base_char_map
+
 def generate_bitmap_font(char_map, gd_dir, font_dir):
     for font_name, chars in char_map.items():
         if not chars:
@@ -107,8 +117,8 @@ if __name__ == '__main__':
     info("output dir: %s" % args.font_dir)
 
     char_map = OrderedDict()
-    char_map.update(json_char_map)
-    char_map.update(lua_char_map)
+    char_map = join_char_map(char_map, json_char_map)
+    char_map = join_char_map(char_map, lua_char_map)
 
     generate_bitmap_font(char_map, args.gd_dir, args.font_dir)
 
