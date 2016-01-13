@@ -39,6 +39,26 @@ def load_char_map(input_json):
                 char_map[font_name][char] += 1
     return char_map
 
+def load_char_map_from_lua(lua_dirs):
+    char_map = OrderedDict()
+    for lua_dir in lua_dirs:
+        for root, dirs, files in os.walk(os.path.dirname(lua_dir)):
+            for f in files:
+                path, ext = os.path.splitext(f)
+                if ext != '.lua':
+                    continue
+                full_path = os.path.join(root, f)
+                with codecs.open(full_path, 'r', 'utf-8') as f:
+                    data = f.read()
+                    for char in list(data):
+                        for font_name in ['medium', 'bold']:
+                            if not char_map.has_key(font_name):
+                                char_map[font_name] = OrderedDict()
+                            if not char_map[font_name].has_key(char):
+                                char_map[font_name][char] = 0
+                            char_map[font_name][char] += 1
+    return char_map
+
 def generate_bitmap_font(char_map, gd_dir, font_dir):
     for font_name, chars in char_map.items():
         if not chars:
@@ -65,19 +85,31 @@ if __name__ == '__main__':
     parser.add_argument('input_json', metavar = 'input.json',      help = 'input master data json')
     parser.add_argument('gd_dir',     metavar = 'input gd dir',    help = 'input glyph designer project dir')
     parser.add_argument('font_dir',   metavar = 'output font dir', help = 'output bitmap font dir')
+    parser.add_argument('--lua-dir',  default = [], nargs='*', help = 'input lua script dir')
     args = parser.parse_args()
 
     if not os.path.exists(gdcl):
         warning("GlyphDesigner Command Line is not installed: %s" % gdcl)
-        exit(0)
+        exit(1)
 
     # collect characters in target tables and columns
-    info("input: %s" % args.input_json)
-    char_map = load_char_map(args.input_json)
-    if not char_map:
+    info("input json: %s" % args.input_json)
+    json_char_map = load_char_map(args.input_json)
+    if not json_char_map:
         warning('"font" is not appeared')
-    else:
-        # write each font file
-        info("output dir: %s" % args.font_dir)
-        generate_bitmap_font(char_map, args.gd_dir, args.font_dir)
+        exit(1)
+
+    # collect characters from lua script
+    info("input lua dir: %s" % ", ".join(args.lua_dir))
+    lua_char_map = load_char_map_from_lua(args.lua_dir)
+
+    # write each font file
+    info("output dir: %s" % args.font_dir)
+
+    char_map = OrderedDict()
+    char_map.update(json_char_map)
+    char_map.update(lua_char_map)
+
+    generate_bitmap_font(char_map, args.gd_dir, args.font_dir)
+
     exit(0)

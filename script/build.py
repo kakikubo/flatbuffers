@@ -131,6 +131,7 @@ class AssetBuilder():
         self.distribution_dir       = self.main_dir+'/distribution'
         self.webview_dir            = self.main_dir+'/webview'
         self.crypto_dir             = self.main_dir+'/crypto'
+        self.lua_dir                = self.main_dir+'/lua'
 
         self.org_manifest_dir       = self.org_main_dir+'/manifests'
         self.org_master_schema_dir  = self.org_main_dir+'/master_derivatives'
@@ -171,6 +172,7 @@ class AssetBuilder():
         self.master_user_schema_dir   = self.master_dir+'/user_derivatives'
         self.master_user_data_dir     = self.master_dir+'/user_data'
         self.master_distribution_dir  = self.master_dir+"/distribution"
+        self.master_lua_dir           = self.master_dir+'/lua'
 
         self.manifest_generate_bin  = self_dir+'/manifest_generate.py'
         self.manifest_queue_bin     = self_dir+'/manifest_queue.py'
@@ -179,7 +181,7 @@ class AssetBuilder():
         self.json2macro_bin         = self_dir+'/json2macro.py'
         self.flatc_bin              = self_dir+'/flatc'
         self.fbs2class_bin          = self_dir+'/fbs2class.py'
-        self.json2font_bin          = self_dir+'/json2font.py'
+        self.make_bitmap_font_bin   = self_dir+'/make_bitmap_font.py'
         self.merge_editor_json_bin  = self_dir+'/merge_editor_json.py'
         self.sort_master_json_bin   = self_dir+'/sort-master-json.py'
         self.verify_master_json_bin = self_dir+'/verify_master_json.py'
@@ -575,12 +577,13 @@ class AssetBuilder():
         return True
 
     # create fnt+png from json
-    def build_font(self, src_json=None, src_gd_dir=None, dest_font_dir=None):
+    def build_font(self, src_json=None, src_gd_dir=None, dest_font_dir=None, lua_dirs=None):
         # build font by GDCL
         src_json      = src_json      or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         src_gd_dir    = src_gd_dir    or self.master_gd_dir
         dest_font_dir = dest_font_dir or self.build_dir
-        cmdline = [self.json2font_bin, src_json, src_gd_dir, dest_font_dir]
+        lua_dirs      = lua_dirs or [self.lua_dir, self.master_lua_dir]
+        cmdline = [self.make_bitmap_font_bin, src_json, src_gd_dir, dest_font_dir, '--lua-dir'] + lua_dirs
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
