@@ -1016,7 +1016,7 @@ class AssetBuilder():
 
         # asset
         self.build_spine()
-        self.build_weapon()
+        # self.build_weapon()
         self.build_area_atlas()
         self.build_ui_atlas()
         self.build_font()
