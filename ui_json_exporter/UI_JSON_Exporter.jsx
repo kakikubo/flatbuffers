@@ -16,6 +16,7 @@ var global = {
 	tagsTable: [],
 	classTable: [],
 	commonAssetMode: false,
+	commonAssetFileName: "",
 	extended:''//拡張子（psd or psb）
 }
 
@@ -53,9 +54,8 @@ function log(str){
 	global.doc = activeDocument;
 
 	var folderName = activeDocument.name.split(global.extended).join('');
-	//var folderPath = activeDocument.path + '/' + folderName;
-	var folderPath = '/Users/kaname.hidaka/Desktop/KMS/LayoutExporter/OutPut' + '/' + folderName;
-	// var folderPath = '/Users/masahiro.mitsumoto/Develop/proj/kms/art/assets' + '/' + folderName;
+    var folderPath = '/Users/kaname.hidaka/Desktop/KMS/LayoutExporter/OutPut' + '/' + folderName;
+
 	var texturesFolder = new Folder(folderPath);
 	var folderSuccess = texturesFolder.create();
 	if(!folderSuccess){
@@ -210,6 +210,8 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 		var layerNamePart = tmpArr[1];
 		var classNamePart = tmpArr[2];
 		var fileNamePart = tmpArr[3];
+
+		global.commonAssetFileName = tmpArr[4];
 
 		var fileName = '';
 		if(fileNamePart){
@@ -494,7 +496,7 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 						//if(imageLayer.typename == 'ArtLayer'){
 							obj.opacity = imageLayer.opacity * (255 / 100);
 						//}
-						bounds = exportImage(imageLayer, fileName + '.png', folderPath);
+						bounds = exportImage(imageLayer, fileName + '.png', folderPath, obj);
 						obj.size = {
 							width : bounds.w,
 							height : bounds.h
@@ -520,7 +522,7 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 					break;
 				case 'ProgressBar':
 					obj.foreground = fileName + '_foreground.png';
-                                        var foregroundLayer = getLayer(currentLayer, /\.foreground\s*$/);
+        	var foregroundLayer = getLayer(currentLayer, /\.foreground\s*$/);
 					if (foregroundLayer) {
 					   	//.foregroundレイヤーが1枚のArtLayerの場合は、そのレイヤーのopacityをobj.opacityにセット。
                                                 //if(foregroundLayer.typename == 'ArtLayer'){
@@ -1238,7 +1240,7 @@ function getColorToObject(textItem){
  * @param	{String}			path		保存場所のパス
  * @returns	{Object}	書き出した画像のキャンバス上での座標と大きさを格納したオブジェクト（座標は左下を原点として、右方向がX、上方向がY）
  */
-function exportImage(layer, fileName, path){
+function exportImage(layer, fileName, path, obj){
 
 	//log('●exportImage : ' + layer.name + ' -> ' + fileName);
 	var b = layer.bounds;
@@ -1257,6 +1259,19 @@ function exportImage(layer, fileName, path){
 
 	// PSDがcommon_じゃなくて、画像名が"common_"で始まる場合、共通アイコンなので出力しないでサイズを返す
 	if (global.commonAssetMode == false && fileName.toLowerCase().lastIndexOf('common_', 0) === 0) {
+		var nameWithOutExt = fileName.split(".");
+		var dir = nameWithOutExt[0].split("_");
+		var newFileName = "";
+		if (global.commonAssetFileName !== "") {
+			for (var i = 0; i < dir.length; ++i) {
+				newFileName += dir	[i] + "/";
+			}
+			fileName = newFileName + global.commonAssetFileName + ".png";
+			if (obj !== undefined) {
+				obj.image = fileName;
+			}
+		}
+
 		return b;
 	}
 
