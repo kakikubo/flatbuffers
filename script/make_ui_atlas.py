@@ -20,7 +20,7 @@ def pack_textures(src_dir, dest_dir, work_dir=None, verify_filename=False):
         '--replace', '@@SEPARATOR@@=/',
         #'--max-size', '2048',
         '--max-size', '1024',
-        #'--force-squared',
+        '--force-squared',
         '--force-word-aligned',
         '--pack-mode', 'Best',
         '--padding', '4',
