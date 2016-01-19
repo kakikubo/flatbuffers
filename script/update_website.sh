@@ -2,7 +2,7 @@
 
 usage() {
   cat <<END
-$0 <src box dir> <dest s3 bucket> <git repository>
+$0 <src box dir> <dest s3 bucket> <git repository> [<sonya script>]
 
 update kms official website 
 
@@ -21,7 +21,7 @@ while getopts p:h OPT; do
 done
 shift $((OPTIND - 1))
 
-if [ "$#" -gt 3 ]; then
+if [ "$#" -gt 4 ]; then
   echo "invalid arguments: $*"
   usage
   exit 1
@@ -29,9 +29,9 @@ fi
 src_dir=${1:-/Users/jenkins/box/kms-website}
 git_dir=${2:-/Users/jenkins/kms/website}
 dest_url=${3:-s3://gree-kms-website}
+sonya=${4:-/Users/jenkins/kms/tool/script/sonya.sh}
 
 profile=${profile:-website}
-sonya=`pwd`/`dirname $0`/sonya.sh
 commit_log_file=/tmp/update-website.log
 github_url=http://git.gree-dev.net/kms/website
 website_url=https://another-eden.jp
