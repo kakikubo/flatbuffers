@@ -10,7 +10,8 @@ sleep=$1
 sonya=`dirname $0`/../script/sonya.sh
 commit_log_file=/tmp/watchman-commit-message.log
 github_url=http://git.gree-dev.net
-jenkins_url="http://127.0.0.1:8081/jenkins/job/001_KMS_GHE_CommitHook/build"
+#jenkins_url="http://127.0.0.1:8081/jenkins/job/001_KMS_GHE_CommitHook/build"
+jenkins_url="http://dev-kms.dev.gree.jp/jenkins/job/001_KMS_GHE_CommitHook/build"
 
 build_log_file=/tmp/watchman-build-message.log
 build_chat_id=31118592 # KMSビルド

@@ -1,9 +1,9 @@
 #!/bin/sh
 
 tool_dir=`pwd | sed -e 's/Box Sync/box/'`
-git_dir=/Users/kms.jenkins/kms/asset
+git_dir=/Users/jenkins/kms/asset
 asset_list_json=$git_dir/manifests/dev.asset_list.json
-vagrant_dir=/Users/kms.jenkins/kms/provisioning
+vagrant_dir=/Users/jenkins/kms/provisioning
 in_vagrant_dir=/vagrant
 
 target=$1
@@ -60,7 +60,7 @@ if [ $target = "master" ]; then
   echo "install user data default"
   cd $vagrant_dir
   rsync -a --delete $git_dir/user_data/ user_data || exit $?
-  vagrant ssh -- $in_vagrant_dir/app/server/cli/userdata.php -s develop install-default $in_vagrant_dir/user_data/default.json || exit $?
+  #vagrant ssh -- $in_vagrant_dir/app/server/cli/userdata.php -s develop install-default $in_vagrant_dir/user_data/default.json || exit $?
 fi
 
 exit 0

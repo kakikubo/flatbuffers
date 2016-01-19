@@ -9,18 +9,18 @@ Asset パイプライン用のスクリプトなどをおいています
 
 ```
 master
- each user                kms.jenkins (Jenkins Mac Pro)                                  git (Gree GHE)
+ each user                jenkins (Jenkins Mac Book)                                    git (Gree GHE)
  +-------------------+    +--------------------------------------------------------+    +-----------+
  | Box Sync          | -> | Box Sync         -> watchman -> build.py -> git commit | -> | Github    |
  | kms_master_asset  |    | kms_master_asset                            git push   |    | kms/asset |
  +-------------------+    +--------------------------------------------------------+    +-----------+
 
 working
- each user                kms.jenkins (Jenkins Mac Pro)
- +-------------------+    +-------------------------------------------------------------------------------------------------------------------+
- | Box Sync          | -> | Box Sync         -> watchman -> build.py -> Box Sync                    -> /var/www/cdn/xxx.yyy                   |
- | kms_xxx.yyy_asset |    | kms_xxx.yyy_asset                           kms_xxx.yyy_asset_generated    http://kms-dev.dev.gree.jp/cdn/xxx.yyy |
- +-------------------+    +-------------------------------------------------------------------------------------------------------------------+
+ each user                jenkins (Jenkins Mac Book)
+ +-------------------+    +------------------------------------------------------------------------------------+
+ | Box Sync          | -> | Box Sync         -> watchman -> build.py -> /var/www/cdn/xxx.yyy                   |
+ | kms_xxx.yyy_asset |    | kms_xxx.yyy_asset                           http://kms-dev.dev.gree.jp/cdn/xxx.yyy |
+ +-------------------+    +------------------------------------------------------------------------------------+
 ```
 
 Jenkins マシンでは ~/.tool を ~/Box Sync/tool にシンボリックリンクしています
@@ -31,11 +31,46 @@ Jenkins マシンでは ~/.tool を ~/Box Sync/tool にシンボリックリン�
 - kms_master_asset は kms/asset とまったく構成になるようにします
 - jenkins マシンでは ~/.kms_master_asset/.git -> ~/box/kms_master_asset/.git にシンボリックリンクを張って、直接監視しています
 - また ~/box -> ~/Box Sync にシンボリックリンクを張っています
-  - スクリプト内ではしばしば正規化されてしまい、
+  - スクリプト内ではしばしば正規化されてしまい、いろいろ面倒なので作りました
 
 ## build.py
 自動生成するファイル一式を更新します
 
+### デバッグの仕方
+手元の PC でもデバッグすることができます。
+
+kms_master_asset をビルドする場合は以下のようにします
+
+```
+$ git clone git@git.gree-dev.net:kms/tool.git
+$ cd tool
+$ cp -rp ~/Box\ Sync/kms_master_asset kms_master_asset
+$ ./script/build.py debug master
+```
+
+個人アセットの場合は、次のようになります
+
+```
+$ git clone git@git.gree-dev.net:kms/tool.git
+$ cd tool
+$ cp -rp ~/Box\ Sync/kms_master_asset kms_master_asset
+$ cp -rp ~/Box\ Sync/kms_kiyoto.suzuki_asset kms_kiyoto.suzuki_asset
+$ ./script/build.py debug kiyoto.suzuki
+```
+
+debug と build の違いは、更新されたアセットを S3 やローカルの CDN 上にコピーするか否かの違いです
+
+#### python のセットアップ
+python のモジュールがいろいろ必要ですが、頑張っていれていきましょう
+
+```
+$ easy_install pip
+$ sudo pip install xlrd
+$ sudo pip install pillow
+$ brew install jq
+```
+
+#### すこし古いドキュメント
 パイプラインの詳細については以下を参照してください。
 
 https://confluence.gree-office.net/pages/viewpage.action?pageId=158727563
@@ -44,6 +79,10 @@ https://confluence.gree-office.net/pages/viewpage.action?pageId=158727563
 - manifest.json -> Cocos-2d-x AssetMangerEx 用のダウンロードファイルリスト contents/files 以下の更新があったことをクライアントに通知する
 - master_data.bin + master_header/*.h -> マスタデータを flatbuffers 化したもの。Excel から生成する
 - rsync を使って box のアセットを cdn 用のディレクトリにコピーする
+
+## アセットビルドスクリプト
+アセットのビルドは、様々なスクリプトの統合です
+次のようなスクリプトからなりなっています
 
 ### master_data_xls2json.py
 <kms_x_asset>/master/master_data.xlsx を読み込んで、<kms_x_asset>/master_derivatives/master_(schema|data).json を生成します
@@ -57,18 +96,11 @@ master-data-xls2json.py で生成した JSON を読み込んで、FlatBuffers �
 ### manifest_generate.py
 contents/files 上のファイルから Cocos-2d-x AssetManagerEx 用の project.manifest と version.manifest を生成します
 
-### box-update.py
-Box API を使って、手元のデータと Box 上のデータを同期します。
-簡易的な Box Sync のようなものです。
-Box Web Hook から呼び出されます。
-
-### spine-atlas-update.sh
-武器や表情などのテクスチャ置き換えで対応するデータのテクスチャアトラスを TexutrePacker を使って生成します
-
-### json2font.py
+### make_bitmap_font.py
 Glyph Desinger というツールを使って、表示に必要なビットマップフォントを生成します。
 - フォント化対象の文字種はマスタデータの特定のシートおよび列を font にて指定します
 - 固定でフォントに含めるものについては fontChars シートに記述してあります
+- lua スクリプトからも文字を取得します
 - ビットマップフォントの設定は asset の glyph_designer 以下から取得します
   - ファイル名とフォント名を一致させる必要があります
   - フォント種別を任意で追加することができます
@@ -76,6 +108,16 @@ Glyph Desinger というツールを使って、表示に必要なビットマ�
 ### sonya.sh
 ソーニャちゃんを経由して Chatwork 'KMSビルド' にログを流します。
 タイトルとメッセージに使うログファイル名、リファレンスのリンク用 URL を指定できます
+
+## Deprecated
+
+### box-update.py
+Box API を使って、手元のデータと Box 上のデータを同期します。
+簡易的な Box Sync のようなものです。
+Box Web Hook から呼び出されます。
+
+### spine-atlas-update.sh
+武器や表情などのテクスチャ置き換えで対応するデータのテクスチャアトラスを TexutrePacker を使って生成します
 
 ## watchman
 
@@ -95,7 +137,7 @@ https://facebook.github.io/watchman/
 watchman での監視設定をセットアップします。
 
 - 実行すると watchman の watch と trigger 設定をします
-  - watchman/watchman-xxx.json.template から watchman/watchman-xxx.json を生成します（パスの置換をします）
+  - watchman/template/watchman-xxx.json.template から watchman/template/watchman-xxx.json を生成します（パスの置換をします）
 - ログは log/watchman-callback.log に出力されます
 
 ### watchman-setup-all.sh
@@ -118,9 +160,7 @@ pgrep -f watchman で検索して、殺してください
 再起動は watchman-setup.sh を実行すれば OK です
 
 ## watchman のサービス化
-デフォルトでは ~/Librarh/LaunchAgent/ 以下に com.github.facebook.watchman.plist が入っています。
-Mac Pro 環境では、ログアウトしてしまうと動いてくれないという現象が見られるため（きちんと調査していません）、
-回避策として /Library/LaunchAgent 以下に移動し、KeepAlive を <Crashed> 時のみではなく、常に True に設定しています。
+デフォルトでは /Library/LaunchAgent/ 以下に com.github.facebook.watchman.plist が入っています。
 
 # 古いもの
 
