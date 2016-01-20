@@ -16,7 +16,8 @@ from PIL import Image
 sys.stdout = codecs.lookup(u'utf_8')[-1](sys.stdout)
 
 global gdcl
-gdcl = '/Applications/Glyph Designer 2.app/Contents/MacOS/Glyph Designer'
+#gdcl = '/Applications/Glyph Designer 2.app/Contents/MacOS/Glyph Designer'
+gdcl = '/Applications/Glyph Designer.app/Contents/MacOS/Glyph Designer'
 
 def load_char_map(input_json):
     char_map = OrderedDict()
