@@ -285,6 +285,8 @@ def export_spine(master_excel, sheet_name, start_row, start_column, input_json, 
             raise Exception("ncols={0} but paramStartCol={1}".format(sheet.ncols, start_col))
         if (row < start_row):
             continue
+        if sheet.cell_value(row, start_col-1) == "FALSE":
+            continue
 
         model_id = int(sheet.cell_value(row, 0))
         model = OrderedDict((
@@ -296,14 +298,11 @@ def export_spine(master_excel, sheet_name, start_row, start_column, input_json, 
             ('hasEar',       sheet.cell_value(row, start_col+5)),
             ('hasMant',      sheet.cell_value(row, start_col+6)),
             ('hasInside',    sheet.cell_value(row, start_col+7)),
-            ('hasShoulder',  sheet.cell_value(row, start_col+8)),
-            ('_convert',     sheet.cell_value(row, start_col+9))
+            ('hasShoulder',  sheet.cell_value(row, start_col+8))
         ))
         pattern = json.dumps(model)
         models[model_id] = pattern
         if patterns.has_key(pattern):
-            continue
-        if not model['_convert']:
             continue
 
         slot, bone, skin = get_convert_param(model)
