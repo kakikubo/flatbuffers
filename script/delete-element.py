@@ -285,7 +285,7 @@ def export_spine(master_excel, sheet_name, start_row, start_column, input_json, 
             raise Exception("ncols={0} but paramStartCol={1}".format(sheet.ncols, start_col))
         if (row < start_row):
             continue
-        if sheet.cell_value(row, start_col-1) == "FALSE":
+        if not sheet.cell_value(row, start_col-1):
             continue
 
         model_id = int(sheet.cell_value(row, 0))
