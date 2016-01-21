@@ -68,7 +68,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   # correct updated files
   quantity=0
   items=
-  for file in `git status --short | grep -e '^[MAD]' | cut -c 4-`; do
+  for file in `git status --short | grep -e '^[MADR]' | cut -c 4-`; do
     quantity=$((quantity+1))
     items="${items:+$items,}\"/$file\""
   done

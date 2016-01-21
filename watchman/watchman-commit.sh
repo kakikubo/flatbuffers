@@ -27,7 +27,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
 
   # commit log
   echo "git commit and push (committed by $self `whoami`@`hostname`)"
-  git status --short | grep -e '^[MAD]' > $commit_log_file || exit $?
+  git status --short | grep -e '^[MADR]' > $commit_log_file || exit $?
   echo "committed by $self `whoami`@`hostname`" >> $commit_log_file
 
   # get xlsx diff
