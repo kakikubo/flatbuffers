@@ -37,6 +37,7 @@ sonya=${sonya:-~/kms/tool/script/sonya.sh}
 
 commit_log_file=/tmp/update-website.log
 github_url=http://git.gree-dev.net/kms/website
+jenkins_url=http://g-pc-00363221.intra.gree-office.net:8080/jenkins/job/$JOB_NAME/$BUILD_ID
 website_url=https://another-eden.jp
 chat_id=41368241
 distribution_id=EKOW6U3D7COMS
@@ -117,7 +118,9 @@ END
   if [ -n "$do_wait" ]; then
     status=`aws cloudfront get-invalidation $cloudfront_options --distribution-id $distribution_id --id $invalidation_id | jq -r '.Invalidation.Status'`
     if [ "$status" = "InProgress" ]; then
+      $sonya "(dance) starting to invalidate content cache of CloudFront" $jenkins_url $create_invalidation_json $website_url $chat_id || exit $?
       aws cloudfront wait invalidation-completed $cloudfront_options --distribution-id $distribution_id --id $invalidation_id || exit $?
+      $sonya "(clap) CloudFront invalidation has done" $jenkins_url $create_invalidation_json $website_url $chat_id || exit $?
     fi
   fi
 fi
