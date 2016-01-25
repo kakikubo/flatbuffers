@@ -7,5 +7,5 @@ chat_id=31118592
 sonya_file=$1
 title=$2
 [ -n "$title" ] || title="(devil) jenkins build ERROR!!! in $BUILD_ID ($JOB_NAME)"
-/Users/jenkins/box/tool/script/sonya.sh "$title" $git_url $sonya_file $job_url $chat_id
+`dirname $0`/sonya.sh "$title" $git_url $sonya_file $job_url $chat_id
 exit $?
