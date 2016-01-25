@@ -92,7 +92,7 @@ def generate_bitmap_font(char_map, gd_dir, font_dir):
 if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
 
-    parser = argparse.ArgumentParser(description = 'master data xlsx to json converter')
+    parser = argparse.ArgumentParser(description = 'build bitmap font by GlyphDesigner CLI and master data')
     parser.add_argument('input_json', metavar = 'input.json',      help = 'input master data json')
     parser.add_argument('gd_dir',     metavar = 'input gd dir',    help = 'input glyph designer project dir')
     parser.add_argument('font_dir',   metavar = 'output font dir', help = 'output bitmap font dir')
