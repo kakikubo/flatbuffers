@@ -101,8 +101,7 @@ END
   echo "automatic sync with git is done: $exit_code"
 
   # deploy to S3
-  # without --delete
-  s3_options="--profile $profile --exclude .DS_Store --exclude .gitignore"
+  s3_options="--profile $profile --exclude .DS_Store --exclude .gitignore --delete"
   aws s3 sync $s3_options $src_dir $dest_url || exit $?
 
   # invalidate cloud front contents cache
