@@ -28,7 +28,7 @@ def _unpad(s):
         return s
 
 def encrypt_dir(src_dir, dest_dir, src_ext, dest_ext, aes_key, aes_iv, gzip):
-    for root, dirs, files in os.walk(os.path.dirname(src_dir)):
+    for root, dirs, files in os.walk(src_dir):
         for file in files:
             name, ext = os.path.splitext(file)
             if not ext[1:] in (src_ext):
@@ -36,7 +36,7 @@ def encrypt_dir(src_dir, dest_dir, src_ext, dest_ext, aes_key, aes_iv, gzip):
 
             src_size = 0
             src_file = os.path.join(root, file)
-            subdir   = os.path.dirname(re.sub('^'+src_dir, '', src_file))
+            subdir   = os.path.dirname(re.sub('^'+src_dir+'/', '', src_file))
             with open(src_file, 'r') as f:
                 content = org = f.read()
                 src_size = len(content)
