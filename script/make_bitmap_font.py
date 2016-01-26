@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     if not os.path.exists(gdcl):
         warning("GlyphDesigner Command Line is not installed: %s" % gdcl)
-        exit(1)
+        exit(0)
 
     # collect characters in target tables and columns
     info("input json: %s" % args.input_json)
