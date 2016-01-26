@@ -44,7 +44,9 @@ def encrypt_dir(src_dir, dest_dir, src_ext, dest_ext, aes_key, aes_iv, gzip):
             if gzip:
                 content = compress(content)
             aes = AES.new(aes_key, AES.MODE_CBC, aes_iv)
-            enc = aes.encrypt(_pad(content))
+            if src_ext in ('lua', 'json', 'txt'):
+                content = _pad(content)
+            enc = aes.encrypt(content)
 
             info("%s: %d -> %d" % (os.path.join(subdir, file), src_size, len(enc)))
             '''
