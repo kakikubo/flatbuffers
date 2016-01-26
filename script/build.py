@@ -208,7 +208,7 @@ class AssetBuilder():
         self.MASTER_BIN_FILE                = 'master_data.bin'
         self.MASTER_ENC_FILE                = 'master_data.enc'
         self.MASTER_BUNDLED_BIN_FILE        = 'master_data_bundled.bin'
-        self.MASTER_BUNDLED_ENC_FILE        = 'master_data_bundled.bin'
+        self.MASTER_BUNDLED_ENC_FILE        = 'master_data_bundled.enc'
         self.MASTER_HEADER_FILE             = 'master_data_generated.h'
         self.MASTER_MD5_FILE                = 'master_data_generated_md5.h'
         self.MASTER_MD5_DEFINE              = 'KMS_MASTER_DATA_VERSION'
