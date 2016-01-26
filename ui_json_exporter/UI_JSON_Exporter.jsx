@@ -311,6 +311,9 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 				case 'button_back':
 					className = 'ButtonBack';
 					break;
+				case 'button_close':
+					className = 'ButtonClose';
+					break;
 
 				//画像書き出しのみ
 				case 'imageonly':
@@ -810,11 +813,38 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 						obj.ll = "LL_COMMON_BUTTON";
 						obj.llClass = "kms::CommonButton";
 					} else {
-						catchError(currentLayer.name, 'Layoutに指定されていますが、配下に.areaレイヤーがありませんでした。');
+						catchError(currentLayer.name, 'ButtonBackに指定されていますが、配下に.areaレイヤーがありませんでした。');
 						continue layerLoop;
 					}
 					obj.type = {};
 					obj.type.design = "Back"
+					obj.type.size = "Small"
+					obj.class = "CommonButton"
+
+					break;
+				case 'ButtonClose':
+					var textLayer = getTextItemFromChilds(currentLayer);
+					// obj.text = {};
+					if(textLayer){
+						obj.text = textLayer.contents.split('\r').join('\\n');
+
+						var stringTableId = activeDocument.name.split(global.extended).join('') + "." + obj.tag;
+						global.stringTable.push(stringTableId + ' ' + obj.font + ' "' + obj.text + '"');
+					}
+					var areaImage = getLayer(currentLayer, /\.area\s*$/);
+					if (areaImage) {
+						obj.position = {
+							x : areaImage.bounds[0].value,
+							y : activeDocument.height.value - areaImage.bounds[3].value
+						};
+						obj.ll = "LL_COMMON_BUTTON";
+						obj.llClass = "kms::CommonButton";
+					} else {
+						catchError(currentLayer.name, 'ButtonCloseに指定されていますが、配下に.areaレイヤーがありませんでした。');
+						continue layerLoop;
+					}
+					obj.type = {};
+					obj.type.design = "Close"
 					obj.type.size = "Small"
 					obj.class = "CommonButton"
 
