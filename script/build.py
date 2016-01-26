@@ -192,6 +192,7 @@ class AssetBuilder():
         self.make_area_atlas_bin    = self_dir+'/make_area_atlas.py'
         self.update_webviews_bin    = self_dir+'/update_webviews.py'
         self.crypto_key_bin         = self_dir+'/crypto_key.py'
+        self.encrypt_bin            = self_dir+'/encrypt.py'
         
         self.PROJECT_MANIFEST_FILE          = 'project.manifest'
         self.VERSION_MANIFEST_FILE          = 'version.manifest'
@@ -205,7 +206,9 @@ class AssetBuilder():
         self.MASTER_MACRO_FILE              = 'MasterAccessors.h'
         self.MASTER_FBS_FILE                = 'master_data.fbs'
         self.MASTER_BIN_FILE                = 'master_data.bin'
+        self.MASTER_ENC_FILE                = 'master_data.enc'
         self.MASTER_BUNDLED_BIN_FILE        = 'master_data_bundled.bin'
+        self.MASTER_BUNDLED_ENC_FILE        = 'master_data_bundled.bin'
         self.MASTER_HEADER_FILE             = 'master_data_generated.h'
         self.MASTER_MD5_FILE                = 'master_data_generated_md5.h'
         self.MASTER_MD5_DEFINE              = 'KMS_MASTER_DATA_VERSION'
@@ -616,6 +619,20 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    def build_encrypted_bin(self, src_dir=None, dest_dir=None, extension=None, aes_key=None, aes_iv=None):
+        src_dir   = src_dir   or self.build_dir
+        dest_dir  = dest_dir  or self.build_dir
+        extension = extension or 'bin'
+        aes_key   = aes_key   or self.crypto_dir+'/'+self.AES_KEY_TEXT_FILE
+        aes_iv    = aes_iv    or self.crypto_dir+'/'+self.AES_IV_TEXT_FILE
+
+        info("build encrypted master data bin files: %s" % src_dir)
+
+        cmdline = [self.encrypt_bin, '--gzip', '--extension', extension, src_dir, dest_dir, aes_key, aes_iv]
+        info(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
     # copy all generated files 
     def install_list(self, list, build_dir=None):
         build_dir = build_dir or self.build_dir
@@ -654,8 +671,8 @@ class AssetBuilder():
             (self.MASTER_MACRO_FILE,              self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_FBS_FILE,                self.master_fbs_dir,    self.org_master_fbs_dir),
             (self.MASTER_FBS_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
-            (self.MASTER_BIN_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
-            (self.MASTER_BUNDLED_BIN_FILE,        self.master_bin_dir,    self.org_master_bin_dir),
+            (self.MASTER_ENC_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
+            (self.MASTER_BUNDLED_ENC_FILE,        self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_MD5_FILE,                self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
@@ -1026,6 +1043,7 @@ class AssetBuilder():
 
         # crypto key
         self.build_crypto_key()
+        self.build_encrypted_bin()
 
         # install
         self.install_generated()
