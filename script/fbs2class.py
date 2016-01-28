@@ -295,10 +295,10 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 s += "    __dirty = true;\n"
                 s += "  }\n"
                 s += "  void erase" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos) {\n"
-                s += "    auto erased = _" + item_name + ".erase(pos);\n"
-                s += "    _" + item_name + "Erased.push_back(*erased);\n"
                 if range_key:
                     s += "    _" + item_name + "Map.erase((*pos)->" + range_key["name"] + "());\n"
+                s += "    auto erased = _" + item_name + ".erase(pos);\n"
+                s += "    _" + item_name + "Erased.push_back(*erased);\n"
                 s += "    // __dirty = true; // erase is not dirty\n"
                 s += "  }\n"
                 s += "  void clear" + upper_camel_case(item_name) + "() {\n"
