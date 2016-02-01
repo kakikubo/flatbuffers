@@ -173,6 +173,7 @@ class AssetBuilder():
         self.master_user_data_dir     = self.master_dir+'/user_data'
         self.master_distribution_dir  = self.master_dir+"/distribution"
         self.master_lua_dir           = self.master_dir+'/lua'
+        self.master_crypto_dir        = self.master_dir+'/crypto'
 
         self.manifest_generate_bin  = self_dir+'/manifest_generate.py'
         self.manifest_queue_bin     = self_dir+'/manifest_queue.py'
@@ -623,8 +624,8 @@ class AssetBuilder():
         src_dir   = src_dir   or self.build_dir
         dest_dir  = dest_dir  or self.build_dir
         extension = extension or 'bin'
-        aes_key   = aes_key   or self.crypto_dir+'/'+self.AES_KEY_TEXT_FILE
-        aes_iv    = aes_iv    or self.crypto_dir+'/'+self.AES_IV_TEXT_FILE
+        aes_key   = aes_key   or self.master_crypto_dir+'/'+self.AES_KEY_TEXT_FILE
+        aes_iv    = aes_iv    or self.master_crypto_dir+'/'+self.AES_IV_TEXT_FILE
 
         info("build encrypted master data bin files: %s" % src_dir)
 
