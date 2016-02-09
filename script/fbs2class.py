@@ -717,7 +717,12 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += '      auto __j = (*it)->toJson(onlyDirty);\n'
                     s += '      if (__j != nullptr) json_array_append(a_' + item_name + ', __j);\n'
                     s += '    }\n'
-                    s += '    return (!onlyDirty || json_array_size(a_' + item_name +') > 0) ? a_' + item_name +' : json_null();\n'
+                    s += '    if (!onlyDirty || json_array_size(a_' + item_name +') > 0) {\n'
+                    s += '      return a_' + item_name +';\n'
+                    s += '    } else {\n'
+                    s += '      json_decref(a_' + item_name + ');\n'
+                    s += '      return json_null();\n'
+                    s += '    }\n'
                 else:
                     s += '    if (onlyDirty && !_' + item_name + '->isDirtyRecursive()) return json_null();\n'
                     s += '    return _' + item_name + '->toJson(onlyDirty);\n'
