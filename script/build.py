@@ -115,7 +115,6 @@ class AssetBuilder():
         self.master_bin_dir         = self.main_dir+'/contents/master'
         self.manifest_phase_dir     = self.main_dir+'/contents/manifests'
         self.master_header_dir      = self.main_dir+'/master_header'
-        self.user_class_dir         = self.main_dir+'/user_header'
         self.user_schema_dir        = self.main_dir+'/user_derivatives'
         self.user_header_dir        = self.main_dir+'/user_header'
         self.files_dir              = self.main_dir+'/contents/files'
@@ -140,7 +139,6 @@ class AssetBuilder():
         self.org_master_bin_dir     = self.org_main_dir+'/contents/master'
         self.org_manifest_phase_dir = self.org_main_dir+'/contents/manifests'
         self.org_master_header_dir  = self.org_main_dir+'/master_header'
-        self.org_user_class_dir     = self.org_main_dir+'/user_header'
         self.org_user_schema_dir    = self.org_main_dir+'/user_derivatives'
         self.org_user_header_dir    = self.org_main_dir+'/user_header'
         self.org_files_dir          = self.org_main_dir+'/contents/files'
@@ -224,13 +222,12 @@ class AssetBuilder():
         self.MASTER_FBS_ROOT_NAME           = 'MasterDataFBS'
         self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
         self.USER_FBS_FILE                  = 'user_data.fbs'
-        self.USER_CLASS_FILE                = 'user_data.h'
+        self.USER_HEADER_FILE               = 'user_data.h'
+        self.USER_CLASS_FILE                = 'user_data.cpp'
         self.USER_MD5_FILE                  = 'user_data_md5.h'
         self.USER_MD5_DEFINE                = 'KMS_USER_DATA_VERSION'
         self.USER_JSON_SCHEMA_FILE          = 'user_schema.json'
         self.USER_JSON_DATA_FILE            = 'default.json'
-        self.USER_HEADER_FILE               = 'user_data_generated.h'
-        self.USER_FBS_ROOT_NAME             = 'UserDataFBS'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
         self.AES_KEY_TEXT_FILE              = 'aes_256_key.txt'
         self.AES_IV_TEXT_FILE               = 'aes_iv.txt'
@@ -278,8 +275,7 @@ class AssetBuilder():
             self.master_fbs_dir, \
             self.master_bin_dir, \
             self.master_header_dir, \
-            self.user_header_dir, \
-            self.user_class_dir):
+            self.user_header_dir):
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -551,8 +547,9 @@ class AssetBuilder():
         return True
 
     # create class header from fbs
-    def build_user_class(self, src_fbs=None, dest_class=None, dest_schema=None, dest_md5=None, dest_define=None, namespace=None):
+    def build_user_class(self, src_fbs=None, dest_header=None, dest_class=None, dest_schema=None, dest_md5=None, dest_define=None, namespace=None):
         src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
+        dest_header = dest_header or self.build_dir+'/'+self.USER_HEADER_FILE
         dest_class  = dest_class  or self.build_dir+'/'+self.USER_CLASS_FILE
         dest_schema = dest_schema or self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE
         dest_md5    = dest_md5    or self.build_dir+'/'+self.USER_MD5_FILE
@@ -561,24 +558,12 @@ class AssetBuilder():
         if not os.path.exists(src_fbs):
             return False
 
-        info("build user class: %s + %s" % (os.path.basename(dest_class), os.path.basename(dest_schema)))
-        cmdline = [self.fbs2class_bin, src_fbs, dest_class, dest_schema, '--namespace', namespace]
+        info("build user class: %s + %s + %s" % (os.path.basename(dest_header), os.path.basename(dest_class), os.path.basename(dest_schema)))
+        cmdline = [self.fbs2class_bin, src_fbs, dest_header, dest_class, dest_schema, '--namespace', namespace]
         info(' '.join(cmdline))
         check_call(cmdline)
 
         return self._write_md5(dest_class, dest_md5, dest_define)
-
-    # create bin+header from json+fbs
-    def build_user_header(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None):
-        src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
-        dest_header = dest_header or self.build_dir+'/'+self.USER_HEADER_FILE
-        dest_dir    = os.path.dirname(dest_header)
-        info("build user header: %s" % os.path.basename(dest_header))
-
-        cmdline = [self.flatc_bin, '-c', '-o', dest_dir, src_fbs]
-        info(' '.join(cmdline))
-        check_call(cmdline)
-        return True
 
     # create fnt+png from json
     def build_font(self, src_json=None, src_gd_dir=None, dest_font_dir=None, lua_dirs=None):
@@ -685,9 +670,9 @@ class AssetBuilder():
             (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_MD5_FILE,         self.master_header_dir, self.org_master_header_dir),
-            (self.USER_CLASS_FILE,                self.user_class_dir,    self.org_user_class_dir),
-            (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
             (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
+            (self.USER_CLASS_FILE,                self.user_header_dir,   self.org_user_header_dir),
+            (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
             (self.USER_MD5_FILE,                  self.user_header_dir,   self.org_user_header_dir),
             (self.AES_KEY_HEADER_FILE,            self.crypto_dir,        self.org_crypto_dir),
             (self.AES_IV_HEADER_FILE,             self.crypto_dir,        self.org_crypto_dir),
