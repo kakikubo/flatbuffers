@@ -1,11 +1,10 @@
 #!/bin/sh
 
-sonya_chan_url=http://skail.gree-dev.net:4979/send_chat
-#sonya_chan_url=http://takochan.gree-dev.net:4979/send_chat
 #chat_id=31065011  # personal dev
 #chat_id=27838766  # KMSエンジニア
 #chat_id=31118592  # KMSビルド
 chat_id=35615824  # KMSアセット
+text_file=/tmp/sonya.$$.text
 
 title=$1
 job_url=$2
@@ -18,5 +17,6 @@ if [ "$#" -lt 3 ]; then
   exit 1
 fi
 
-gtimeout 10 curl --silent -F rid=$chat_id -F text="[info][title]$title[/title]$job_url[code]`tail -100 $log_file`[/code]$reference_url[/info]" $sonya_chan_url || exit $?
-exit 0
+echo "[info][title]$title[/title]$job_url[code]`tail -100 $log_file`[/code]$reference_url[/info]" > $text_file
+`dirname $0`/sonya2.sh $chat_id $text_file
+exit $?
