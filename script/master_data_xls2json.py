@@ -54,9 +54,9 @@ def parse_xls(xls_path, except_sheets=[]):
             types = sheet.row(1)
             descs = sheet.row(2)
         except:
-            raise Exception("Empty sheet: %s" % sheet.name)
+            raise Exception("空のシートがあります: %s" % sheet.name)
         if not sheet.nrows > 3:
-            raise Exception("Empty data: %s" % sheet.name)
+            raise Exception("このシートのデータが空です: %s" % sheet.name)
   
         sheet_schema = OrderedDict()
         for i, key in enumerate(keys):
@@ -87,7 +87,7 @@ def parse_xls(xls_path, except_sheets=[]):
                     elif t.find('ignore') >= 0:
                         continue
                     elif c == XL_CELL_ERROR:
-                        raise Exception("Cell Error found: ctype = %d" % c)
+                        raise Exception("不正なセルの型です: key = %s ctype = %d" % (k, c))
                     #elif c in (XL_CELL_BLANK, XL_CELL_EMPTY):
                     #    continue
                     elif t.find('int') >= 0 or t.find('long') >= 0 or t.find('short') >= 0 or t.find('byte') >= 0:
@@ -99,7 +99,7 @@ def parse_xls(xls_path, except_sheets=[]):
                     elif t.find('string') >= 0:
                         v = re.sub('\\\\n', "\n", "%s" % v)
                     else:
-                        raise Exception("Column Type Error: type = %s" % t)
+                        raise Exception("不正な型指定です: key = %s type = %s" % (k, t))
                     d[k] = v 
             except:
                 d['_error'] = "%s:%d:%d(%s) = %s: %s: %s" % (sheet.name, i, j, k, v, row, sys.exc_info())
@@ -128,7 +128,7 @@ def check_data(data):
         for e in errors:
             print(e)
         print("----------------------------\n")
-        raise Exception("master data check error")
+        raise Exception("マスタデータチェックエラーです")
   
 def normalize_schema(schema, sheets):
     normalized = OrderedDict()
@@ -171,14 +171,14 @@ def normalize_data(data):
                         continue
                     elif d['id'] >= 0:
                         if id_mapping.has_key(d['id']):
-                            raise Exception("Duplicated id %s in '%s'" % (d['id'], sheet['name']))
+                            raise Exception("テーブル %s で ID '%s' が重複しています" % (sheet['name'], d['id']))
                         id_mapping[d['id']] = d  # override
                     elif d['id'] < 0:
                         id = abs(d['id'])
                         if id in id_mapping:
                             del id_mapping[id]  # delete
                 else:
-                    raise Exception("no primary key record: %s: %s" % (sheet['name'], d))
+                    raise Exception("テーブル %s に主キーが空のレコードがあります: %s" % (sheet['name'], d))
       
             # object -> list
             for id in id_mapping:
