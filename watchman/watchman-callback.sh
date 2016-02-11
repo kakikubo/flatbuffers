@@ -18,11 +18,12 @@ sonya_file=/tmp/watchman-callback.$target.sonya.log
 echo "\n\n\n\n\n---- $WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
 read json
 echo $json | jq '.'
+exit 0
 
 echo $json | jq -r '.[] | (if .exists and .new then "A" elif .exists then "U" else "D" end) + " " + .["name"]' > $sonya_file
 echo "=== BOX SYNC UPDATED === " >> $sonya_file
 $tool_dir/script/sonya.sh "(yawn) watchman '$WATCHMAN_TRIGGER' of '$target' is updated" $jenkins_url_global $sonya_file || exit $?
-exit 0
+#exit 0
 #### followings are deprected
 
 touch $head_file || exit $?

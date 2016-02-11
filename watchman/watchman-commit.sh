@@ -54,7 +54,9 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   echo "automatic sync with git is done: $exit_code"
 
   # log
-  $sonya ":) git commit by `whoami`@`hostname`" $github_url/kms/asset/commit/$commit_id $commit_log_file || exit $?
+  icon=":)"
+  grep -q -e '^D' $commit_log_file && icon="(devil)(devil)(devil)"
+  $sonya "$icon git commit by `whoami`@`hostname`" $github_url/kms/asset/commit/$commit_id $commit_log_file || exit $?
   if [ -s $build_log_file ]; then
     echo "=== C++ Header File is updated === " >> $build_log_file
     $sonya "(F) C++ header file is updated. Please clean build your app" $github_url/kms/asset/commit/$commit_id $build_log_file $github_url/kms/asset $build_chat_id || exit $?
