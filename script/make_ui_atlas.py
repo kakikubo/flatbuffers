@@ -4,6 +4,7 @@
 import argparse
 import os
 import re
+import sys
 import codecs
 from collections import OrderedDict
 import logging
