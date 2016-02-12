@@ -116,7 +116,7 @@ def check_data(data):
             continue
         if sheet['srcType'].find('json') < 0:
             if not data.has_key(sheet['name']):
-                errors.append("no data in sheet %s: %s" % (sheet['name'], ", ".join(data.keys())))
+                errors.append("シート定義 '%s' の実体が存在しません: %s" % (sheet['name'], ", ".join(data.keys())))
                 continue
             for d in data[sheet['name']]:
                 if d.has_key('_error'):
@@ -190,6 +190,8 @@ def normalize_data(data):
     return normalized
   
 if __name__ == '__main__':
+    sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
+    sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
     logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
 
     parser = argparse.ArgumentParser(description = 'master data xlsx to json converter')

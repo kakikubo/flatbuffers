@@ -4,6 +4,7 @@
 import argparse
 import os
 import re
+import codecs
 from collections import OrderedDict
 import logging
 from logging import info, warning, debug
@@ -83,6 +84,8 @@ def copy_json(src_dir, dest_dir):
     return True
 
 if __name__ == '__main__':
+    sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
+    sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
     parser = argparse.ArgumentParser(description='pack ui textures (PNG) by TexturePacker CLI', epilog="""\
 example:
     $ ./make_ui_atlas.py asset/ui asset/texturepacker/ui""")
