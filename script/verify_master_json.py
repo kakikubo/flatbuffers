@@ -35,6 +35,7 @@ class MasterDataVerifier():
         self.file_reference_map = None
         self.id_map             = None
         self.referenced_id_map  = None
+        self.validation_map     = None
 
         self.user_meta_map           = None
         self.user_schema_map         = None
@@ -44,6 +45,7 @@ class MasterDataVerifier():
         self.user_file_reference_map = None
         self.user_id_map             = None
         self.user_referenced_id_map  = None
+        self.user_validation_map     = None
 
         self.do_verify_file_reference = verify_file_reference
 
@@ -59,6 +61,7 @@ class MasterDataVerifier():
         index_map          = OrderedDict()
         reference_map      = OrderedDict()
         file_reference_map = OrderedDict()
+        validation_map     = OrderedDict()
         for table, schema in schemas.iteritems():
             if table == meta_table_name:
                 # create meta_map
@@ -71,6 +74,7 @@ class MasterDataVerifier():
                 index_map[table]          = OrderedDict()
                 reference_map[table]      = OrderedDict()
                 file_reference_map[table] = OrderedDict()
+                validation_map[table]     = OrderedDict()
                 for sch in schema:
                     name = sch['name']
                     schema_map[table][name] = sch
@@ -91,6 +95,12 @@ class MasterDataVerifier():
 
                             # FIXME temporary skip  
                             if k in ('areaInfo.position.id'):
+                                continue
+
+                            if k in ('max_length', 'max_value', 'min_length', 'min_value'):
+                                if not validation_map[table].has_key(name):
+                                    validation_map[table][name] = {}
+                                validation_map[table][name][k] = v
                                 continue
 
                             # id reference
@@ -126,7 +136,7 @@ class MasterDataVerifier():
                         id_map[table][name][d[name]] = []
                     id_map[table][name][d[name]].append(d)
 
-        return (meta_map, schema_map, index_map, reference_map, file_reference_map, id_map)
+        return (meta_map, schema_map, index_map, reference_map, file_reference_map, id_map, validation_map)
 
     def load_master_data(self, src_schema_file, src_data_file):
         with open(src_schema_file, 'r') as f:
@@ -135,7 +145,7 @@ class MasterDataVerifier():
             self.master_data = json.load(f, object_pairs_hook=OrderedDict)
 
         # create schema and reference map
-        self.meta_map, self.schema_map, self.index_map, self.reference_map, self.file_reference_map, self.id_map = \
+        self.meta_map, self.schema_map, self.index_map, self.reference_map, self.file_reference_map, self.id_map, self.validation_map = \
                 self.setup_data(self.master_schema, self.master_data, '_meta')
         return True
 
@@ -189,15 +199,36 @@ class MasterDataVerifier():
                     raise Exception("参照しているファイルがありません: %s[%d].%s -> %s (%s)" % (table, i, k, v, path))
         return True
 
-    def verify_master_record(self, table, i, d, schema, reference, file_reference):
+    def verify_master_record(self, table, i, d, schema, reference, file_reference, validation_spec):
         for k, v in d.iteritems():
             sch  = schema[k]
             refs = reference[k] if reference and reference.has_key(k) else []
             frefs = file_reference[k] if file_reference and file_reference.has_key(k) else None
+            validations = validation_spec[k] if validation_spec and validation_spec.has_key(k) else []
+            value_type = sch["type"]
             self.verify_reference(table, i, d, k, v, refs)
             if self.do_verify_file_reference:
                 self.verify_file_reference(table, i, d, k, v, frefs)
+            self.verify_value_spec(table, i, d, k, v, value_type, validations)
         return True
+
+    def verify_value_spec(self, table, i, d, k, v, value_type, validations):
+        if validations and self.validation_map:
+            for item, spec in validations.iteritems():
+                if self.has_err(v, item, value_type, spec):
+                    raise Exception("%s[%d].%s: invalid value (%s: %s)" %(table, i, k, item, spec))
+
+    @staticmethod
+    def has_err(v, i, value_type, value_spec):
+        if value_type == 'string' and i == 'max_length':
+            return len(v) > value_spec
+        if value_type == 'string' and i == 'min_length':
+            return len(v) < value_spec
+        if value_type in('int', 'long', 'float') and i == 'max_value':
+            return v > value_spec
+        if value_type in('int', 'long', 'float') and i == 'min_value':
+            return v < value_spec
+        return False
 
     def verify_master_data(self):
         # check master data main
@@ -207,12 +238,13 @@ class MasterDataVerifier():
             schema         = self.schema_map[table_type]
             reference      = self.reference_map[table_type]
             file_reference = self.file_reference_map[table_type]
+            validations    = self.validation_map[table_type] if self.validation_map.has_key(table_type) else []
             try:
                 if not meta['is_vector']:
-                    self.verify_master_record(table, 0, data, schema, reference, file_reference)
+                    self.verify_master_record(table, 0, data, schema, reference, file_reference, validations)
                 else:
                     for i, d in enumerate(data):
-                        self.verify_master_record(table, i, d, schema, reference, file_reference)
+                        self.verify_master_record(table, i, d, schema, reference, file_reference, validations)
             except:
                 print('=======================')
                 print('   MASTER DATA ERROR   ')
@@ -237,11 +269,11 @@ class MasterDataVerifier():
             raise e
 
         # create schema and reference map
-        self.user_meta_map, self.user_schema_map, self.user_index_map, self.user_reference_map, self.user_file_reference_map, self.user_id_map = \
+        self.user_meta_map, self.user_schema_map, self.user_index_map, self.user_reference_map, self.user_file_reference_map, self.user_id_map, self.user_validation_map = \
                 self.setup_data(self.user_schema, self.user_data, 'UserDataFBS')
         return True
 
-    def verify_user_record(self, table, i, d, schema, reference, file_reference):
+    def verify_user_record(self, table, i, d, schema, reference, file_reference, validation_spec):
         for k, v in d.iteritems():
             if re.match('^_', k):
                 continue
@@ -250,11 +282,14 @@ class MasterDataVerifier():
             sch  = schema[k]
             refs = reference[k] if reference and reference.has_key(k) else []
             fref = file_reference[k] if file_reference and file_reference.has_key(k) else None
+            validations = validation_spec[k] if validation_spec and validation_spec.has_key(k) else []
+            value_type = sch["type"]
             if isinstance(v, OrderedDict) or isinstance(v, list):
                 continue    # FIXME recursive
             self.verify_reference(table, i, d, k, v, refs)
             if self.do_verify_file_reference:
                 self.verify_file_reference(table, i, d, k, v, fref)
+            self.verify_value_spec(table, i, d, k, v, value_type, validations)
         return True
 
     def verify_user_data(self, user_data=None):
@@ -279,12 +314,13 @@ class MasterDataVerifier():
             schema         = self.user_schema_map[table]
             reference      = self.user_reference_map[table]
             file_reference = self.user_file_reference_map[table]
+            validations    = self.validation_map[table] if self.validation_map.has_key(table) else []
             try:
                 if meta['is_vector']:
                     for i, d in enumerate(data):
-                        self.verify_user_record(table, i, d, schema, reference, file_reference)
+                        self.verify_user_record(table, i, d, schema, reference, file_reference, validations)
                 else:
-                    self.verify_user_record(table, 0, data, schema, reference, file_reference)
+                    self.verify_user_record(table, 0, data, schema, reference, file_reference, validations)
             except:
                 print('=======================')
                 print('    USER DATA ERROR    ')
