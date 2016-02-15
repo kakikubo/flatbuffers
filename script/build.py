@@ -684,7 +684,7 @@ class AssetBuilder():
             (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_MD5_FILE,         self.master_header_dir, self.org_master_header_dir),
-            (self.LL_MESSAGE_JSON_FILE,           self.master_header_dir, self.org_master_header_dir),
+            (self.LL_MESSAGE_JSON_FILE,           self.master_data_dir,   self.org_master_data_dir),
             (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
             (self.USER_CLASS_FILE,                self.user_header_dir,   self.org_user_header_dir),
             (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
