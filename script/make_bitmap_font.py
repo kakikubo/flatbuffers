@@ -93,10 +93,11 @@ if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
 
     parser = argparse.ArgumentParser(description = 'build bitmap font by GlyphDesigner CLI and master data')
-    parser.add_argument('input_json', metavar = 'input.json',      help = 'input master data json')
-    parser.add_argument('gd_dir',     metavar = 'input gd dir',    help = 'input glyph designer project dir')
-    parser.add_argument('font_dir',   metavar = 'output font dir', help = 'output bitmap font dir')
+    parser.add_argument('input_json', metavar = 'master_data.json', help = 'input master data json')
+    parser.add_argument('gd_dir',     help = 'input glyph designer project dir')
+    parser.add_argument('font_dir',   help = 'output bitmap font dir')
     parser.add_argument('--lua-dir',  default = [], nargs='*', help = 'input lua script dir')
+    parser.add_argument('--char-map-json', metavar = 'char_map.json', help = 'output char map json')
     args = parser.parse_args()
 
     if not os.path.exists(gdcl):
@@ -122,5 +123,11 @@ if __name__ == '__main__':
     char_map = join_char_map(char_map, lua_char_map)
 
     generate_bitmap_font(char_map, args.gd_dir, args.font_dir)
+
+    # write char map json
+    if args.char_map_json:
+        with codecs.open(args.char_map_json, "w") as fp:
+            j = json.dumps(char_map, ensure_ascii = False, indent = 4)
+            fp.write(j.encode("utf-8"))
 
     exit(0)
