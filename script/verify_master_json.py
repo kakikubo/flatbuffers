@@ -453,7 +453,7 @@ class MasterDataVerifier():
 #
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
-    sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
+    #sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
     parser = argparse.ArgumentParser(description = 'verify master data json')
     parser = argparse.ArgumentParser(description='verify master data and default user data, and generate file reference list', epilog="""\
 example:
