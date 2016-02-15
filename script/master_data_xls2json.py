@@ -191,7 +191,7 @@ def normalize_data(data):
   
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
-    sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
+    #sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
     logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
 
     parser = argparse.ArgumentParser(description = 'master data xlsx to json converter')

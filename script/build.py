@@ -1068,7 +1068,7 @@ class AssetBuilder():
 
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
-    sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
+    #sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description = 'build asset and master data', 
