@@ -170,6 +170,7 @@ class AssetBuilder():
         self.master_user_schema_dir   = self.master_dir+'/user_derivatives'
         self.master_user_data_dir     = self.master_dir+'/user_data'
         self.master_distribution_dir  = self.master_dir+"/distribution"
+        self.master_ui_dir            = self.master_dir+'/ui'
         self.master_lua_dir           = self.master_dir+'/lua'
         self.master_crypto_dir        = self.master_dir+'/crypto'
 
@@ -182,6 +183,7 @@ class AssetBuilder():
         self.fbs2class_bin          = self_dir+'/fbs2class.py'
         self.make_bitmap_font_bin   = self_dir+'/make_bitmap_font.py'
         self.merge_editor_json_bin  = self_dir+'/merge_editor_json.py'
+        self.lltext2json_bin        = self_dir+'/lltext2json.py'
         self.sort_master_json_bin   = self_dir+'/sort-master-json.py'
         self.verify_master_json_bin = self_dir+'/verify_master_json.py'
         self.strip_master_json_bin  = self_dir+'/strip_master_json.py'
@@ -221,6 +223,7 @@ class AssetBuilder():
         self.EDITOR_MASTER_MD5_DEFINE       = 'KMS_MASTER_DATA_VERSION'
         self.MASTER_FBS_ROOT_NAME           = 'MasterDataFBS'
         self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
+        self.LL_MESSAGE_JSON_FILE           = 'll_message.json'
         self.USER_FBS_FILE                  = 'user_data.fbs'
         self.USER_HEADER_FILE               = 'user_data.h'
         self.USER_CLASS_FILE                = 'user_data.cpp'
@@ -359,6 +362,15 @@ class AssetBuilder():
                     editor_files[basename] = editor_path
 
         cmdline = [self.merge_editor_json_bin, master_data_json] + editor_files.values()
+        info(' '.join(cmdline))
+        check_call(cmdline)
+
+    def merge_layoutloader_text(self, master_data_json=None, message_json=None, ui_dirs=None):
+        master_data_json = master_data_json or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        message_json     = message_json     or self.build_dir+'/'+self.LL_MESSAGE_JSON_FILE
+        ui_dirs = ui_dirs or [self.master_ui_dir, self.ui_dir]
+
+        cmdline = [self.lltext2json_bin, '--merge-json', master_data_json, '--output-json', message_json] + ui_dirs
         info(' '.join(cmdline))
         check_call(cmdline)
 
@@ -672,6 +684,7 @@ class AssetBuilder():
             (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_MD5_FILE,         self.master_header_dir, self.org_master_header_dir),
+            (self.LL_MESSAGE_JSON_FILE,           self.master_header_dir, self.org_master_header_dir),
             (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
             (self.USER_CLASS_FILE,                self.user_header_dir,   self.org_user_header_dir),
             (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
@@ -992,6 +1005,7 @@ class AssetBuilder():
         self.build_master_json()
         self.merge_editor_schema()
         self.merge_editor_data()
+        self.merge_layoutloader_text()
         self.sort_master_json()
         #self.build_master_macro()
         self.build_master_fbs()
