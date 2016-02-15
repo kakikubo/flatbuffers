@@ -107,7 +107,8 @@ class MasterDataVerifier():
                             ref = k.split('.')
                             if len(ref) > 1:
                                 if len(ref) > 3:
-                                    raise Exception("不正な参照定義です: "+k)
+                                    error(u"不正な参照定義です: "+k)
+                                    raise Exception("invalid reference definition")
                                 ref[0] = self.upper_camel_case(ref[0]) # treat reference as Table Type
                                 if not reference_map[table].has_key(name):
                                     reference_map[table][name] = []
@@ -131,7 +132,8 @@ class MasterDataVerifier():
                     if d[name] <= 0:
                         continue
                     if id_map[table][name].has_key(d[name]) and sch['attribute'].has_key('key'):
-                        raise Exception("ID が重複しています: %s[%d].%s(%s)" % (table, i, name, d[name]))
+                        error(u"ID が重複しています: %s[%d].%s(%s)" % (table, i, name, d[name]))
+                        raise Exception("duplicated id")
                     if not id_map[table][name].has_key(d[name]):
                         id_map[table][name][d[name]] = []
                     id_map[table][name][d[name]].append(d)
@@ -162,14 +164,16 @@ class MasterDataVerifier():
                 # user data reference
                 ref_table = 'User' + self.upper_camel_case(ref[1])
                 if not self.user_id_map.has_key(ref_table) or not self.user_id_map[ref_table].has_key(ref[2]):
-                    raise Exception("参照先のテーブル指定が不正です: %s.%s -> %s.%s (%s.%s.%s)" % (table, k, ref_table, ref[2], ref[0], ref[1], ref[2]))
+                    error(u"参照先のテーブル指定が不正です: %s.%s -> %s.%s (%s.%s.%s)" % (table, k, ref_table, ref[2], ref[0], ref[1], ref[2]))
+                    raise Exception("invalid table reference")
                 id_map_keys.append([ref_table, ref[2]])
                 if d.has_key(ref[2]):
                     src_id = d[ref[2]]
             else:
                 # master data reference
                 if not self.id_map.has_key(ref[0]) or not self.id_map[ref[0]].has_key(ref[1]):
-                    raise Exception("参照先のテーブル指定が不正です: %s.%s -> %s.%s" % (table, k, ref[0], ref[1]))
+                    error(u"参照先のテーブル指定が不正です: %s.%s -> %s.%s" % (table, k, ref[0], ref[1]))
+                    raise Exception("invalid table reference")
                 id_map_keys.append([ref[0], ref[1]])
                 if d.has_key(ref[1]):
                     src_id = d[ref[1]]
@@ -181,7 +185,8 @@ class MasterDataVerifier():
                 found = True
         if not found:
             keys = [key[0]+'.'+key[1] for key in id_map_keys]
-            raise Exception("参照先のデータがありません: %s[%d](%s).%s -> %s(%s)" % (table, i, src_id, k, ' or '.join(keys), v))
+            error(u"参照先のデータがありません: %s[%d](%s).%s -> %s(%s)" % (table, i, src_id, k, ' or '.join(keys), v))
+            raise Exception("no referenced data")
 
         return True
 
@@ -196,7 +201,8 @@ class MasterDataVerifier():
                     if glob(os.path.join(dir, path)):
                         found = True
                 if not found:
-                    raise Exception("参照しているファイルがありません: %s[%d].%s -> %s (%s)" % (table, i, k, v, path))
+                    error(u"参照しているファイルがありません: %s[%d].%s -> %s (%s)" % (table, i, k, v, path))
+                    raise Exception("no referenced file")
         return True
 
     def verify_master_record(self, table, i, d, schema, reference, file_reference, validation_spec):
@@ -216,7 +222,8 @@ class MasterDataVerifier():
         if validations and self.validation_map:
             for item, spec in validations.iteritems():
                 if self.has_err(v, item, value_type, spec):
-                    raise Exception("%s[%d].%s: invalid value (%s: %s)" %(table, i, k, item, spec))
+                    error(u"%s[%d].%s: invalid value (%s: %s): %s" %(table, i, k, item, spec, v))
+                    raise Exception("invalid value spec")
 
     @staticmethod
     def has_err(v, i, value_type, value_spec):
@@ -278,7 +285,8 @@ class MasterDataVerifier():
             if re.match('^_', k):
                 continue
             if not schema.has_key(k):
-                raise Exception("存在しないテーブルにデータを置いています: %s.%s (%s): '%s'" % (table, k, v, "', '".join(schema.keys())))
+                error(u"存在しないテーブルにデータを置いています: %s.%s (%s): '%s'" % (table, k, v, "', '".join(schema.keys())))
+                raise Exception("put data onto unexisted table")
             sch  = schema[k]
             refs = reference[k] if reference and reference.has_key(k) else []
             fref = file_reference[k] if file_reference and file_reference.has_key(k) else None
@@ -308,7 +316,8 @@ class MasterDataVerifier():
                     if meta:
                         break
                 if not meta:
-                    raise Exception('テーブルがありません: %s' % key)
+                    error(u'テーブルがありません: %s' % key)
+                    raise Exception('no table exists')
             table = meta['type']
             info("verify user data: %s:%s" % (key, table))
             schema         = self.user_schema_map[table]
@@ -362,7 +371,8 @@ class MasterDataVerifier():
                     elif refed_name == 'position':
                         continue    # TODO
                     else:
-                        raise Exception("対象のテーブルがインデックス定義されていません: %s.%s -> %s.%s" % (ref_table, ref, refed_table, refed_name))
+                        error(u"対象のテーブルがインデックス定義されていません: %s.%s -> %s.%s" % (ref_table, ref, refed_table, refed_name))
+                        raise Exception("no index for target table")
                         continue
         return referenced_map
 
@@ -393,7 +403,8 @@ class MasterDataVerifier():
         if m:
             for k in m.groups():
                 if not d.has_key(k):
-                    raise Exception("不正なファイルパスがあります: %s: %s" % (k, path))
+                    error(u"不正なファイルパスがあります: %s: %s" % (k, path))
+                    raise Exception("invalid path exists")
                 path = path.replace('{'+k+'}', str(d[k]))
         return path
 

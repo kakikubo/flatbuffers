@@ -8,7 +8,7 @@ import sys
 import codecs
 from collections import OrderedDict
 import logging
-from logging import info, warning, debug
+from logging import info, warning, debug, error
 from glob import glob
 from subprocess import check_call
 from shutil import move, rmtree, copy2
@@ -37,14 +37,16 @@ def pack_textures(src_dir, dest_dir, work_dir=None, verify_filename=False):
         for root, dirs, files in os.walk(top_dir):
             for d in dirs:
                 if verify_filename and not re.match('^[a-z0-9_./]+$', d):
-                    raise Exception("不正なフォルダ名です: %s" % os.path.join(root, d))
+                    error(u"不正なフォルダ名です: %s" % os.path.join(root, d))
+                    raise Exception("invalid folder name")
             for f in files:
                 if not re.search('\.png$', f):
                     continue
                 if re.search('textures\.[0-9]+\.png', f):
                     continue
                 if verify_filename and not re.match('^[a-z0-9_./]+$', f):
-                    raise Exception("不正なファイル名です: %s" % os.path.join(root, f))
+                    error(u"不正なファイル名です: %s" % os.path.join(root, f))
+                    raise Exception("invalid filename name")
                 # include sub dir path to texture name
                 base_dir = re.sub('^'+src_dir+'/', '', root)
                 fname = re.sub('/', '@@SEPARATOR@@', os.path.join(base_dir, f))

@@ -17,7 +17,7 @@ from time import strftime
 from subprocess import check_call, check_output, call, STDOUT
 from shutil import move, rmtree, copy2, copytree
 from glob import glob
-from logging import info, warning, debug
+from logging import info, warning, debug, error
 
 class AssetBuilder():
     def __init__(self, command=None, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, mirror_dir=None, cdn_dir=None, git_dir=None):
@@ -248,10 +248,12 @@ class AssetBuilder():
         for root, dirnames, filenames, in os.walk(src):
             for dir in dirnames:
                 if re.search('[^\w\.-]', dir):
-                    raise Exception("不正なフォルダ名です: "+root+'/'+dir)
+                    error(u"不正なフォルダ名です: "+root+'/'+dir)
+                    raise Exception("invalid folder name")
             for file in filenames:
                 if re.search('[^\w\.-]', file):
-                    raise Exception("不正なファイル名です: "+root+'/'+file)
+                    error(u"不正なファイル名です: "+root+'/'+file)
+                    raise Exception("invalid file name")
 
         if src[-1] != '/':
             src += '/'
