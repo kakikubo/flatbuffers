@@ -149,6 +149,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
         h += '#include <msgpack.hpp>\n'
     if with_fbs:
         h += '#include "user_data_generated.h"\n'
+    h += '#include "SecureMemory.h"\n'
     h += "\n"
 
     h += '#pragma clang diagnostic ignored "-Wc++11-extensions"\n'
@@ -185,14 +186,19 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 table_property[table_name]["range_key"] = item_name
 
             item["is_default_type"] = not item["item_type"] in fbs_data
+            item["is_secure"] = False
             if item["item_type"] == "string":
-                item["cpp_type"] = "std::string"
+                item["cpp_type"] = item["cpp_secure_type"] = "std::string"
             elif item["item_type"] == "long":
                 item["cpp_type"] = "long long"
+                item["cpp_secure_type"] = "WFS::SecureMemory<long long>"
+                item["is_secure"] = True
             elif item["is_default_type"]:
                 item["cpp_type"] = item["item_type"]
+                item["cpp_secure_type"] = "WFS::SecureMemory<" + item["item_type"]  + ">"
+                item["is_secure"] = True
             else:
-                item["cpp_type"] = "std::shared_ptr<" + item["item_type"] + ">"
+                item["cpp_type"] = item["cpp_secure_type"] = "std::shared_ptr<" + item["item_type"] + ">"
 
     # static functions
     # calcChecksum
@@ -219,13 +225,13 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
         for item_name, item in table.iteritems():
             if item["is_vector"]:
                 h += "  // " + item_name + "\n"
-                h += "  std::vector<" + item["cpp_type"] + " > _" + item_name + ";\n"
+                h += "  std::vector<" + item["cpp_secure_type"] + " > _" + item_name + ";\n"
                 h += "  std::vector<" + item["cpp_type"] + " > _" + item_name + "Erased;\n"
                 range_key = get_item_range_key(item, fbs_data, table_property)
                 if range_key:
-                    h += "  std::map<" + range_key["cpp_type"] + ", " + item["cpp_type"] + " > _" + item_name + "Map;\n"
+                    h += "  std::map<" + range_key["cpp_type"] + ", " + item["cpp_secure_type"] + " > _" + item_name + "Map;\n"
             else:
-                h += "  " + item["cpp_type"] + " _" + item_name + "; // " + item_name + "\n"
+                h += "  " + item["cpp_secure_type"] + " _" + item_name + "; // " + item_name + "\n"
         h += "\n"
         h += "  time_t __timestamp;\n"
         h += "  bool __dirty;\n"
@@ -246,13 +252,6 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     default_value = "true" if value else  "false";
                 else:
                     default_value = value;
-            else:
-                if item_type in ('string'):
-                    default_value = '""';
-                elif item_type in ('bool'):
-                    default_value = "false"
-                elif item_type in ('int', 'long', 'float'):
-                    default_value = "0";
 
             if not item["is_default_type"] and not item["is_vector"]:
                 inits.append("  _" + item_name + "(std::make_shared<" + item["item_type"] + " >("+default_value+")),\n")
@@ -266,18 +265,22 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
         h += "\n  // getters\n"
         for item_name, item in table.iteritems():
             if item["is_vector"]:
-                h += "  const std::vector<" + item["cpp_type"] + " >* " + item_name + "() const { return &_" + item_name + "; }\n"
+                h += "  const std::vector<" + item["cpp_secure_type"] + " >* " + item_name + "() const { return &_" + item_name + "; }\n"
                 range_key = get_item_range_key(item, fbs_data, table_property)
                 if range_key:
                     h += "  " + item["cpp_type"] + " lookup" + upper_camel_case(item_name) + "(" + range_key["cpp_type"] + " needle);\n"
                     s += "\n" + item["cpp_type"] + " " + table_name + "::lookup" + upper_camel_case(item_name) + "(" + range_key["cpp_type"] + " needle) {\n"
                     s += "  auto found = _" + item_name + "Map.find(needle);\n"
-                    s += "  if (found != _" + item_name + "Map.end()) {\n"
-                    s += "    return found->second;\n"
-                    s += "  } else {\n"
+                    s += "  if (found == _" + item_name + "Map.end()) {\n"
                     s += "    return nullptr;\n"
                     s += "  }\n"
+                    if item["is_secure"]:
+                        s += "  return found->second.getValue();\n"
+                    else:
+                        s += "  return found->second;\n"
                     s += "}\n"
+            elif item["is_secure"]:
+                h += "  " + item["cpp_type"] + " " + item_name + "() const { return _" + item_name + ".getValue(); }\n"
             else:
                 h += "  " + item["cpp_type"] + " " + item_name + "() const { return _" + item_name + "; }\n"
 
@@ -291,58 +294,64 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     h += "  void set" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value);\n"
                     s += "\nvoid " + table_name + "::set" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value) {\n"
                     s += "  if (_" + item_name + "[pos]) _" + item_name + "Map.erase(_" + item_name + "[pos]->" + range_key["name"] + "());\n"
-                    s += "  _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
-                    s += "  _" + item_name + "[pos] = value;\n"
+                    s += "  " + item["cpp_secure_type"] + " __value(value);\n"
+                    s += "  _" + item_name + "Map[value->" + range_key["name"] + "()] = __value;\n"
+                    s += "  _" + item_name + "[pos] = __value;\n"
                     s += "  __dirty = true;\n"
                     s += "}\n"
                 else:
                     h += "  void set" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value, const " + item["cpp_type"] + "& defaultValue);\n"
                     s += "\nvoid " + table_name + "::set" + upper_camel_case(item_name) + "(int pos, const " + item["cpp_type"] + "& value, const " + item["cpp_type"] + "& defaultValue) {\n"
                     s += "  if (_" + item_name + ".size() <= pos) {\n"
-                    s += "    _" + item_name + ".resize(pos + 1, defaultValue);\n"
+                    s += "    " + item["cpp_secure_type"] + " __value = defaultValue;\n"
+                    s += "    _" + item_name + ".resize(pos + 1, __value);\n"
                     s += "  }\n"
-                    s += "  _" + item_name + "[pos] = value;\n"
+                    s += "  " + item["cpp_secure_type"] + " __value(value);\n"
+                    s += "  _" + item_name + "[pos] = __value;\n"
                     s += "  __dirty = true;\n"
                     s += "}\n"
 
                 # emplace
                 if item["item_type"] != "bool":
-                    h += "  void emplace" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value);\n"
-                    s += "\nvoid " + table_name + "::emplace" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
-                    s += "  _" + item_name + ".emplace(pos, value);\n"
+                    h += "  void emplace" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_secure_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value);\n"
+                    s += "\nvoid " + table_name + "::emplace" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_secure_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
+                    s += "  " + item["cpp_secure_type"] + " __value(value);\n"
+                    s += "  _" + item_name + ".emplace(pos, __value);\n"
                     if range_key:
                         s += '  assert(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end());\n'
-                        s += "  _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
+                        s += "  _" + item_name + "Map[value->" + range_key["name"] + "()] = __value;\n"
                     s += "  __dirty = true;\n"
                     s += "}\n"
 
                 # insert
-                h += "  void insert" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value);\n"
-                s += "\nvoid " + table_name + "::insert" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
-                s += "  _" + item_name + ".insert(pos, value);\n"
+                h += "  void insert" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_secure_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value);\n"
+                s += "\nvoid " + table_name + "::insert" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_secure_type"] + " >::const_iterator pos, const " + item["cpp_type"] + "& value) {\n"
+                s += "  " + item["cpp_secure_type"] + " __value(value);\n"
+                s += "  _" + item_name + ".insert(pos, __value);\n"
                 if range_key:
                     s += '  assert(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end());\n'
-                    s += "  _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
+                    s += "  _" + item_name + "Map[value->" + range_key["name"] + "()] = __value;\n"
                 s += "  __dirty = true;\n"
                 s += "}\n"
 
                 # pushBack
                 h += "  void pushBack" + upper_camel_case(item_name) + "(const " + item["cpp_type"] + "& value);\n"
                 s += "\nvoid " + table_name + "::pushBack" + upper_camel_case(item_name) + "(const " + item["cpp_type"] + "& value) {\n"
-                s += "  _" + item_name + ".push_back(value);\n"
+                s += "  " + item["cpp_secure_type"] + " __value(value);\n"
+                s += "  _" + item_name + ".push_back(__value);\n"
                 if range_key:
                     s += '  assert(_' + item_name + 'Map.find(value->' + range_key["name"] + '()) == _' + item_name + 'Map.end());\n'
-                    s += "  _" + item_name + "Map[value->" + range_key["name"] + "()] = value;\n"
+                    s += "  _" + item_name + "Map[value->" + range_key["name"] + "()] = __value;\n"
                 s += "  __dirty = true;\n"
                 s += "}\n"
 
                 # erase
-                h += "  void erase" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos);\n"
-                s += "\nvoid " + table_name + "::erase" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_type"] + " >::const_iterator pos) {\n"
+                h += "  void erase" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_secure_type"] + " >::const_iterator pos);\n"
+                s += "\nvoid " + table_name + "::erase" + upper_camel_case(item_name) + "(std::vector<" + item["cpp_secure_type"] + " >::const_iterator pos) {\n"
                 if range_key:
                     s += "  _" + item_name + "Map.erase((*pos)->" + range_key["name"] + "());\n"
-                s += "  auto erased = _" + item_name + ".erase(pos);\n"
-                s += "  _" + item_name + "Erased.push_back(*erased);\n"
+                s += "  _" + item_name + "Erased.push_back(*pos);\n"
+                s += "  _" + item_name + ".erase(pos);\n"
                 s += "  // __dirty = true; // erase is not dirty\n"
                 s += "}\n"
 
@@ -361,13 +370,15 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 # set 
                 h += "  void set" + upper_camel_case(item_name) + "(" + item["cpp_type"] + " value);\n"
                 s += "\nvoid " + table_name + "::set" + upper_camel_case(item_name) + "(" + item["cpp_type"] + " value) { \n"
-                s += "  _" + item_name + " = value;\n"
+                s += "  " + item["cpp_secure_type"] + " __value(value);\n"
+                s += "  _" + item_name + " = __value;\n"
                 s += "  __dirty = true;\n"
                 s += "}\n"
                 if item["item_type"] == 'string':
                     h += "  void set" + upper_camel_case(item_name) + "(const char* value);\n"
                     s += "void " + table_name + "::set" + upper_camel_case(item_name) + "(const char* value) {\n"
-                    s += "  _" + item_name + " = value;\n"
+                    s += "  " + item["cpp_secure_type"] + " __value(value);\n"
+                    s += "  _" + item_name + " = __value;\n"
                     s += "  __dirty = true;\n"
                     s += "}\n"
 
@@ -579,11 +590,11 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     if item_type == 'string':
                         s += "    json_array_append_new(a_" + item_name + ", json_string((*it).c_str()));\n"
                     elif item_type in ('int', 'long'):
-                        s += "    json_array_append_new(a_" + item_name + ", json_integer(*it));\n"
+                        s += "    json_array_append_new(a_" + item_name + ", json_integer(it->getValue()));\n"
                     elif item_type in ('float', 'double'):
-                        s += "    json_array_append_new(a_" + item_name + ", json_real(*it));\n"
+                        s += "    json_array_append_new(a_" + item_name + ", json_real(it->getValue()));\n"
                     elif item_type in ('bool'):
-                        s += "    json_array_append_new(a_" + item_name + ", json_boolean(*it));\n"
+                        s += "    json_array_append_new(a_" + item_name + ", json_boolean(it->getValue()));\n"
                     else:
                         s += "    json_array_append_new(a_" + item_name + ", (*it)->toJson(false));\n"
                     s += "  }\n"
@@ -591,11 +602,11 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 elif item_type == 'string':
                     s += '  json_object_set_new(json, "' + item_name + '", json_string(_' + item_name + '.c_str()));\n'
                 elif item_type in ('int', 'long'):
-                    s += '  json_object_set_new(json, "' + item_name + '", json_integer(_' + item_name + '));\n'
+                    s += '  json_object_set_new(json, "' + item_name + '", json_integer(_' + item_name + '.getValue()));\n'
                 elif item_type in ('float', 'double'):
-                    s += '  json_object_set_new(json, "' + item_name + '", json_real(_' + item_name + '));\n'
+                    s += '  json_object_set_new(json, "' + item_name + '", json_real(_' + item_name + '.getValue()));\n'
                 elif item_type in ('bool'):
-                    s += '  json_object_set_new(json, "' + item_name + '", json_boolean(_' + item_name + '));\n'
+                    s += '  json_object_set_new(json, "' + item_name + '", json_boolean(_' + item_name + '.getValue()));\n'
                 else:
                     s += '  json_object_set_new(json, "' + item_name + '", _' + item_name + '->toJson(false));\n'
             s += "  return json;\n";
@@ -660,14 +671,18 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += '  pk.pack_array((int)_' + item_name + '.size());\n'
                     s += '  for (auto it = _' + item_name + '.begin(); it != _' + item_name + '.end(); it++) {\n'
                     if item["item_type"] == "bool":
-                        s += '    pk.pack(*it ? true : false);\n'
+                        s += '    pk.pack(it->getValue() ? true : false);\n'
+                    elif item["is_secure"]:
+                        s += '    pk.pack(it->getValue());\n'
                     elif item["is_default_type"]:
                         s += '    pk.pack(*it);\n'
                     else:
                         s += '    (*it)->toMsgpack(pk);\n'
                     s += '  }\n'
                 elif item["item_type"] == "bool":
-                    s += '  pk.pack(_' + item_name + ' ? true : false);\n'
+                    s += '  pk.pack(_' + item_name + '.getValue() ? true : false);\n'
+                elif item["is_secure"]:
+                    s += '  pk.pack(_' + item_name + '.getValue());\n'
                 elif item["is_default_type"]:
                     s += '  pk.pack(_' + item_name + ');\n'
                 else:
@@ -802,7 +817,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             for item_name, item in table.iteritems():
                 if item["is_vector"]:
                     s += "  // vector of " + item_name + "\n";
-                    s += "  std::vector<" + item["cpp_type"] + " __" + item_name + ";\n"
+                    s += "  std::vector<" + item["cpp_secure_type"] + " __" + item_name + ";\n"
                     s += "  for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
                     if item["item_type"] == 'string':
                         s += "    __" + item_name + "->pushBack" + upper_camel_case(item_name) + "(fbb->CreateString(*it));\n"
