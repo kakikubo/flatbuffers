@@ -82,10 +82,8 @@ def parse_xls(xls_path, except_sheets=[]):
                     c = row[j].ctype
                     if len(k) == 0:
                         continue
-                    elif re.match('^_', k):
-                        continue
-                    elif t.find('ignore') >= 0:
-                        continue
+                    elif re.match('^_', k) or t.find('ignore') >= 0:
+                        v = v # keep ignored values in data json
                     elif c == XL_CELL_ERROR:
                         raise Exception("不正なセルの型です: key = %s ctype = %d" % (k, c))
                     #elif c in (XL_CELL_BLANK, XL_CELL_EMPTY):
