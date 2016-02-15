@@ -54,9 +54,11 @@ def parse_xls(xls_path, except_sheets=[]):
             types = sheet.row(1)
             descs = sheet.row(2)
         except:
-            raise Exception("空のシートがあります: %s" % sheet.name)
+            error(u"空のシートがあります: %s" % sheet.name)
+            raise Exception("empty sheet exists")
         if not sheet.nrows > 3:
-            raise Exception("このシートのデータが空です: %s" % sheet.name)
+            error(u"このシートのデータが空です: %s" % sheet.name)
+            raise Exception("empty data in sheet")
   
         sheet_schema = OrderedDict()
         for i, key in enumerate(keys):
@@ -85,7 +87,8 @@ def parse_xls(xls_path, except_sheets=[]):
                     elif re.match('^_', k) or t.find('ignore') >= 0:
                         v = v # keep ignored values in data json
                     elif c == XL_CELL_ERROR:
-                        raise Exception("不正なセルの型です: key = %s ctype = %d" % (k, c))
+                        error(u"不正なセルの型です: key = %s ctype = %d" % (k, c))
+                        raise Exception("invalid cell type")
                     #elif c in (XL_CELL_BLANK, XL_CELL_EMPTY):
                     #    continue
                     elif t.find('int') >= 0 or t.find('long') >= 0 or t.find('short') >= 0 or t.find('byte') >= 0:
@@ -97,7 +100,8 @@ def parse_xls(xls_path, except_sheets=[]):
                     elif t.find('string') >= 0:
                         v = re.sub('\\\\n', "\n", "%s" % v)
                     else:
-                        raise Exception("不正な型指定です: key = %s type = %s" % (k, t))
+                        error(u"不正な型指定です: key = %s type = %s" % (k, t))
+                        raise Exception("unknown cell type")
                     d[k] = v 
             except:
                 d['_error'] = "%s:%d:%d(%s) = %s: %s: %s" % (sheet.name, i, j, k, v, row, sys.exc_info())
@@ -114,7 +118,7 @@ def check_data(data):
             continue
         if sheet['srcType'].find('json') < 0:
             if not data.has_key(sheet['name']):
-                errors.append("シート定義 '%s' の実体が存在しません: %s" % (sheet['name'], ", ".join(data.keys())))
+                errors.append(u"シート定義 '%s' の実体が存在しません: %s" % (sheet['name'], ", ".join(data.keys())))
                 continue
             for d in data[sheet['name']]:
                 if d.has_key('_error'):
@@ -126,7 +130,8 @@ def check_data(data):
         for e in errors:
             print(e)
         print("----------------------------\n")
-        raise Exception("マスタデータチェックエラーです")
+        error(u"マスタデータチェックエラーです")
+        raise Exception("Master Data Check Error")
   
 def normalize_schema(schema, sheets):
     normalized = OrderedDict()
@@ -169,14 +174,16 @@ def normalize_data(data):
                         continue
                     elif d['id'] >= 0:
                         if id_mapping.has_key(d['id']):
-                            raise Exception("テーブル %s で ID '%s' が重複しています" % (sheet['name'], d['id']))
+                            error(u"テーブル %s で ID '%s' が重複しています" % (sheet['name'], d['id']))
+                            raise Exception("duplicated id exists")
                         id_mapping[d['id']] = d  # override
                     elif d['id'] < 0:
                         id = abs(d['id'])
                         if id in id_mapping:
                             del id_mapping[id]  # delete
                 else:
-                    raise Exception("テーブル %s に主キーが空のレコードがあります: %s" % (sheet['name'], d))
+                    error(u"テーブル %s に主キーが空のレコードがあります: %s" % (sheet['name'], d))
+                    raise Exception("some records has no primary key")
       
             # object -> list
             for id in id_mapping:
