@@ -252,11 +252,11 @@ class AssetBuilder():
         for root, dirnames, filenames, in os.walk(src):
             for dir in dirnames:
                 if re.search('[^\w\.-]', dir):
-                    error(u"不正なフォルダ名です: "+root+'/'+dir)
+                    error(u"不正なフォルダ名です: '%s/%s'" % (root, dir.decode('utf-8')))
                     raise Exception("invalid folder name")
             for file in filenames:
                 if re.search('[^\w\.-]', file):
-                    error(u"不正なファイル名です: "+root+'/'+file)
+                    error(u"不正なファイル名です: '%s/%s'" % (root, file.decode('utf-8')))
                     raise Exception("invalid file name")
 
         if src[-1] != '/':
