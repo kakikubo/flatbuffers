@@ -89,8 +89,7 @@ def parse_enum_sheet(sheet):
             enums[enum_name]["is_vector"] = False
             enums[enum_name]["description"] = enum_desc
             enums[enum_name]["type"] = enum_type
-            enums[enum_name]["file"] = "enemy.xlsx"
-            enums[enum_name]["sheet"] = "enemyEnum"
+            enums[enum_name]["sheet"] = sheet.name
             enums[enum_name]["values"] = OrderedDict()
 
         # parse data columns
@@ -128,6 +127,8 @@ def parse_xls(xls_path, except_sheets=[]):
     for sheet in xls_book.sheets():
         if re.match('[a-z][A-Za-z]+Enum$', sheet.name):
             enum_data = parse_enum_sheet(sheet)
+            for k in enum_data.keys():
+                enum_data[k]['file'] = os.path.basename(xls_path)
             schema[sheet.name] = enum_data
             continue
 
