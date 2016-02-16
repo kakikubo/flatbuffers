@@ -100,9 +100,10 @@ example:
             id = max(id, d['id'])
         keys = data['fontCharacter'][0].keys()
         for font, chars in char_map.iteritems():
-            if not d.has_key(font):
-                error(u"font '%s' は定義されていません: '%s'" % (font, "', '".join(chars)))
-                raise Exception("undefined font name")
+            # FIXME temporary off
+            #if not d.has_key(font):
+            #    error(u"font '%s' は定義されていません: '%s'" % (font, "', '".join(chars)))
+            #    raise Exception("undefined font name")
             for char in chars:
                 id += 1
                 d = OrderedDict()
