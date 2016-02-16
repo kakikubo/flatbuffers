@@ -225,6 +225,7 @@ class AssetBuilder():
         self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
         self.CHAR_MAP_FILE                  = 'char_map.json'
         self.LL_MESSAGE_JSON_FILE           = 'll_message.json'
+        self.LL_CHAR_MAP_JSON_FILE          = 'll_char_map.json'
         self.USER_FBS_FILE                  = 'user_data.fbs'
         self.USER_HEADER_FILE               = 'user_data.h'
         self.USER_CLASS_FILE                = 'user_data.cpp'
@@ -367,12 +368,13 @@ class AssetBuilder():
         check_call(cmdline)
 
     # generate ll_meesage.json and merge into master_data.json
-    def merge_layoutloader_text(self, master_data_json=None, message_json=None, ui_dirs=None):
+    def merge_layoutloader_text(self, master_data_json=None, message_json=None, char_map_json=None, ui_dirs=None):
         master_data_json = master_data_json or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         message_json     = message_json     or self.build_dir+'/'+self.LL_MESSAGE_JSON_FILE
+        char_map_json    = char_map_json    or self.build_dir+'/'+self.LL_CHAR_MAP_JSON_FILE
         ui_dirs = ui_dirs or [self.master_ui_dir, self.ui_dir]
 
-        cmdline = [self.lltext2json_bin, '--merge-json', master_data_json, '--output-json', message_json] + ui_dirs
+        cmdline = [self.lltext2json_bin, '--merge-json', master_data_json, '--message-json', message_json, '--char-map-json', char_map_json] + ui_dirs
         info(' '.join(cmdline))
         check_call(cmdline)
 
@@ -689,6 +691,7 @@ class AssetBuilder():
             (self.EDITOR_MASTER_MD5_FILE,         self.master_header_dir, self.org_master_header_dir),
             (self.CHAR_MAP_FILE,                  self.master_data_dir,   self.org_master_data_dir),
             (self.LL_MESSAGE_JSON_FILE,           self.master_data_dir,   self.org_master_data_dir),
+            (self.LL_CHAR_MAP_JSON_FILE,          self.master_data_dir,   self.org_master_data_dir),
             (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
             (self.USER_CLASS_FILE,                self.user_header_dir,   self.org_user_header_dir),
             (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
