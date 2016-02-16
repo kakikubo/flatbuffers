@@ -223,6 +223,7 @@ class AssetBuilder():
         self.EDITOR_MASTER_MD5_DEFINE       = 'KMS_MASTER_DATA_VERSION'
         self.MASTER_FBS_ROOT_NAME           = 'MasterDataFBS'
         self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
+        self.CHAR_MAP_FILE                  = 'char_map.json'
         self.LL_MESSAGE_JSON_FILE           = 'll_message.json'
         self.USER_FBS_FILE                  = 'user_data.fbs'
         self.USER_HEADER_FILE               = 'user_data.h'
@@ -580,13 +581,14 @@ class AssetBuilder():
         return self._write_md5(dest_class, dest_md5, dest_define)
 
     # create fnt+png from json
-    def build_font(self, src_json=None, src_gd_dir=None, dest_font_dir=None, lua_dirs=None):
+    def build_font(self, src_json=None, src_gd_dir=None, src_lua_dirs=None, dest_font_dir=None, dest_char_map=None):
         # build font by GDCL
         src_json      = src_json      or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         src_gd_dir    = src_gd_dir    or self.master_gd_dir
+        src_lua_dirs  = src_lua_dirs or [self.lua_dir, self.master_lua_dir]
         dest_font_dir = dest_font_dir or self.build_dir
-        lua_dirs      = lua_dirs or [self.lua_dir, self.master_lua_dir]
-        cmdline = [self.make_bitmap_font_bin, src_json, src_gd_dir, dest_font_dir, '--lua-dir'] + lua_dirs
+        dest_char_map = dest_char_map or self.build_dir+'/'+self.CHAR_MAP_FILE
+        cmdline = [self.make_bitmap_font_bin, src_json, src_gd_dir, dest_font_dir, '--char-map-json', dest_char_map, '--lua-dir'] + src_lua_dirs
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -684,6 +686,7 @@ class AssetBuilder():
             (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
             (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
             (self.EDITOR_MASTER_MD5_FILE,         self.master_header_dir, self.org_master_header_dir),
+            (self.CHAR_MAP_FILE,                  self.master_data_dir,   self.org_master_data_dir),
             (self.LL_MESSAGE_JSON_FILE,           self.master_data_dir,   self.org_master_data_dir),
             (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
             (self.USER_CLASS_FILE,                self.user_header_dir,   self.org_user_header_dir),
