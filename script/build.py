@@ -253,11 +253,11 @@ class AssetBuilder():
         for root, dirnames, filenames, in os.walk(src):
             for dir in dirnames:
                 if re.search('[^\w\.-]', dir):
-                    error(u"不正なフォルダ名です: "+root+'/'+dir)
+                    error(u"不正なフォルダ名です: '%s/%s'" % (root, dir.decode('utf-8')))
                     raise Exception("invalid folder name")
             for file in filenames:
                 if re.search('[^\w\.-]', file):
-                    error(u"不正なファイル名です: "+root+'/'+file)
+                    error(u"不正なファイル名です: '%s/%s'" % (root, file.decode('utf-8')))
                     raise Exception("invalid file name")
 
         if src[-1] != '/':
@@ -367,6 +367,7 @@ class AssetBuilder():
         info(' '.join(cmdline))
         check_call(cmdline)
 
+    # generate ll_meesage.json and merge into master_data.json
     def merge_layoutloader_text(self, master_data_json=None, message_json=None, char_map_json=None, ui_dirs=None):
         master_data_json = master_data_json or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         message_json     = message_json     or self.build_dir+'/'+self.LL_MESSAGE_JSON_FILE
