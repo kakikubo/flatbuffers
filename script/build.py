@@ -366,6 +366,7 @@ class AssetBuilder():
         info(' '.join(cmdline))
         check_call(cmdline)
 
+    # generate ll_meesage.json and merge into master_data.json
     def merge_layoutloader_text(self, master_data_json=None, message_json=None, ui_dirs=None):
         master_data_json = master_data_json or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         message_json     = message_json     or self.build_dir+'/'+self.LL_MESSAGE_JSON_FILE
