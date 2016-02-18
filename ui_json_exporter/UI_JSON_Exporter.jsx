@@ -734,7 +734,10 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 						obj.text = textLayer.contents.split('\r').join('\\n');
 
 						var stringTableId = activeDocument.name.split(global.extended).join('') + "." + obj.tag;
-						global.stringTable.push(stringTableId + ' ' + obj.font + ' "' + obj.text + '"');
+						
+						// KMS仕様。ボタンは２つのフォントを重ねて表示している
+						global.stringTable.push(stringTableId + ' button_gradient "' + obj.text + '"');
+						global.stringTable.push(stringTableId + ' button_shadow "' + obj.text + '"');
 					}
 
 					var areaImage = getLayer(currentLayer, /\.area\s*$/);
