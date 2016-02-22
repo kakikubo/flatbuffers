@@ -222,7 +222,7 @@ class MasterDataVerifier():
         if validations and self.validation_map:
             for item, spec in validations.iteritems():
                 if self.has_err(v, item, value_type, spec):
-                    error(u"%s[%d].%s: invalid value (%s: %s): %s" %(table, i, k, item, spec, v))
+                    error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, str(v).decode('utf-8')))
                     raise Exception("invalid value spec")
 
     @staticmethod
@@ -231,10 +231,14 @@ class MasterDataVerifier():
             return len(v) > value_spec
         if value_type == 'string' and i == 'min_length':
             return len(v) < value_spec
-        if value_type in('int', 'long', 'float') and i == 'max_value':
-            return v > value_spec
-        if value_type in('int', 'long', 'float') and i == 'min_value':
-            return v < value_spec
+        if value_type in('int', 'long') and i == 'max_value':
+            return v > int(value_spec)
+        if value_type in('float') and i == 'max_value':
+            return v > float(value_spec)
+        if value_type in('int', 'long') and i == 'min_value':
+            return v < int(value_spec)
+        if value_type in('float') and i == 'min_value':
+            return v < float(value_spec)
         return False
 
     def verify_master_data(self):
