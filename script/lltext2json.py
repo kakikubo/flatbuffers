@@ -40,8 +40,10 @@ def collect_layoutloader_text(src_dir, target_filename="stringtable.txt"):
                     if not char_map[font].has_key(char):
                         char_map[font][char] = 0
                     char_map[font][char] += 1
-                debug("%s %s: %s" % (key, font, messages[key]))
-            info("%s: %d" % (base_dir, len(lines)))
+                #debug("%s %s: %s" % (key, font, messages[key]))
+                info("%s %s: %s" % (key, font, messages[key]))
+            #info("%s: %d" % (base_dir, len(lines)))
+            debug("%s: %d" % (base_dir, len(lines)))
     return (messages, char_map)
 
 if __name__ == '__main__':
@@ -101,9 +103,9 @@ example:
         keys = data['fontCharacter'][0].keys()
         for font, chars in char_map.iteritems():
             # FIXME temporary off
-            #if not d.has_key(font):
-            #    error(u"font '%s' は定義されていません: '%s'" % (font, "', '".join(chars)))
-            #    raise Exception("undefined font name")
+            if not d.has_key(font):
+                error(u"font '%s' は定義されていません: '%s'" % (font, "', '".join(chars)))
+                raise Exception("undefined font name")
             for char in chars:
                 id += 1
                 d = OrderedDict()
