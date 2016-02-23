@@ -12,9 +12,8 @@ import json
 import xlrd
 import md5
 import logging
-import subprocess
 from time import strftime
-from subprocess import check_call, check_output, call, STDOUT
+from subprocess import check_call, check_output, call, CalledProcessError, Popen, STDOUT, PIPE
 from shutil import move, rmtree, copy2, copytree
 from glob import glob
 from logging import info, warning, debug, error
@@ -432,6 +431,24 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    def call_flatc(self, cmdline):
+        p = Popen(cmdline, stdout=PIPE)
+        p.wait()
+        stdout = p.stdout.read()
+        if p.returncode != 0:
+            # '/Users/kiyoto.suzuki/kms/tool/.kms_asset_builder_build/master/master_data.json:101284:0: error: expecting: string constant instead got: identifier'
+            m = re.match('([^:]+):([0-9]+):([0-9]+):\s*(.*)', stdout)
+            if m:
+                l = int(m.group(2))
+                with open(m.group(1), 'r') as f:
+                    lines = f.readlines()
+                    print("".join(lines[l-20:l+20]))
+                    stdout += ": "+lines[l-1]
+            error(stdout);
+            raise CalledProcessError(p.returncode, cmdline)
+        print(stdout)
+        return True
+
     # create bin+header from json+fbs
     def build_master_bin(self, src_json=None, src_fbs=None, dest_bin=None, dest_header=None, dest_md5=None, dest_define=None):
         src_json    = src_json    or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
@@ -447,7 +464,7 @@ class AssetBuilder():
 
         cmdline = [self.flatc_bin, '-c', '-b', '-o', dest_dir, src_fbs, src_json]
         info(' '.join(cmdline))
-        check_call(cmdline)
+        self.call_flatc(cmdline)
 
         return self._write_md5(dest_header, dest_md5, dest_define)
 
@@ -471,7 +488,7 @@ class AssetBuilder():
 
         cmdline = [self.flatc_bin, '-b', '-o', dest_dir, src_fbs, dest_bundled_json]
         info(' '.join(cmdline))
-        check_call(cmdline)
+        self.call_flatc(cmdline)
 
         return True
 
