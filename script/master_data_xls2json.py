@@ -42,11 +42,96 @@ def parse_type(type_str):
     schema['is_vector'] = False
     return schema
 
+def typed_numeric_value(cell, t):
+    if t not in('byte', 'short', 'int', 'long', 'float'):
+        raise Exception("invalid type: %s" % t)
+    if cell.ctype != XL_CELL_NUMBER:
+        raise Exception("got a non-numeric ctype: %s" % cell.ctype)
+
+    if t in('byte', 'short', 'int'):
+        return int(cell.value)
+    elif t == 'long':
+        return long(cell.value)
+    if t == 'float':
+        return float(cell.value)
+    else:
+        return None
+
+def parse_enum_sheet(sheet):
+    if sheet.ncols < 4 or sheet.ncols % 4 != 0:
+        raise Exception("invalid column set: %s" % sheet.name)
+
+    enums = OrderedDict()
+    enum_desc = None
+    enum_type = None
+    enum_name = None
+
+    for col_num in range(sheet.ncols):
+        # parse definition columns
+        if col_num % 4 == 0:
+            if sheet.cell(0, col_num).ctype == XL_CELL_EMPTY:
+                raise Exception("Enum Desc is not found: %s.column[%d]" % (sheet.name, col_num))
+            if sheet.cell(1, col_num).ctype == XL_CELL_EMPTY:
+                raise Exception("Enum Type is not found: %s.column[%d]" % (sheet.name, col_num))
+            if sheet.cell(2, col_num).ctype == XL_CELL_EMPTY:
+                raise Exception("Enum Name is not found: %s.column[%d]" % (sheet.name, col_num))
+
+            enum_desc = sheet.cell(0, col_num).value
+            enum_name = sheet.cell(1, col_num).value
+            enum_type = sheet.cell(2, col_num).value
+
+            enum_name = enum_name[0:1].upper() + enum_name[1:]
+            if enum_name in enums:
+                raise Exception("Duplicated enum name: %s" % enum_name)
+
+            enums[enum_name] = OrderedDict()
+            enums[enum_name]["is_enum"] = True
+            enums[enum_name]["is_vector"] = False
+            enums[enum_name]["description"] = enum_desc
+            enums[enum_name]["type"] = enum_type
+            enums[enum_name]["sheet"] = sheet.name
+            enums[enum_name]["values"] = OrderedDict()
+
+        # parse data columns
+        else:
+            for row_num in range(sheet.nrows):
+
+                if sheet.cell(row_num, col_num).ctype == XL_CELL_EMPTY:
+                    continue
+                if row_num not in enums[enum_name]["values"]:
+                    enums[enum_name]["values"][row_num] = OrderedDict()
+
+                if col_num % 4 == 1:
+                    enums[enum_name]["values"][row_num]['key'] \
+                        = sheet.cell(row_num, col_num).value
+                elif col_num % 4 == 2:
+                    enums[enum_name]["values"][row_num]['description'] \
+                        = sheet.cell(row_num, col_num).value
+                elif col_num % 4 == 3:
+                    enums[enum_name]["values"][row_num]['value'] \
+                        = typed_numeric_value(sheet.cell(row_num, col_num), enum_type)
+                else:
+                    continue
+
+    # verify entries
+    for key, values in enums[enum_name]["values"].iteritems():
+        if len(values) != 3:
+            raise Exception("invalid item")
+
+    return enums
+
 def parse_xls(xls_path, except_sheets=[]):
     data = OrderedDict()
     schema = OrderedDict()
     xls_book = xlrd.open_workbook(xls_path)
     for sheet in xls_book.sheets():
+        if re.match('[a-z][A-Za-z]+Enum$', sheet.name):
+            enum_data = parse_enum_sheet(sheet)
+            for k in enum_data.keys():
+                enum_data[k]['file'] = os.path.basename(xls_path)
+            schema[sheet.name] = enum_data
+            continue
+
         if sheet.name in except_sheets or re.match('^_', sheet.name):
             continue
         try:
@@ -116,6 +201,8 @@ def check_data(data):
     for sheet in data['sheet']:
         if sheet['srcType'].find('ignore') >= 0:
             continue
+        if sheet['srcType'].find('enum') >= 0:
+            continue
         if sheet['srcType'].find('json') < 0:
             if not data.has_key(sheet['name']):
                 errors.append(u"シート定義 '%s' の実体が存在しません: %s" % (sheet['name'], ", ".join(data.keys())))
@@ -146,6 +233,9 @@ def normalize_schema(schema, sheets):
         sheet['type'] = sheet_name[0].upper() + sheet_name[1:]
         if sheet['srcType'].find('json') >= 0:
             normalized[sheet['type']] = "swapped later"
+        elif sheet['srcType'].find('enum') >= 0:
+            for k, v in schema[sheet_name].iteritems():
+                normalized[k] = v
         else:
             filtered = []
             for name, d in schema[sheet_name].iteritems():
@@ -162,6 +252,8 @@ def normalize_data(data):
     normalized = OrderedDict()
     for sheet in data['sheet']:
         if sheet['srcType'].find('ignore') >= 0:
+            continue
+        if sheet['srcType'].find('enum') >= 0:
             continue
         filtered = []
         if sheet['srcType'].find('json') < 0:
