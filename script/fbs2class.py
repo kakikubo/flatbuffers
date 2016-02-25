@@ -904,6 +904,8 @@ def generate_schema():
             s['type']      = item['item_type']
             s['attribute'] = item['attribute']
             s['is_vector'] = True if item['is_vector'] else False
+            if item['default_value']:
+                s['default_value'] = item['default_value']
             schemas[table_type].append(s)
     return json.dumps(schemas, indent=2)
 
