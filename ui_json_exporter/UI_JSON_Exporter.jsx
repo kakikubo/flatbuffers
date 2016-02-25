@@ -314,6 +314,9 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 				case 'button_close':
 					className = 'ButtonClose';
 					break;
+				case 'button_pager':
+					className = 'ButtonPager';
+					break;
 
 				//画像書き出しのみ
 				case 'imageonly':
@@ -734,10 +737,11 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 						obj.text = textLayer.contents.split('\r').join('\\n');
 
 						var stringTableId = activeDocument.name.split(global.extended).join('') + "." + obj.tag;
-						
+
 						// KMS仕様。ボタンは２つのフォントを重ねて表示している
-						global.stringTable.push(stringTableId + ' button_gradient "' + obj.text + '"');
-						global.stringTable.push(stringTableId + ' button_shadow "' + obj.text + '"');
+						global.stringTable.push(stringTableId + ' emphasis_gradient "' + obj.text + '"');
+						global.stringTable.push(stringTableId + ' emphasis_shadow "' + obj.text + '"');
+						global.stringTable.push(stringTableId + ' emphasis "' + obj.text + '"');
 					}
 
 					var areaImage = getLayer(currentLayer, /\.area\s*$/);
@@ -745,6 +749,10 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 						obj.position = {
 							x : areaImage.bounds[0].value,
 							y : activeDocument.height.value - areaImage.bounds[3].value
+						};
+						obj.size = {
+							width : areaImage.bounds[2].value - areaImage.bounds[0].value,
+							height : areaImage.bounds[3].value - areaImage.bounds[1].value
 						};
 						obj.ll = "LL_COMMON_BUTTON";
 						obj.llClass = "kms::CommonButton";
@@ -799,33 +807,9 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 
 					break;
 				case 'ButtonBack':
-					var textLayer = getTextItemFromChilds(currentLayer);
-					// obj.text = {};
-					if(textLayer){
-						obj.text = textLayer.contents.split('\r').join('\\n');
-
-						var stringTableId = activeDocument.name.split(global.extended).join('') + "." + obj.tag;
-						global.stringTable.push(stringTableId + ' ' + obj.font + ' "' + obj.text + '"');
-					}
-					var areaImage = getLayer(currentLayer, /\.area\s*$/);
-					if (areaImage) {
-						obj.position = {
-							x : areaImage.bounds[0].value,
-							y : activeDocument.height.value - areaImage.bounds[3].value
-						};
-						obj.ll = "LL_COMMON_BUTTON";
-						obj.llClass = "kms::CommonButton";
-					} else {
-						catchError(currentLayer.name, 'ButtonBackに指定されていますが、配下に.areaレイヤーがありませんでした。');
-						continue layerLoop;
-					}
-					obj.type = {};
-					obj.type.design = "Back"
-					obj.type.size = "Small"
-					obj.class = "CommonButton"
-
-					break;
 				case 'ButtonClose':
+				case 'ButtonPager':
+
 					var textLayer = getTextItemFromChilds(currentLayer);
 					// obj.text = {};
 					if(textLayer){
@@ -843,11 +827,23 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 						obj.ll = "LL_COMMON_BUTTON";
 						obj.llClass = "kms::CommonButton";
 					} else {
-						catchError(currentLayer.name, 'ButtonCloseに指定されていますが、配下に.areaレイヤーがありませんでした。');
+						catchError(currentLayer.name, 'Button系に指定されていますが、配下に.areaレイヤーがありませんでした。');
 						continue layerLoop;
 					}
 					obj.type = {};
-					obj.type.design = "Close"
+
+					switch(obj.class){
+						case 'ButtonBack':
+							obj.type.design = "Back"
+						break;
+						case 'ButtonClose':
+							obj.type.design = "Close"
+						break;
+						case 'ButtonPager':
+							obj.type.design = "Pager"
+						break;
+					}
+
 					obj.type.size = "Small"
 					obj.class = "CommonButton"
 
@@ -1161,6 +1157,16 @@ function setButtonImages(layer, fileName, folderPath, obj){
 			obj.image.disabled = fileName + '.disabled.png';
 			layer.layers[i].visible = true;
 			bounds = exportImage(layer.layers[i], obj.image.disabled, folderPath);
+			//obj.text.disabled = '';
+		}else if(/\.effect\s*$/.test(layer.layers[i].name)){
+			obj.image.effect = fileName + '.effect.png';
+			layer.layers[i].visible = true;
+			bounds = exportImage(layer.layers[i], obj.image.effect, folderPath);
+			//obj.text.disabled = '';
+		}else if(/\.trace\s*$/.test(layer.layers[i].name)){
+			obj.image.trace = fileName + '.trace.png';
+			layer.layers[i].visible = true;
+			bounds = exportImage(layer.layers[i], obj.image.trace, folderPath);
 			//obj.text.disabled = '';
 		}else if(layer.layers[i].kind == LayerKind.TEXT){
 			//ボタンのラベル
