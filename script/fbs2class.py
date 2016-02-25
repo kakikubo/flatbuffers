@@ -62,6 +62,7 @@ def parse_table(line):
 
     name = None
     type = None
+    default_value = None
     is_vector = None
     is_hash_key = None
     is_range_key = None
@@ -77,36 +78,38 @@ def parse_table(line):
     if m != None:
         state = "default"
         return
-    m = re.search('\s*([^:]+):\s*\[([^;]+)\];', line)
-    if m != None:
-        name = m.group(1)
-        type = m.group(2)
-        is_vector = True
-    else:
-        m = re.search('\s*([^:]+):\s*([^;]+);', line)
-        if m == None:
-            return
-        name = m.group(1)
-        type = m.group(2)
-        is_vector = False
-    m = re.search('([^\s\(]+)\s*\(([^\)]+)\)\s*', type)
+
+    # parse row definition pattern:
+    #   columnName:typeName = defaultValue (attr1,attr2,...);
+    # defaultValue and attributes are optional.
+    m = re.search('\s*(\w+)\s*:\s*(\[?\w+\]?)\s*(=\s*[^(]+)?\s*(\(.+\))?\s*;', line.strip())
     if m:
-        type = m.group(1)
-        attribute = OrderedDict()
-        for attr_str in re.split('[,\s]+', m.group(2)):
-            attrs = re.split('[:\s]+', attr_str)
-            if len(attrs) > 1:
-                attribute[attrs[0]] = ':'.join(attrs[1:])
-            else:
-                attribute[attrs[0]] = True
-            if 'hash' in attrs:
-                is_hash_key = attribute['hash'] = True
-            elif 'key' in attrs:
-                is_range_key = attribute['key'] = True
+        name = m.group(1)
+        type = re.sub('[\[\]]', '', m.group(2))
+        is_vector = re.match('\[(\w+)\]', m.group(2)) is not None
+        default_value = re.sub('=\s*', '', re.sub('"', '', m.group(3))) if m.group(3) is not None else None
+
+        # attributes
+        attr_string = re.sub('[\(\)]', '', m.group(4)) if m.group(4) is not None else None
+        if attr_string is not None:
+            attribute = OrderedDict()
+            for element in re.split(',\s*', attr_string):
+                m = re.search('([^:]+)\s*(:\s*.+)?', element)
+                kk = m.group(1)
+                if m.lastindex == 2:
+                    vv = re.sub('"', '', m.group(2)[1:])
+                    attribute[kk] = vv
+                elif m.lastindex == 1:
+                    attribute[kk] = True
+                    if 'hash_key' in attribute.keys():
+                        is_hash_key = True
+                    if 'key' in attribute.keys():
+                        is_range_key = True
 
     item = OrderedDict()
     item['name'] = name
     item['type'] = item['item_type'] = type
+    item['default_value'] = default_value
     item['is_vector'] = is_vector
     item['is_hash_key'] = is_hash_key
     item['is_range_key'] = is_range_key
