@@ -18,6 +18,11 @@ Main.lib_paths = {
     'asset/lua/foundation',
 }
 
+Main.ignore_list = {
+    [212]="unused argument",
+    [213]="unused loop variable",
+}
+
 Main.find_modules = function()
     local list = {}
     for x, path in pairs(Main.lib_paths) do
@@ -49,11 +54,16 @@ Main.find_globals = function()
 end
 
 Main.execute = function()
-    local variables = Main:find_globals()
+    local global_list = Main:find_globals()
 
-    print "unused_args=false\n"
+    print "codes = true\n"
+    print "ignore = {"
+    for k, v in pairs(Main.ignore_list) do
+        print(string.format('  "%d", -- %s',k, v))
+    end
+    print "}\n"
     print "globals = {"
-    for k, v in pairs(variables) do
+    for k, v in pairs(global_list) do
         print(string.format('    "%s",', v)) end
     print '    "KMS"'
     print "}"
