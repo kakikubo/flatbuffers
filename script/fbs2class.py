@@ -10,16 +10,21 @@ import logging
 import json
 
 from logging import info, warning, error
-from collections import OrderedDict
+from collections import OrderedDict, deque
 
 def fbs2class(input_fbs, output_header, output_body, output_schema, namespace, with_json, with_msgpack, with_fbs):
     with open(input_fbs, 'r') as f:
-        global state, fbs_data
+        global state, fbs_data, fbs_enum_schemas, fbs_enum_count, fbs_attributes
         state = "default"
         fbs_data = OrderedDict({})
+        fbs_enum_schemas = OrderedDict({})
+        fbs_attributes = deque({})
+        fbs_enum_count = 0
         for line in f:
             if state == "default":
                 parse_default(line)
+            elif state == "enum":
+                parse_enum(line)
             elif state == "table":
                 parse_table(line)
 
@@ -41,20 +46,62 @@ def parse_default(line):
     global fbs_data
     global fbs_root_type
     global fbs_namespace
+    global fbs_enum_schemas
+    global fbs_attributes
     line = re.sub('\/\/.*', '', line)   # cut comment
     m = re.search('namespace\s+([^;]+);', line)
-    if m != None:
+    if m is not None:
         fbs_namespace = m.group(1)
         return
+    m = re.search('attribute\s+([^;]+);', line)
+    if m is not None:
+        fbs_attributes.append(m.group(1))
+        return
     m = re.search('root_type ([^;]+);', line)
-    if m != None:
+    if m is not None:
         fbs_root_type = m.group(1)
         return
+    m = re.search('enum\s+(\w+)\s*:\s*(\w+)\s*\{', line)
+    if m is not None:
+        fbs_enum_schemas[m.group(1)] = OrderedDict({})
+        fbs_enum_schemas[m.group(1)]['type'] = m.group(2)
+        fbs_enum_schemas[m.group(1)]['values'] = OrderedDict({})
+        state = "enum"
+        return
+
     m = re.search('table\s+(\S+)\s+{', line)
     if m == None:
         return
     fbs_data[m.group(1)] = OrderedDict({})
     state = "table"
+
+
+def parse_enum(line):
+    global state
+    global fbs_enum_schemas
+    global fbs_enum_count
+
+    m = re.search('\s*\}', line)
+    if m:
+        state = "default"
+        return
+
+    enum_name = next(reversed(fbs_enum_schemas))
+    if len(fbs_enum_schemas[enum_name]['values']) == 0:
+        fbs_enum_count = 0
+
+    name = None
+    value = fbs_enum_count
+    m = re.search('\s(\w+)\s*=?\s*(\d+)?\s*,?', line)
+    if m != None:
+        name = m.group(1)
+        if m.lastindex > 1:
+            # overwrite with a specified value if it is defined in line
+            value = int(m.group(2))
+
+    fbs_enum_count = value + 1
+    enum_name = next(reversed(fbs_enum_schemas))
+    fbs_enum_schemas[enum_name]['values'][name] = value
 
 def parse_table(line):
     global state
@@ -907,6 +954,25 @@ def generate_schema():
             if item['default_value']:
                 s['default_value'] = item['default_value']
             schemas[table_type].append(s)
+
+    for enum_type, enum in fbs_enum_schemas.iteritems():
+        item = OrderedDict()
+        item['is_enum'] = True
+        item['is_vector'] = False
+        item['description'] = enum_type
+        item['file'] = ""
+        item['sheet'] = ""
+        item['type'] = enum['type']
+        item['values'] = OrderedDict()
+
+        for k, v in enum['values'].iteritems():
+            element = OrderedDict()
+            element['key'] = k
+            element['value'] = v
+            element['description'] = k
+            item['values'][k] = element
+        schemas[enum_type] = item
+
     return json.dumps(schemas, indent=2)
 
 # ---
