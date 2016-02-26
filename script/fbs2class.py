@@ -12,7 +12,7 @@ import json
 from logging import info, warning, error
 from collections import OrderedDict, deque
 
-def fbs2class(input_fbs, output_header, output_body, output_schema, namespace, with_json, with_msgpack, with_fbs):
+def fbs2class(input_fbs, output_header, output_body, output_schema, output_enums, namespace, with_json, with_msgpack, with_fbs):
     with open(input_fbs, 'r') as f:
         global state, fbs_data, fbs_enum_schemas, fbs_enum_count, fbs_attributes
         state = "default"
@@ -40,6 +40,10 @@ def fbs2class(input_fbs, output_header, output_body, output_schema, namespace, w
     json = generate_schema()
     with open(output_schema, 'w') as f:
         f.write(json)
+
+    enums = generate_enums()
+    with open(output_enums, 'w') as f:
+        f.write(enums)
 
 def parse_default(line):
     global state
@@ -975,6 +979,26 @@ def generate_schema():
 
     return json.dumps(schemas, indent=2)
 
+
+def generate_enums():
+    global fbs_enum_schemas
+    s = ''
+    for k, v in fbs_enum_schemas.iteritems():
+        s += "    -- %s\n" % (k)
+        s += "    Enum_%s = {}\n" %(k)
+        for kk, vv in v['values'].iteritems():
+            s += "    Enum_%s.%s = %s -- %s\n" % (k, kk, vv, kk)
+        s += "\n"
+
+    output = """
+if (LUA_KMS_ENUM_INIT_ONCE == nil) then
+    LUA_KMS_ENUM_INIT_ONCE = 1
+
+%s
+end
+""".strip() % (s)
+    return output
+
 # ---
 # main function
 #
@@ -986,6 +1010,7 @@ if __name__ == '__main__':
     parser.add_argument('output_header', metavar = 'output.h',    help = 'output class header file (C++ header)')
     parser.add_argument('output_body',   metavar = 'output.cpp',  help = 'output class file (C++)')
     parser.add_argument('output_schema', metavar = 'output.json', help = 'output schema file (json)')
+    parser.add_argument('output_enums',  metavar = 'output.enums', help = 'output enum definitions (lua)')
     parser.add_argument('--namespace',  help = 'name space override')
     parser.add_argument('--json',    action = 'store_true', default = True,  help = 'generate json IO code')
     parser.add_argument('--msgpack', action = 'store_true', default = True,  help = 'generate msgpack IO code')
@@ -996,10 +1021,11 @@ if __name__ == '__main__':
     info("output header = %s" % args.output_header)
     info("output body = %s" % args.output_body)
     info("output schema = %s" % args.output_schema)
+    info("output enum = %s" % args.output_enums)
     info("namespace = %s" % args.namespace)
     info("with json = %s" % args.json)
     info("with msgpack = %s" % args.msgpack)
     info("with fbs = %s" % args.fbs)
-    fbs2class(args.input_fbs, args.output_header, args.output_body, args.output_schema, args.namespace, args.json, args.msgpack, args.fbs)
+    fbs2class(args.input_fbs, args.output_header, args.output_body, args.output_schema, args.output_enums, args.namespace, args.json, args.msgpack, args.fbs)
     exit(0)
 
