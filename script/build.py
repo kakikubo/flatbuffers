@@ -232,6 +232,7 @@ class AssetBuilder():
         self.USER_MD5_DEFINE                = 'KMS_USER_DATA_VERSION'
         self.USER_JSON_SCHEMA_FILE          = 'user_schema.json'
         self.USER_JSON_DATA_FILE            = 'default.json'
+        self.USER_LUA_ENUM_FILE             = 'user_enum.lua'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
         self.AES_KEY_TEXT_FILE              = 'aes_256_key.txt'
         self.AES_IV_TEXT_FILE               = 'aes_iv.txt'
@@ -582,11 +583,12 @@ class AssetBuilder():
         return True
 
     # create class header from fbs
-    def build_user_class(self, src_fbs=None, dest_header=None, dest_class=None, dest_schema=None, dest_md5=None, dest_define=None, namespace=None):
+    def build_user_class(self, src_fbs=None, dest_header=None, dest_class=None, dest_schema=None, dest_enum=None, dest_md5=None, dest_define=None, namespace=None):
         src_fbs     = src_fbs     or self.main_schema_dir+'/'+self.USER_FBS_FILE
         dest_header = dest_header or self.build_dir+'/'+self.USER_HEADER_FILE
         dest_class  = dest_class  or self.build_dir+'/'+self.USER_CLASS_FILE
         dest_schema = dest_schema or self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE
+        dest_enum   = dest_enum   or self.build_dir+'/'+self.USER_LUA_ENUM_FILE
         dest_md5    = dest_md5    or self.build_dir+'/'+self.USER_MD5_FILE
         dest_define = dest_define or self.USER_MD5_DEFINE
         namespace   = namespace   or self.USER_FBS_NAMESPACE
@@ -594,7 +596,7 @@ class AssetBuilder():
             return False
 
         info("build user class: %s + %s + %s" % (os.path.basename(dest_header), os.path.basename(dest_class), os.path.basename(dest_schema)))
-        cmdline = [self.fbs2class_bin, src_fbs, dest_header, dest_class, dest_schema, '--namespace', namespace]
+        cmdline = [self.fbs2class_bin, src_fbs, dest_header, dest_class, dest_schema, dest_enum, '--namespace', namespace]
         info(' '.join(cmdline))
         check_call(cmdline)
 
@@ -712,6 +714,7 @@ class AssetBuilder():
             (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
             (self.USER_CLASS_FILE,                self.user_header_dir,   self.org_user_header_dir),
             (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
+            (self.USER_LUA_ENUM_FILE,             self.user_schema_dir,   self.org_user_schema_dir),
             (self.USER_MD5_FILE,                  self.user_header_dir,   self.org_user_header_dir),
             (self.AES_KEY_HEADER_FILE,            self.crypto_dir,        self.org_crypto_dir),
             (self.AES_IV_HEADER_FILE,             self.crypto_dir,        self.org_crypto_dir),
