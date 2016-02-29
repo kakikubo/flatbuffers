@@ -10,16 +10,21 @@ import logging
 import json
 
 from logging import info, warning, error
-from collections import OrderedDict
+from collections import OrderedDict, deque
 
-def fbs2class(input_fbs, output_header, output_body, output_schema, namespace, with_json, with_msgpack, with_fbs):
+def fbs2class(input_fbs, output_header, output_body, output_schema, output_enums, namespace, with_json, with_msgpack, with_fbs):
     with open(input_fbs, 'r') as f:
-        global state, fbs_data
+        global state, fbs_data, fbs_enum_schemas, fbs_enum_count, fbs_attributes
         state = "default"
         fbs_data = OrderedDict({})
+        fbs_enum_schemas = OrderedDict({})
+        fbs_attributes = deque({})
+        fbs_enum_count = 0
         for line in f:
             if state == "default":
                 parse_default(line)
+            elif state == "enum":
+                parse_enum(line)
             elif state == "table":
                 parse_table(line)
 
@@ -36,25 +41,71 @@ def fbs2class(input_fbs, output_header, output_body, output_schema, namespace, w
     with open(output_schema, 'w') as f:
         f.write(json)
 
+    enums = generate_enums()
+    with open(output_enums, 'w') as f:
+        f.write(enums)
+
 def parse_default(line):
     global state
     global fbs_data
     global fbs_root_type
     global fbs_namespace
+    global fbs_enum_schemas
+    global fbs_attributes
     line = re.sub('\/\/.*', '', line)   # cut comment
     m = re.search('namespace\s+([^;]+);', line)
-    if m != None:
+    if m is not None:
         fbs_namespace = m.group(1)
         return
+    m = re.search('attribute\s+([^;]+);', line)
+    if m is not None:
+        fbs_attributes.append(m.group(1))
+        return
     m = re.search('root_type ([^;]+);', line)
-    if m != None:
+    if m is not None:
         fbs_root_type = m.group(1)
         return
+    m = re.search('enum\s+(\w+)\s*:\s*(\w+)\s*\{', line)
+    if m is not None:
+        fbs_enum_schemas[m.group(1)] = OrderedDict({})
+        fbs_enum_schemas[m.group(1)]['type'] = m.group(2)
+        fbs_enum_schemas[m.group(1)]['values'] = OrderedDict({})
+        state = "enum"
+        return
+
     m = re.search('table\s+(\S+)\s+{', line)
     if m == None:
         return
     fbs_data[m.group(1)] = OrderedDict({})
     state = "table"
+
+
+def parse_enum(line):
+    global state
+    global fbs_enum_schemas
+    global fbs_enum_count
+
+    m = re.search('\s*\}', line)
+    if m:
+        state = "default"
+        return
+
+    enum_name = next(reversed(fbs_enum_schemas))
+    if len(fbs_enum_schemas[enum_name]['values']) == 0:
+        fbs_enum_count = 0
+
+    name = None
+    value = fbs_enum_count
+    m = re.search('\s(\w+)\s*=?\s*(\d+)?\s*,?', line)
+    if m != None:
+        name = m.group(1)
+        if m.lastindex > 1:
+            # overwrite with a specified value if it is defined in line
+            value = int(m.group(2))
+
+    fbs_enum_count = value + 1
+    enum_name = next(reversed(fbs_enum_schemas))
+    fbs_enum_schemas[enum_name]['values'][name] = value
 
 def parse_table(line):
     global state
@@ -62,6 +113,7 @@ def parse_table(line):
 
     name = None
     type = None
+    default_value = None
     is_vector = None
     is_hash_key = None
     is_range_key = None
@@ -77,36 +129,38 @@ def parse_table(line):
     if m != None:
         state = "default"
         return
-    m = re.search('\s*([^:]+):\s*\[([^;]+)\];', line)
-    if m != None:
-        name = m.group(1)
-        type = m.group(2)
-        is_vector = True
-    else:
-        m = re.search('\s*([^:]+):\s*([^;]+);', line)
-        if m == None:
-            return
-        name = m.group(1)
-        type = m.group(2)
-        is_vector = False
-    m = re.search('([^\s\(]+)\s*\(([^\)]+)\)\s*', type)
+
+    # parse row definition pattern:
+    #   columnName:typeName = defaultValue (attr1,attr2,...);
+    # defaultValue and attributes are optional.
+    m = re.search('\s*(\w+)\s*:\s*(\[?\w+\]?)\s*(=\s*[^(]+)?\s*(\(.+\))?\s*;', line.strip())
     if m:
-        type = m.group(1)
-        attribute = OrderedDict()
-        for attr_str in re.split('[,\s]+', m.group(2)):
-            attrs = re.split('[:\s]+', attr_str)
-            if len(attrs) > 1:
-                attribute[attrs[0]] = ':'.join(attrs[1:])
-            else:
-                attribute[attrs[0]] = True
-            if 'hash' in attrs:
-                is_hash_key = attribute['hash'] = True
-            elif 'key' in attrs:
-                is_range_key = attribute['key'] = True
+        name = m.group(1)
+        type = re.sub('[\[\]]', '', m.group(2))
+        is_vector = re.match('\[(\w+)\]', m.group(2)) is not None
+        default_value = re.sub('=\s*', '', re.sub('"', '', m.group(3))) if m.group(3) is not None else None
+
+        # attributes
+        attr_string = re.sub('[\(\)]', '', m.group(4)) if m.group(4) is not None else None
+        if attr_string is not None:
+            attribute = OrderedDict()
+            for element in re.split(',\s*', attr_string):
+                m = re.search('([^:]+)\s*(:\s*.+)?', element)
+                kk = m.group(1)
+                if m.lastindex == 2:
+                    vv = re.sub('"', '', m.group(2)[1:])
+                    attribute[kk] = vv
+                elif m.lastindex == 1:
+                    attribute[kk] = True
+                    if 'hash_key' in attribute.keys():
+                        is_hash_key = True
+                    if 'key' in attribute.keys():
+                        is_range_key = True
 
     item = OrderedDict()
     item['name'] = name
     item['type'] = item['item_type'] = type
+    item['default_value'] = default_value
     item['is_vector'] = is_vector
     item['is_hash_key'] = is_hash_key
     item['is_range_key'] = is_range_key
@@ -901,8 +955,49 @@ def generate_schema():
             s['type']      = item['item_type']
             s['attribute'] = item['attribute']
             s['is_vector'] = True if item['is_vector'] else False
+            if item['default_value']:
+                s['default_value'] = item['default_value']
             schemas[table_type].append(s)
+
+    for enum_type, enum in fbs_enum_schemas.iteritems():
+        item = OrderedDict()
+        item['is_enum'] = True
+        item['is_vector'] = False
+        item['description'] = enum_type
+        item['file'] = ""
+        item['sheet'] = ""
+        item['type'] = enum['type']
+        item['values'] = OrderedDict()
+
+        for k, v in enum['values'].iteritems():
+            element = OrderedDict()
+            element['key'] = k
+            element['value'] = v
+            element['description'] = k
+            item['values'][k] = element
+        schemas[enum_type] = item
+
     return json.dumps(schemas, indent=2)
+
+
+def generate_enums():
+    global fbs_enum_schemas
+    s = ''
+    for k, v in fbs_enum_schemas.iteritems():
+        s += "    -- %s\n" % (k)
+        s += "    Enum_%s = {}\n" %(k)
+        for kk, vv in v['values'].iteritems():
+            s += "    Enum_%s.%s = %s -- %s\n" % (k, kk, vv, kk)
+        s += "\n"
+
+    output = """
+if (LUA_KMS_ENUM_INIT_ONCE == nil) then
+    LUA_KMS_ENUM_INIT_ONCE = 1
+
+%s
+end
+""".strip() % (s)
+    return output
 
 # ---
 # main function
@@ -915,6 +1010,7 @@ if __name__ == '__main__':
     parser.add_argument('output_header', metavar = 'output.h',    help = 'output class header file (C++ header)')
     parser.add_argument('output_body',   metavar = 'output.cpp',  help = 'output class file (C++)')
     parser.add_argument('output_schema', metavar = 'output.json', help = 'output schema file (json)')
+    parser.add_argument('output_enums',  metavar = 'output.enums', help = 'output enum definitions (lua)')
     parser.add_argument('--namespace',  help = 'name space override')
     parser.add_argument('--json',    action = 'store_true', default = True,  help = 'generate json IO code')
     parser.add_argument('--msgpack', action = 'store_true', default = True,  help = 'generate msgpack IO code')
@@ -925,10 +1021,11 @@ if __name__ == '__main__':
     info("output header = %s" % args.output_header)
     info("output body = %s" % args.output_body)
     info("output schema = %s" % args.output_schema)
+    info("output enum = %s" % args.output_enums)
     info("namespace = %s" % args.namespace)
     info("with json = %s" % args.json)
     info("with msgpack = %s" % args.msgpack)
     info("with fbs = %s" % args.fbs)
-    fbs2class(args.input_fbs, args.output_header, args.output_body, args.output_schema, args.namespace, args.json, args.msgpack, args.fbs)
+    fbs2class(args.input_fbs, args.output_header, args.output_body, args.output_schema, args.output_enums, args.namespace, args.json, args.msgpack, args.fbs)
     exit(0)
 
