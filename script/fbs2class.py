@@ -244,8 +244,8 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             if item["item_type"] == "string":
                 item["cpp_type"] = item["cpp_secure_type"] = "std::string"
             elif item["item_type"] == "long":
-                item["cpp_type"] = "long long"
-                item["cpp_secure_type"] = "WFS::SecureMemory<long long>"
+                item["cpp_type"] = "std::int64_t"
+                item["cpp_secure_type"] = "WFS::SecureMemory<std::int64_t>"
                 item["is_secure"] = True
             elif item["is_default_type"]:
                 item["cpp_type"] = item["item_type"]
@@ -532,49 +532,13 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             s += '  return "";\n'
             s += "}\n"
 
-            # collectRangeKey
-            h += "  std::vector<int> collectRangeKey(const std::string& target);\n"
-            s += "\nstd::vector<int> " + table_name + "::collectRangeKey(const std::string& target) {\n"
-            s += '  std::vector<int> rangeKeys;\n'
-            for item_name, item in table.iteritems():
-                if not "range_key" in table_property[item["item_type"]]:
-                    continue
-                s += '  if (target == "' + item_name + '") {\n'
-                if item["is_vector"]:
-                    s += "    for (auto it = _" + item_name + ".begin(); it != _" + item_name + ".end(); it++) {\n"
-                    s += "      rangeKeys.push_back((*it)->rangeKeyValue());\n"
-                    s += "    }\n"
-                else:
-                    s += '    rangeKeys.push_back(_' + item_name + '->rangeKeyValue());\n'
-                s += '    return rangeKeys;\n'
-                s += '  }\n'
-            s += '  return rangeKeys;\n'
-            s += '}\n'
-
-            # collectErasedRangeKey
-            h += "  std::vector<int> collectErasedRangeKey(const std::string& target);\n"
-            s += "\nstd::vector<int> " + table_name + "::collectErasedRangeKey(const std::string& target) {\n"
-            s += '  std::vector<int> rangeKeys;\n'
-            for item_name, item in table.iteritems():
-                if not "range_key" in table_property[item["item_type"]]:
-                    continue
-                s += '  if (target == "' + item_name + '") {\n'
-                if item["is_vector"]:
-                    s += "    for (auto it = _" + item_name + "Erased.begin(); it != _" + item_name + "Erased.end(); it++) {\n"
-                    s += "      rangeKeys.push_back((*it)->rangeKeyValue());\n"
-                    s += "    }\n"
-                s += '    return rangeKeys;\n'
-                s += '  }\n'
-            s += '  return rangeKeys;\n'
-            s += '}\n'
-
         # hashKey
         if "hash_key" in prop:
             hash_key = prop["hash_key"]
             h += '  const char* hashKey() const { return "' + hash_key + '"; }\n'
             h += "  const " + table[hash_key]["cpp_type"] + " hashKeyValue() const { return _" + hash_key + "; }\n"
-            h += "  long setHashKey(long v);\n"
-            s += "\nlong " + table_name + "::setHashKey(long v) {\n"
+            h += "  std::int64_t setHashKey(std::int64_t v);\n"
+            s += "\nint64_t " + table_name + "::setHashKey(std::int64_t v) {\n"
             s += "  if (v != _" + hash_key + ") {\n"
             s += "    _" + hash_key + " = v;\n" 
             s += "    __dirty = true;\n"
@@ -597,8 +561,8 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             s += "}\n"
 
         # completeKey
-        h += "  int completeKey(long hashKey, int rangeKey);\n"
-        s += "\nint " + table_name + "::completeKey(long hashKey, int rangeKey) {\n"
+        h += "  int completeKey(std::int64_t hashKey, int rangeKey);\n"
+        s += "\nint " + table_name + "::completeKey(std::int64_t hashKey, int rangeKey) {\n"
         for item_name, item in table.iteritems():
             if item["is_hash_key"]:
                 s += "  setHashKey(hashKey);\n"
@@ -615,8 +579,8 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
         s += "}\n"
 
         # completeHashKey
-        h += "  void completeHashKey(long hashKey);\n"
-        s += "\nvoid " + table_name + "::completeHashKey(long hashKey) {\n"
+        h += "  void completeHashKey(std::int64_t hashKey);\n"
+        s += "\nvoid " + table_name + "::completeHashKey(std::int64_t hashKey) {\n"
         for item_name, item in table.iteritems():
             if item["is_hash_key"]:
                 s += "  setHashKey(hashKey);\n"
@@ -687,7 +651,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     elif item_type in ('int'):
                         s += "      pushBack" + upper_camel_case(item_name) + "(static_cast<int>(json_integer_value(v)));\n"
                     elif item_type in ('long'):
-                        s += "      pushBack" + upper_camel_case(item_name) + "(static_cast<long>(json_integer_value(v)));\n"
+                        s += "      pushBack" + upper_camel_case(item_name) + "(static_cast<std::int64_t>(json_integer_value(v)));\n"
                     elif item_type in ('float', 'double'):
                         s += "      pushBack" + upper_camel_case(item_name) + "(json_real_value(v));\n"
                     elif item_type in ('bool'):
@@ -700,7 +664,7 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 elif item_type in ('int'):
                     s += "    set" + upper_camel_case(item_name) + '(static_cast<int>(json_integer_value(__' + item_name + ')));\n'
                 elif item_type in ('long'):
-                    s += "    set" + upper_camel_case(item_name) + '(static_cast<long>(json_integer_value(__' + item_name + ')));\n'
+                    s += "    set" + upper_camel_case(item_name) + '(static_cast<std::int64_t>(json_integer_value(__' + item_name + ')));\n'
                 elif item_type in ('float', 'double'):
                     s += "    set" + upper_camel_case(item_name) + '(json_real_value(__' + item_name + '));\n'
                 elif item_type in ('bool'):
@@ -773,8 +737,8 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
             h += "  " + table_name + "(msgpack::object& obj) { fromMsgpack(obj); }\n"
 
         if with_json and fbs_root_type == table_name:
-            # serializeJson
             h += "\n  // top level of JSON IO\n"
+            # serializeJson
             h += "  json_t* serializeJson(const std::string& target, bool onlyDirty);\n"
             s += "\njson_t* " + table_name + "::serializeJson(const std::string& target, bool onlyDirty) {\n"
             for item_name, item in table.iteritems():
@@ -795,6 +759,27 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                 else:
                     s += '    if (onlyDirty && !_' + item_name + '->isDirtyRecursive()) return json_null();\n'
                     s += '    return _' + item_name + '->toJson(onlyDirty);\n'
+                s += '  }\n'
+            s += "  return json_null();\n"
+            s += "}\n"
+
+            # serializeJsonErased
+            h += "  json_t* serializeJsonErased(const std::string& target);\n"
+            s += "\njson_t* " + table_name + "::serializeJsonErased(const std::string& target) {\n"
+            for item_name, item in table.iteritems():
+                s += '  if (target == "' + item_name + '") {\n'
+                if item["is_vector"]:
+                    s += '    auto a_' + item_name + ' = json_array();\n'
+                    s += '    for (auto it = _' + item_name + 'Erased.begin(); it != _' + item_name + 'Erased.end(); it++) {\n'
+                    s += '      auto __j = (*it)->toJson(false);\n'
+                    s += '      if (__j != nullptr) json_array_append(a_' + item_name + ', __j);\n'
+                    s += '    }\n'
+                    s += '    if (json_array_size(a_' + item_name +') > 0) {\n'
+                    s += '      return a_' + item_name +';\n'
+                    s += '    } else {\n'
+                    s += '      json_decref(a_' + item_name + ');\n'
+                    s += '      return json_null();\n'
+                    s += '    }\n'
                 s += '  }\n'
             s += "  return json_null();\n"
             s += "}\n"
@@ -837,6 +822,20 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
                     s += '    }\n'
                 else:
                     s += '    _' + item_name + '->toMsgpack(pk);\n'
+                s += '    return;\n'
+                s += '  }\n'
+            s += "}\n"
+
+            # serializeMsgpackErased
+            h += "  void serializeMsgpackErased(msgpack::packer<msgpack::sbuffer>& pk, const std::string& target);\n"
+            s += "\nvoid " + table_name + "::serializeMsgpackErased(msgpack::packer<msgpack::sbuffer>& pk, const std::string& target) {\n"
+            for item_name, item in table.iteritems():
+                s += '  if (target == "' + item_name + '") {\n'
+                if item["is_vector"]:
+                    s += '    pk.pack_array((int)_' + item_name + '.size());\n'
+                    s += '    for (auto it = _' + item_name + 'Erased.begin(); it != _' + item_name + 'Erased.end(); it++) {\n'
+                    s += '      (*it)->toMsgpack(pk);\n'
+                    s += '    }\n'
                 s += '    return;\n'
                 s += '  }\n'
             s += "}\n"
