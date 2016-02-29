@@ -229,7 +229,7 @@ def normalize_schema(schema, sheets):
 
         sheet_name = sheet['name']
         sheet['is_vector'] = sheet['srcType'].find('array') >= 0
-        sheet['attribute'] = None
+        sheet['attribute'] = {'db': 'MasterData'}
         sheet['type'] = sheet_name[0].upper() + sheet_name[1:]
         if sheet['srcType'].find('json') >= 0:
             normalized[sheet['type']] = "swapped later"
