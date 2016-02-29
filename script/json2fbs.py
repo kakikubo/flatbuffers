@@ -52,6 +52,8 @@ def generate_fbs(rootName, nameSpace, jsonData):
         else:
             s += 'table ' + table_name[0:1].upper() + table_name[1:] + " {\n"
         for item in jsonData[table_name]:
+            if 'srcType' in item.keys() and item['srcType'] == 'enum':
+                continue
             type_str = '['+item["type"]+']' if item['is_vector'] else item["type"];
             s += "    " + item["name"] + ":" + type_str + attribute_str(item["attribute"]) + ";\n"
         s += "}\n\n"
