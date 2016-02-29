@@ -63,6 +63,10 @@ class MasterDataVerifier():
         file_reference_map = OrderedDict()
         validation_map     = OrderedDict()
         for table, schema in schemas.iteritems():
+            # skip enum schema
+            if isinstance(schema, dict):
+                continue
+
             if table == meta_table_name:
                 # create meta_map
                 for sch in schema:
