@@ -38,8 +38,10 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
             done < $message_file
             text="$chatwork_users[info][title]$icon Pull requests are merged into '$repository' '$ref'[/title]$compare[code]$committers[/code]$pull_requests[/info]"
             timeout 10 curl --silent -F rid=$chat_id -F text="$text" $sonya_chan_url || exit $?
-            timeout 10 curl -X POST http://dev-kms.dev.gree.jp/jenkins/job/002_KMS_Client_GitPrRelease/build
-            timeout 10 curl -X POST http://dev-kms.dev.gree.jp/jenkins/job/031_KMS_Dev_iOS_For_HockeyApp/build
+            if [ "$repository" = 'kms/client' ]; then
+              timeout 10 curl -X POST http://dev-kms.dev.gree.jp/jenkins/job/002_KMS_Client_GitPrRelease/build
+              timeout 10 curl -X POST http://dev-kms.dev.gree.jp/jenkins/job/031_KMS_Dev_iOS_For_HockeyApp/build
+            fi
           fi
           ;;
         refs/heads/develop)
