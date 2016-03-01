@@ -41,7 +41,7 @@ if [ -n "$QUERY_STRING" ]; then
   esac
 
   user=`echo $from_user_name | tr '[:upper:]' '[:lower:]' | tr '+' '.'`
-  chatwork_to=`jq -r ".[\"$user\"]" chatwork-users.json`
+  chatwork_to=`jq -r ".[\"$user\"]" chatwork-users.json | grep -v null`
 
   text_file=/tmp/box-webhook.text
   cat >$text_file <<END
