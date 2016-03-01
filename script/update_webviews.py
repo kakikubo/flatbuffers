@@ -59,7 +59,8 @@ class WebViewUpdater(object):
 
 
     def list_html_files(self, path, url_prefix):
-        if isfile(path) and path.endswith(".html") and basename(path) != "index.html":
+        #if isfile(path) and path.endswith(".html") and basename(path) != "index.html":
+        if isfile(path) and path.endswith(".html") # kakikubo debug
             return [os.path.join(url_prefix, basename(path))]
         elif isdir(path):
             children = []
