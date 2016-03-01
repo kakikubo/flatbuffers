@@ -19,6 +19,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
           chat_id=44255707 # KMS リリース
           icon="(F)"
           text=
+          repository=`echo $REQUEST_BODY | jq -r '.repository.full_name'`
           github_url=`echo $REQUEST_BODY | jq -r '.repository.url'`
           compare=`echo $REQUEST_BODY | jq -r '.compare'`
           committers=`echo $REQUEST_BODY | jq -r '.commits[].committer.username' | sort | uniq`
@@ -29,7 +30,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
               id=`echo $l | sed -n -e 's/.*#\([0-9]*\).*/\1/p'`
               pull_requests="${pull_requests:+$pull_requests}$l - $github_url/pull/$id"
             done < $message_file
-            text="[info][title]$icon Pull requests are merged into '$ref'[/title]$compare[code]$committers[/code]$pull_requests[/info]"
+            text="[info][title]$icon Pull requests are merged into '$repository' '$ref'[/title]$compare[code]$committers[/code]$pull_requests[/info]"
             timeout 10 curl --silent -F rid=$chat_id -F text="$text" $sonya_chan_url || exit $?
             timeout 10 curl -X POST http://dev-kms.dev.gree.jp/jenkins/job/002_KMS_Client_GitPrRelease/build
             timeout 10 curl -X POST http://dev-kms.dev.gree.jp/jenkins/job/031_KMS_Dev_iOS_For_HockeyApp/build
@@ -38,19 +39,23 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         refs/heads/develop)
           chat_id=44255707 # KMS リリース
           icon="(handshake)"
+          repository=`echo $REQUEST_BODY | jq -r '.repository.full_name'`
           compare=`echo $REQUEST_BODY | jq -r '.compare'`
           url=`echo $REQUEST_BODY | jq -r '.head_commit.url'`
           message=`echo $REQUEST_BODY | jq -r '.head_commit.message'`
           modified=`echo $REQUEST_BODY | jq -r '.head_commit.modified[]'`
-          text="[info][title]$icon Pushed into '$ref'[/title]commit: $urlcompare: $compare[code]$modified[/code]$message[/info]"
+          text="[info][title]$icon Pushed into '$repository' '$ref'[/title]commit: $urlcompare: $compare[code]$modified[/code]$message[/info]"
           timeout 10 curl --silent -F rid=$chat_id -F text="$text" $sonya_chan_url || exit $?
           ;;
         *)
           ;;
       esac
       ;;
+    ping)
+      ;;
     pull_request|*)
       chat_id=44255707 # KMS リリース
+      repository=`echo $REQUEST_BODY | jq -r '.repository.full_name'`
       action=`echo $REQUEST_BODY | jq -r '.action'`
       sender=`echo $REQUEST_BODY | jq -r '.sender.login'`
       number=`echo $REQUEST_BODY | jq -r '.pull_request.number'`
@@ -66,7 +71,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         *) icon="(:/)";;
       esac
       if [ -n "$icon" ]; then
-        echo "[info][title]$icon Pull Request '$number' by '$user' is '$action' by '$sender'[/title]$html_url ($state)[title]$title[/title]$body[/info]" > $message_file
+        echo "[info][title]$icon Pull Request '$number' for '$repository' by '$user' is '$action' by '$sender'[/title]$html_url ($state)[title]$title[/title]$body[/info]" > $message_file
         timeout 10 curl --silent -F rid=$chat_id -F text="`cat $message_file`" $sonya_chan_url || exit $?
       fi
       ;;
