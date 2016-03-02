@@ -1,9 +1,10 @@
 #使い方
 
-jenkinsユーザで以下の設定ファイルをlaunchctlに読み込ませます
+jenkinsユーザで設定ファイル(kms.jenkins.plist)を所定の場所に配置した上で、launchctlに読み込ませます
 
 ```
-jenkins@asset-jenkins%  launchctl load ./kms/tool/jenkins/kms.jenkins.plist
+jenkins@asset-jenkins%  cp kms.jenkins.plist ~/Library/LaunchAgents/
+jenkins@asset-jenkins%  launchctl load ./Library/LaunchAgents/kms.jenkins.plist
 ```
 
 サービスが登録されている事、javaのプログラムが稼働していることを確認します
