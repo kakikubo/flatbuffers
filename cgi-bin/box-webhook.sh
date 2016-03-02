@@ -40,17 +40,18 @@ if [ -n "$QUERY_STRING" ]; then
     *)        status="?" icon="(puke)"  message="操作しました";;
   esac
 
-  user=`echo $from_user_name | tr '[:upper:]' '[:lower:]' | tr '+' '.'`
-  chatwork_to=`jq -r ".[\"$user\"]" chatwork-users.json | grep -v null`
-
   text_file=/tmp/box-webhook.text
   cat >$text_file <<END
-${chatwork_to:-$user}[info][title]$icon '$item_name' is '$event_type' by '$from_user_name'[/title]$from_user_name が $item_name を$message[code]$status $item_name (ID: $item_id)[/code]https://gree-office.app.box.com/files/0/f/$item_parent_folder_id[/info]
+[info][title]$icon '$item_name' is '$event_type' by '$from_user_name'[/title]$from_user_name が $item_name を$message[code]$status $item_name (ID: $item_id)[/code]https://gree-office.app.box.com/files/0/f/$item_parent_folder_id[/info]
 END
 
   timeout 10 curl --silent -F rid=$chat_id -F text="`cat $text_file`" $sonya_chan_url || exit $?
   if [ "$item_parent_folder_id" = '5528050009' -a "$item_extension" = "xlsx" ]; then
-    timeout 10 curl --silent -F rid=$sub_chat_id -F text="`cat $text_file`" $sonya_chan_url || exit $?
+    user=`echo $from_user_name | tr '[:upper:]' '[:lower:]' | tr '+' '.'`
+    chatwork_to=`jq -r ".[\"$user\"]" chatwork-users.json | grep -v null`
+    [ -z "$chatwork_to" ] && chatwork_to=`jq -r ".[\"z.$user\"]" chatwork-users.json | grep -v null`
+
+    timeout 10 curl --silent -F rid=$sub_chat_id -F text="${chatwork_to:-$user}`cat $text_file`" $sonya_chan_url || exit $?
   fi
 fi
 
