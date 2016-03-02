@@ -133,7 +133,6 @@ def parse_table(line, i):
     # parse row definition pattern:
     #   columnName:typeName = defaultValue (attr1,attr2,...);
     # defaultValue and attributes are optional.
-#     areaId:int = 0(reference:"areaList.id");
     m = re.search('\s*(\w+)\s*:\s*(\[?\w+\]?)\s*(=\s*[^(\s]+)?\s*(\(.+\))?\s*;', line.strip())
     if m:
         name = m.group(1)
@@ -150,12 +149,15 @@ def parse_table(line, i):
                 kk = m.group(1)
                 if m.lastindex == 2:
                     vv = re.sub('"', '', m.group(2)[1:])
-                    attribute[kk] = vv
+                    if kk == 'reference' or kk == 'file_reference':
+                        attribute[kk] = {vv: True}
+                    else:
+                        attribute[kk] = vv
                 elif m.lastindex == 1:
                     attribute[kk] = True
-                    if 'hash_key' in attribute.keys():
+                    if kk == 'hash_key':
                         is_hash_key = True
-                    if 'key' in attribute.keys():
+                    elif kk == 'key':
                         is_range_key = True
 
     item = OrderedDict()
