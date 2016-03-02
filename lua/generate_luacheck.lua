@@ -21,6 +21,7 @@ Main.lib_paths = {
 Main.ignore_list = {
     [212]="unused argument",
     [213]="unused loop variable",
+    [542]="empty if branch",
 }
 
 Main.find_modules = function()
