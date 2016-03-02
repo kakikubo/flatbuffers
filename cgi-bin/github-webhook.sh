@@ -61,7 +61,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
       ;;
     ping)
       ;;
-    pull_request|*)
+    pull_request)
       chat_id=44255707 # KMS リリース
       repository=`echo $REQUEST_BODY | jq -r '.repository.full_name'`
       action=`echo $REQUEST_BODY | jq -r '.action'`
@@ -81,9 +81,25 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         *) icon="(:/)";;
       esac
       if [ -n "$icon" ]; then
-        echo "$chatwork_to[info][title]$icon Pull Request '$number' for '$repository' by '$user' is '$action' by '$sender'[/title]$html_url ($state)[title]$title[/title]$body[/info]$HTTP_X_GITHUB_EVENT" > $message_file
+        echo "${chatwork_to:-$chatwork_user}[info][title]$icon Pull Request '$number' for '$repository' by '$user' is '$action' by '$sender'[/title]$html_url ($state)[title]$title[/title]$body[/info]" > $message_file
         timeout 10 curl --silent -F rid=$chat_id -F text="`cat $message_file`" $sonya_chan_url || exit $?
       fi
+      ;;
+    create|*)
+      chat_id=44255707 # KMS リリース
+      icon=']:)'
+      repository=`echo $REQUEST_BODY | jq -r '.repository.full_name'`
+      html_url=`echo $REQUEST_BODY | jq -r '.repository.html_url'`
+      sender=`echo $REQUEST_BODY | jq -r '.sender.login'`
+      push_type=`echo $REQUEST_BODY | jq -r '.push_type'`
+      ref_type=`echo $REQUEST_BODY | jq -r '.ref_type'`
+      ref=`echo $REQUEST_BODY | jq -r '.ref'`
+      chatwork_user=`echo $sender | tr '-' '.'`
+      chatwork_to=`jq -r ".[\"$chatwork_user\"]" chatwork-users.json | grep -v null`
+      [ -z "$chatwork_to" ] && chatwork_to=`jq -r ".[\"z.$chatwork_user\"]" chatwork-users.json | grep -v null`
+
+      echo "${chatwork_to:-$chatwork_user}[info][title]$icon Create '$ref_type' '$repository' '$ref' by '$sender' ($push_type)[/title]$html_url/tree/$ref[/info]$HTTP_X_GITHUB_EVENT" > $message_file
+      timeout 10 curl --silent -F rid=$chat_id -F text="`cat $message_file`" $sonya_chan_url || exit $?
       ;;
   esac
 fi
