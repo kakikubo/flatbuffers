@@ -20,13 +20,13 @@ def fbs2class(input_fbs, output_header, output_body, output_schema, output_enums
         fbs_enum_schemas = OrderedDict({})
         fbs_attributes = deque({})
         fbs_enum_count = 0
-        for line in f:
+        for i, line in enumerate(f):
             if state == "default":
-                parse_default(line)
+                parse_default(line, i)
             elif state == "enum":
-                parse_enum(line)
+                parse_enum(line, i)
             elif state == "table":
-                parse_table(line)
+                parse_table(line, i)
 
     # write user_data.(h|cpp)
     header, body = generate_classes(namespace, with_json, with_msgpack, with_fbs)
@@ -45,7 +45,7 @@ def fbs2class(input_fbs, output_header, output_body, output_schema, output_enums
     with open(output_enums, 'w') as f:
         f.write(enums)
 
-def parse_default(line):
+def parse_default(line, i):
     global state
     global fbs_data
     global fbs_root_type
@@ -80,7 +80,7 @@ def parse_default(line):
     state = "table"
 
 
-def parse_enum(line):
+def parse_enum(line, i):
     global state
     global fbs_enum_schemas
     global fbs_enum_count
@@ -107,7 +107,7 @@ def parse_enum(line):
     enum_name = next(reversed(fbs_enum_schemas))
     fbs_enum_schemas[enum_name]['values'][name] = value
 
-def parse_table(line):
+def parse_table(line, i):
     global state
     global fbs_data
 
@@ -133,7 +133,8 @@ def parse_table(line):
     # parse row definition pattern:
     #   columnName:typeName = defaultValue (attr1,attr2,...);
     # defaultValue and attributes are optional.
-    m = re.search('\s*(\w+)\s*:\s*(\[?\w+\]?)\s*(=\s*[^(]+)?\s*(\(.+\))?\s*;', line.strip())
+#     areaId:int = 0(reference:"areaList.id");
+    m = re.search('\s*(\w+)\s*:\s*(\[?\w+\]?)\s*(=\s*[^(\s]+)?\s*(\(.+\))?\s*;', line.strip())
     if m:
         name = m.group(1)
         type = re.sub('[\[\]]', '', m.group(2))
@@ -165,6 +166,8 @@ def parse_table(line):
     item['is_hash_key'] = is_hash_key
     item['is_range_key'] = is_range_key
     item['attribute'] = attribute
+    if type == None:
+      raise Exception("failed to parse line: %d '%s'" % (i+1, line))
 
     table_name = next(reversed(fbs_data))
     fbs_data[table_name][name] = item
