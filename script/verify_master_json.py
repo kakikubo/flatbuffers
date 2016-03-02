@@ -226,12 +226,13 @@ class MasterDataVerifier():
         if validations and self.validation_map:
             for item, spec in validations.iteritems():
                 try:
-                    if self.has_err(v, item, value_type, spec):
-                        error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, str(v).decode('utf-8')))
-                        raise Exception("invalid value spec")
+                    has_err = self.has_err(v, item, value_type, spec)
                 except:
                     error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, str(v).decode('utf-8')))
                     raise
+                if has_err:
+                    error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, str(v).decode('utf-8')))
+                    raise Exception("invalid value spec")
 
     @staticmethod
     def has_err(v, i, value_type, value_spec):
