@@ -10,6 +10,8 @@ export >> $log_file
 chat_id=43863580  # KMS Box Update Stream Timeline
 sub_chat_id=45131101 # KMS Excel Lock
 
+text_file=/tmp/box-webhook.$$.text
+
 if [ -n "$QUERY_STRING" ]; then
   for kv in `echo $QUERY_STRING | sed -e 's/&/ /g'`; do
     key=`echo "$kv" | sed -e "s/\(.*\)=.*/\1/"`
@@ -44,7 +46,6 @@ if [ -n "$QUERY_STRING" ]; then
   chatwork_to=`jq -r ".[\"$user\"]" chatwork-users.json | grep -v null`
   [ -z "$chatwork_to" ] && chatwork_to=`jq -r ".[\"z.$user\"]" chatwork-users.json | grep -v null`
 
-  text_file=/tmp/box-webhook.text
   cat >$text_file <<END
 [info][title]$icon '$item_name' is '$event_type' by '$from_user_name'[/title]$from_user_name が $item_name を$message[code]$status $item_name (ID: $item_id)[/code]https://gree-office.app.box.com/files/0/f/$item_parent_folder_id[/info]
 END

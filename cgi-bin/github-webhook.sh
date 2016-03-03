@@ -7,7 +7,7 @@ log_file=/tmp/github-webhook.log
 date >> $log_file
 export >> $log_file
 
-message_file=/tmp/github-webhook-message.text
+message_file=/tmp/github-webhook-message.$$.text
 
 if [ "$REQUEST_METHOD" = "POST" ]; then
   [ -z "$REQUEST_BODY" ] && exit 1
