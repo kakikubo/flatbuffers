@@ -1,5 +1,8 @@
 #!/bin/sh -x
-PATH="/usr/local/bin":$PATH ; export PATH
+source $HOME/.bash_profile
+PATH="/usr/local/bin:$PATH"
+export PATH
+
 PP=`cat /var/tmp/pass`
 logger "launch jenkins daemon from launchctl "
 expect -c "
@@ -12,6 +15,7 @@ expect {
 }
 exit 0
 "
+
 logger "exec jenkins"
 jenkins --prefix=/jenkins --httpPort=8080
 #jenkins --prefix=/jenkins --httpPort=8081 &
