@@ -133,7 +133,6 @@ def parse_table(line, i):
     # parse row definition pattern:
     #   columnName:typeName = defaultValue (attr1,attr2,...);
     # defaultValue and attributes are optional.
-#     areaId:int = 0(reference:"areaList.id");
     m = re.search('\s*(\w+)\s*:\s*(\[?\w+\]?)\s*(=\s*[^(\s]+)?\s*(\(.+\))?\s*;', line.strip())
     if m:
         name = m.group(1)
@@ -150,13 +149,32 @@ def parse_table(line, i):
                 kk = m.group(1)
                 if m.lastindex == 2:
                     vv = re.sub('"', '', m.group(2)[1:])
-                    attribute[kk] = vv
+                    if kk == 'reference' or kk == 'file_reference':
+                        attribute[kk] = {vv: True}
+                    else:
+                        attribute[kk] = vv
                 elif m.lastindex == 1:
                     attribute[kk] = True
-                    if 'hash_key' in attribute.keys():
+                    if kk == 'hash_key':
                         is_hash_key = True
-                    if 'key' in attribute.keys():
+                    elif kk == 'key':
                         is_range_key = True
+    if type == None:
+      raise Exception("failed to parse line: %d '%s'" % (i+1, line))
+
+    if default_value != None:
+        if is_vector:
+            default_value = json.loads(default_value, object_pairs_hook=OrderedDict)
+        elif type == 'string':
+            default_value = str(default_value)
+        elif type in ('int', 'long'):
+            default_value = int(default_value)
+        elif type in ('float', 'double'):
+            default_value = float(default_value)
+        elif type in ('bool'):
+            default_value = bool(default_value)
+        else:
+            raise Exception("invalid default value '%s': %d '%s'" % (default_value, i+1, line))
 
     item = OrderedDict()
     item['name'] = name
@@ -166,8 +184,6 @@ def parse_table(line, i):
     item['is_hash_key'] = is_hash_key
     item['is_range_key'] = is_range_key
     item['attribute'] = attribute
-    if type == None:
-      raise Exception("failed to parse line: %d '%s'" % (i+1, line))
 
     table_name = next(reversed(fbs_data))
     fbs_data[table_name][name] = item
@@ -301,19 +317,18 @@ def generate_classes(namespace=None, with_json=True, with_msgpack=True, with_fbs
         for item_name, item in table.iteritems():
             item_type = item["item_type"]
             default_value = ""
-            if item["attribute"] and item["attribute"].has_key("default"):
-                value = item["attribute"].has_key("default")
+            if item["default_value"] != None:
                 if item_type in ('string'):
-                    default_value = '"'+value+'"';
+                    default_value = '"'+item["default_value"]+'"';
                 elif item_type in ('bool'):
-                    default_value = "true" if value else  "false";
+                    default_value = "true" if item["default_value"] else  "false";
                 else:
-                    default_value = value;
+                    default_value = item["default_value"];
 
             if not item["is_default_type"] and not item["is_vector"]:
-                inits.append("  _" + item_name + "(std::make_shared<" + item["item_type"] + " >("+default_value+")),\n")
-            elif default_value:
-                inits.append("  _" + item_name + "(" + default_value + "),\n")
+                inits.append("  _" + item_name + "(std::make_shared<" + item["item_type"] + " >(" + str(default_value) + ")),\n")
+            elif default_value != None:
+                inits.append("  _" + item_name + "(" + str(default_value) + "),\n")
         s += "\n\n\n"
         s += "// " + table_name + "\n"
         s += "" + table_name + "::" + table_name + "() : \n" + "".join(inits) + "  __timestamp(-1),\n  __dirty(true) {}\n"
@@ -957,7 +972,7 @@ def generate_schema():
             s['type']      = item['item_type']
             s['attribute'] = item['attribute']
             s['is_vector'] = True if item['is_vector'] else False
-            if item['default_value']:
+            if item['default_value'] != None:
                 s['default_value'] = item['default_value']
             schemas[table_type].append(s)
 

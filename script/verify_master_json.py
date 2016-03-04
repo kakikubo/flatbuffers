@@ -84,39 +84,34 @@ class MasterDataVerifier():
                     schema_map[table][name] = sch
                     if sch['attribute']:
                         for k, v in sch['attribute'].iteritems():
-                            # id_map columns
                             if k in ('key', 'index'):
+                                # id_map columns
                                 index_map[table][name] = sch
-
-                            # file reference
-                            file_ref = k.split('/')
-                            if len(file_ref) > 1:
-                                if not file_reference_map[table].has_key(name):
-                                    file_reference_map[table][name] = {}
-                                v = True if v and v != "false" else False
-                                file_reference_map[table][name][k] = v
-                                continue
-
-                            # FIXME temporary skip  
-                            if k in ('areaInfo.position.id'):
-                                continue
-
-                            if k in ('max_length', 'max_value', 'min_length', 'min_value'):
+                            elif k in ('max_length', 'max_value', 'min_length', 'min_value'):
+                                # value spec
                                 if not validation_map[table].has_key(name):
                                     validation_map[table][name] = {}
                                 validation_map[table][name][k] = v
-                                continue
-
-                            # id reference
-                            ref = k.split('.')
-                            if len(ref) > 1:
-                                if len(ref) > 3:
-                                    error(u"不正な参照定義です: "+k)
-                                    raise Exception("invalid reference definition")
-                                ref[0] = self.upper_camel_case(ref[0]) # treat reference as Table Type
-                                if not reference_map[table].has_key(name):
-                                    reference_map[table][name] = []
-                                reference_map[table][name].append(ref)
+                            elif k == 'file_reference':
+                                # file reference
+                                for fref, required in v.iteritems():
+                                    if not file_reference_map[table].has_key(name):
+                                        file_reference_map[table][name] = {}
+                                    file_reference_map[table][name][fref[0]] = required
+                            elif k == 'reference':
+                                # id reference
+                                for ref, required in v.iteritems():
+                                    # FIXME temporary skip  
+                                    if ref in ('areaInfo.position.id'):
+                                        continue
+                                    refs = ref.split('.')
+                                    if len(refs) > 3:
+                                        error(u"不正な参照定義です: "+v)
+                                        raise Exception("invalid reference definition")
+                                    refs[0] = self.upper_camel_case(refs[0]) # treat reference as Table Type
+                                    if not reference_map[table].has_key(name):
+                                        reference_map[table][name] = []
+                                    reference_map[table][name].append(refs)
 
         # create id map
         id_map = OrderedDict()
