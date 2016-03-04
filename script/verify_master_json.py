@@ -97,7 +97,7 @@ class MasterDataVerifier():
                                 for fref, required in v.iteritems():
                                     if not file_reference_map[table].has_key(name):
                                         file_reference_map[table][name] = {}
-                                    file_reference_map[table][name][fref[0]] = required
+                                    file_reference_map[table][name][fref] = required
                             elif k == 'reference':
                                 # id reference
                                 for ref, required in v.iteritems():
@@ -475,29 +475,29 @@ class MasterDataVerifier():
         info("reference septums: %s" % ', '.join(septums))
 
         # create referenced file list from Location
-        info("generate file reference list: location_file_list.json")
         location_file_list = OrderedDict()
         for d in self.master_data['location']:
             l = self.collect_file_list('Location', 'id', d['id'], d['id'], septums, False, OrderedDict())
             location_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
+        info("generate file reference list: location_file_list.json: %d" % len(location_file_list))
         with open(os.path.join(dest_dir, 'location_file_list.json'), 'w') as f:
             json.dump(location_file_list, f, indent=2)
 
         # create referenced file list from Character
-        info("generate file reference list: character_file_list.json")
         character_file_list = OrderedDict()
         for d in self.master_data['character']:
             l = self.collect_file_list('Character', 'id', d['id'], d['id'], septums, False, OrderedDict())
             character_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
+        info("generate file reference list: character_file_list.json: %d" % len(character_file_list))
         with open(os.path.join(dest_dir, 'character_file_list.json'), 'w') as f:
             json.dump(character_file_list, f, indent=2)
 
         # create referenced file list from LayoutLoader
-        info("generate file reference list: ui_file_list.json")
         ui_file_list = OrderedDict()
         for d in self.master_data['layoutLoader']:
             l = self.collect_file_list('LayoutLoader', 'id', d['id'], d['id'], septums, False, OrderedDict())
             ui_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
+        info("generate file reference list: ui_file_list.json: %d" % len(ui_file_list))
         with open(os.path.join(dest_dir, 'ui_file_list.json'), 'w') as f:
             json.dump(ui_file_list, f, indent=2)
 
