@@ -34,9 +34,9 @@ def attribute_str(attributes):
 def collect_attributes(json_data):
     attribute_map = OrderedDict()
     for table_name in json_data:
+        if "is_enum" in json_data[table_name] and json_data[table_name]["is_enum"]:
+            continue
         for item in json_data[table_name]:
-            if 'srcType' in item.keys() and item['srcType'] == 'enum':
-                continue
             if not item["attribute"]:
                 continue
             for attribute in item["attribute"]:
