@@ -20,24 +20,36 @@ global gdcl
 gdcl = '/Applications/Glyph Designer.app/Contents/MacOS/Glyph Designer'
 
 def load_char_map(input_json):
-    char_map = OrderedDict()
+    data = None
     with open(input_json, 'r') as f:
         data = json.loads(f.read(), object_pairs_hook = OrderedDict)
-    if not data.has_key('font'):
-        return None
-    for fc in data['font']:
-        sheet = data[fc['sheet']]
-        for d in sheet:
-            font_name = fc['font']
-            if not char_map.has_key(font_name):
-                char_map[font_name] = OrderedDict()
-            if not d.has_key(fc['field']):
-                #raise Exception("field %s:%s not found: %s" % (fc['sheet'], fc['field'], d))
+
+    char_map = OrderedDict()
+    if data.has_key('font'):
+        for fc in data['font']:
+            sheet = data[fc['sheet']]
+            for d in sheet:
+                font_name = fc['font']
+                if not char_map.has_key(font_name):
+                    char_map[font_name] = OrderedDict()
+                if not d.has_key(fc['field']):
+                    #raise Exception("field %s:%s not found: %s" % (fc['sheet'], fc['field'], d))
+                    continue
+                for char in list(d[fc['field']]):
+                    if not char_map[font_name].has_key(char):
+                        char_map[font_name][char] = 0
+                    char_map[font_name][char] += 1
+
+    if data.has_key('message'):
+        for message in data['message']:
+            if not message.has_key('font') or not message['font']:
                 continue
-            for char in list(d[fc['field']]):
+            font_name = message['font']
+            for char in list(message['ja']):
                 if not char_map[font_name].has_key(char):
                     char_map[font_name][char] = 0
                 char_map[font_name][char] += 1
+
     return char_map
 
 def load_char_map_from_lua(lua_dirs):
@@ -125,6 +137,7 @@ if __name__ == '__main__':
     generate_bitmap_font(char_map, args.gd_dir, args.font_dir)
 
     # write char map json
+    info("output char map json: %s" % args.char_map_json)
     if args.char_map_json:
         with codecs.open(args.char_map_json, "w") as fp:
             j = json.dumps(char_map, ensure_ascii = False, indent = 4)
