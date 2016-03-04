@@ -238,6 +238,7 @@ def normalize_schema(schema, sheets):
             continue
 
         sheet_name = sheet['name']
+
         sheet['is_vector'] = sheet['srcType'].find('array') >= 0
         sheet['attribute'] = {'db': 'MasterData'}
         sheet['type'] = sheet_name[0].upper() + sheet_name[1:]
@@ -246,11 +247,12 @@ def normalize_schema(schema, sheets):
         elif sheet['srcType'].find('enum') >= 0:
             for k, v in schema[sheet_name].iteritems():
                 normalized[k] = v
+                sheet['type'] = k
         else:
             filtered = []
             for name, d in schema[sheet_name].iteritems():
                 if d['type'].find('ignore') >= 0 or \
-                   re.match('^_', d['name']):
+                    re.match('^_', d['name']):
                     continue
                 filtered.append(d)
             normalized[sheet['type']] = filtered
