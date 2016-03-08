@@ -987,10 +987,11 @@ class AssetBuilder():
         check_call(['chmod', '775', dest_dir+'/contents'])
         info("deploy to dev cdn: manifests: %s" % ', '.join(manifests))
         check_call(rsync + manifests + [dest_dir+'/'])
-        info("deploy to dev cdn: master diff: %s" % self.MASTER_DIFF_FILE)
-        check_call(rsync + [self.build_dir+'/'+self.MASTER_DIFF_FILE, dest_dir+'/'])
         info("deploy to dev cdn: %s" % self.ASSET_LIST_FILE)
         check_call(rsync + [self.build_dir+'/'+self.ASSET_LIST_FILE, self.cdn_dir+'/'])
+        if os.path.exists(self.build_dir+'/'+self.MASTER_DIFF_FILE):
+            info("deploy to dev cdn: master diff: %s" % self.MASTER_DIFF_FILE)
+            check_call(rsync + [self.build_dir+'/'+self.MASTER_DIFF_FILE, dest_dir+'/'])
         info("deploy to dev cdn: done")
         return True
 
