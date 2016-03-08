@@ -14,16 +14,12 @@ github_url=http://git.gree-dev.net
 jenkins_url="http://dev-kms.dev.gree.jp/jenkins/job/001_KMS_GHE_CommitHook/build"
 
 excel_diff="`dirname $0`/../../ExcelDiffGenerator/excel-diff"
-excel_diff_url="http://g-pc-00363221.intra.gree-office.net/excel-diff"
+excel_diff_root_url="http://g-pc-00363221.intra.gree-office.net/excel-diff"
 excel_diff_dir=/var/www/excel-diff
+excel_diff_url=
 
 build_log_file=/tmp/watchman-build-message.log
 build_chat_id=31118592 # KMSビルド
-
-if pgrep -fl $self; then
-  echo "other $self is running. abort..."
-  exit 0
-fi
 
 exit_code=0
 if git status | grep 'Changes to be committed:' > /dev/null; then
@@ -54,13 +50,11 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   commit_id=`git log -1 | head -1 | cut -c 8-`
 
   # excel diff
+  excel_diff_url=
   if grep .xlsx $commit_log_file; then
     excel_diff_html=excel-diff.$pre_commit_id..$commit_id.html
     $excel_diff . $pre_commit_id..$commit_id --ng >> $excel_diff_dir/$excel_diff_html || exit $?
-
-    echo "ExcelDiff: " >> $commit_log_file
-    echo "$excel_diff_url/$excel_diff_html" >> $commit_log_file
-    git commit --amend --file $commit_log_file || exit $?
+    excel_diff_url=$excel_diff_root_url/$excel_diff_html
   fi
 
   # git git push
@@ -71,7 +65,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   # log
   icon=":)"
   grep -q -e '^D' $commit_log_file && icon="(devil)(devil)(devil)"
-  $sonya "$icon git commit by `whoami`@`hostname`" $github_url/kms/asset/commit/$commit_id $commit_log_file || exit $?
+  $sonya "$icon git commit by `whoami`@`hostname`" $github_url/kms/asset/commit/$commit_id $commit_log_file $excel_diff_url || exit $?
   if [ -s $build_log_file ]; then
     echo "=== C++ Header File is updated === " >> $build_log_file
     $sonya "(F) C++ header file is updated. Please clean build your app" $github_url/kms/asset/commit/$commit_id $build_log_file $github_url/kms/asset $build_chat_id || exit $?
