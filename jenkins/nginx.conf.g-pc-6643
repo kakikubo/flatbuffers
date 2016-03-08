@@ -52,6 +52,11 @@ http {
             autoindex on;
         }
 
+        location /excel-diff/ {
+            alias /var/www/excel-diff/;
+            autoindex on;
+        }
+
         location /archives/ {
             alias /var/www/archives/;
             autoindex on;
