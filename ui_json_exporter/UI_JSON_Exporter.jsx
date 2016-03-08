@@ -54,7 +54,7 @@ function log(str){
 	global.doc = activeDocument;
 
 	var folderName = activeDocument.name.split(global.extended).join('');
-    var folderPath = '/Users/kaname.hidaka/Desktop/KMS/LayoutExporter/OutPut' + '/' + folderName;
+    var folderPath = '~/Desktop/KMS/LayoutExporter/OutPut' + '/' + folderName;
 
 	var texturesFolder = new Folder(folderPath);
 	var folderSuccess = texturesFolder.create();
@@ -436,62 +436,78 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 				case 'Scale9Sprite':
 					obj.image = fileName + '.png';
 					var imageLayer = getImageLayer(currentLayer);
+					var areaImage = getLayer(currentLayer, /\.area\s*$/);
+					var isCommon = (fileName.toLowerCase().indexOf("common_") != 0 || global.commonAssetFileName.indexOf("common") != 0 ) ? true : false;
+
+					if(!imageLayer && !isCommon){
+						catchError(currentLayer.name, 'Scale9Spriteに指定されていますが、配下に.imageレイヤーがありませんでした。');
+						continue layerLoop;
+					}
+
+					if(!imageLayer && !isCommon) {
+						// commonじゃない素材の場合、.capがないとエラー
+						// common_で始まる素材の場合、共通素材から引っ張ってくるので.capは不要です
+						catchError(currentLayer.name, 'Scale9Spriteに指定されていますが、.capレイヤーがありませんでした。');
+						continue layerLoop;
+					}
+
 					if(imageLayer){
 						//.imageレイヤーが1枚のArtLayerの場合は、そのレイヤーのopacityをobj.opacityにセット。
 						//if(imageLayer.typename == 'ArtLayer'){
 							obj.opacity = imageLayer.opacity * (255 / 100);
 						//}
-						bounds = exportImage(imageLayer, fileName + '.png', folderPath);
-						obj.size = {
-							width : bounds.w,
-							height : bounds.h
-						};
-						obj.position = {
-							x : bounds.x - parentPos.x,
-							y : bounds.y - parentPos.y
-						};
-
-						var capInsetsLayer = getLayer(currentLayer, /\.cap\s*$/);
-						if(capInsetsLayer){
-							//x, yは左上から（.imageの画像の左上から）
-							obj.cap_insets = {
-								x : capInsetsLayer.bounds[0].value - imageLayer.bounds[0].value,
-								y : capInsetsLayer.bounds[1].value - imageLayer.bounds[1].value,
-								//x : capInsetsLayer.bounds[0].value - (obj.position.x - bounds.w * 0.5),
-								//y : capInsetsLayer.bounds[1].value - (activeDocument.height.value - (obj.position.y - bounds.h * 0.5) - obj.size.height),
-								width : capInsetsLayer.bounds[2].value - capInsetsLayer.bounds[0].value,
-								height : capInsetsLayer.bounds[3].value - capInsetsLayer.bounds[1].value
-							}
-						}else {
-							// commonじゃない素材の場合、.capがないとエラー
-							// common_で始まる素材の場合、共通素材から引っ張ってくるので.capは不要です
-							if(obj.image.toLowerCase().indexOf("common_") != 0) {
-								catchError(currentLayer.name, 'Scale9Spriteに指定されていますが、.capレイヤーがありませんでした。');
-								continue layerLoop;
-							}
-						}
-
-						// エリアがある場合はサイズをエリアにあわせる
-						var areaImage = getLayer(currentLayer, /\.area\s*$/);
-						if (areaImage) {
-							obj.position = {
-								x : areaImage.bounds[0].value,
-								y : activeDocument.height.value - areaImage.bounds[3].value
-							};
-							obj.size = {
-								width : areaImage.bounds[2].value - areaImage.bounds[0].value,
-								height : areaImage.bounds[3].value - areaImage.bounds[1].value
-							};
-						}
-
-						obj.ll = "LL_SCARE_9SPRITE";
-						obj.llClass = "cocos2d::ui::Scale9Sprite";
-
+						bounds = exportImage(imageLayer, fileName + '.png', folderPath, obj);
 					}else{
-						//imageレイヤーが無い場合
-						catchError(currentLayer.name, 'Spriteに指定されていますが、配下に.imageレイヤーがありませんでした。');
-						continue layerLoop;
+						var nameWithOutExt = fileName.split(".");
+						var dir = nameWithOutExt[0].split("_");
+						var newFileName = "";
+						if (global.commonAssetFileName !== "") {
+							for (var j = 0; j < dir.length; ++j) {
+								newFileName += dir	[j] + "/";
+							}
+							fileName = newFileName + global.commonAssetFileName + ".png";
+							if (obj !== undefined) {
+								obj.image = fileName;
+							}
+						}
 					}
+
+					obj.size = {
+						width : bounds.w,
+						height : bounds.h
+					};
+					obj.position = {
+						x : bounds.x - parentPos.x,
+						y : bounds.y - parentPos.y
+					};
+
+					var capInsetsLayer = getLayer(currentLayer, /\.cap\s*$/);
+					if(capInsetsLayer){
+						//x, yは左上から（.imageの画像の左上から）
+						obj.cap_insets = {
+							x : capInsetsLayer.bounds[0].value - imageLayer.bounds[0].value,
+							y : capInsetsLayer.bounds[1].value - imageLayer.bounds[1].value,
+							//x : capInsetsLayer.bounds[0].value - (obj.position.x - bounds.w * 0.5),
+							//y : capInsetsLayer.bounds[1].value - (activeDocument.height.value - (obj.position.y - bounds.h * 0.5) - obj.size.height),
+							width : capInsetsLayer.bounds[2].value - capInsetsLayer.bounds[0].value,
+							height : capInsetsLayer.bounds[3].value - capInsetsLayer.bounds[1].value
+						}
+					}
+
+					// エリアがある場合はサイズをエリアにあわせる
+					if (areaImage) {
+						obj.position = {
+							x : areaImage.bounds[0].value,
+							y : activeDocument.height.value - areaImage.bounds[3].value
+						};
+						obj.size = {
+							width : areaImage.bounds[2].value - areaImage.bounds[0].value,
+							height : areaImage.bounds[3].value - areaImage.bounds[1].value
+						};
+					}
+
+					obj.ll = "LL_SCARE_9SPRITE";
+					obj.llClass = "cocos2d::ui::Scale9Sprite";
 
 					break;
 				case 'Sprite':
