@@ -51,7 +51,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
           compare=`echo $REQUEST_BODY | jq -r '.compare'`
           url=`echo $REQUEST_BODY | jq -r '.head_commit.url'`
           message=`echo $REQUEST_BODY | jq -r '.head_commit.message'`
-          modified=`echo $REQUEST_BODY | jq -r '.head_commit.modified[]'`
+          modified="`echo $REQUEST_BODY | jq -r '.head_commit.modified[]'`"
           text="[info][title]$icon Pushed into '$repository' '$ref'[/title]commit: $urlcompare: $compare[code]$modified[/code]$message[/info]"
           timeout 10 curl --silent -F rid=$chat_id -F text="$text" $sonya_chan_url || exit $?
           ;;
@@ -77,7 +77,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
       case $action in
         opened) icon="(*)";;
         labeled) icon="(:^)";;
-        synchronize) icon="";;
+        synchronize|closed) icon="";;
         *) icon="(:/)";;
       esac
       if [ -n "$icon" ]; then
@@ -87,7 +87,6 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
       ;;
     create|*)
       chat_id=44255707 # KMS リリース
-      icon=']:)'
       repository=`echo $REQUEST_BODY | jq -r '.repository.full_name'`
       html_url=`echo $REQUEST_BODY | jq -r '.repository.html_url'`
       sender=`echo $REQUEST_BODY | jq -r '.sender.login'`
@@ -98,8 +97,14 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
       chatwork_to=`jq -r ".[\"$chatwork_user\"]" chatwork-users.json | grep -v null`
       [ -z "$chatwork_to" ] && chatwork_to=`jq -r ".[\"z.$chatwork_user\"]" chatwork-users.json | grep -v null`
 
-      echo "${chatwork_to:-$chatwork_user}[info][title]$icon Create '$ref_type' '$repository' '$ref' by '$sender' ($push_type)[/title]$html_url/tree/$ref[/info]$HTTP_X_GITHUB_EVENT" > $message_file
-      timeout 10 curl --silent -F rid=$chat_id -F text="`cat $message_file`" $sonya_chan_url || exit $?
+      case $ref_type in
+        tag) icon= ;;
+        *) icon=']:)' ;;
+      esac
+      if [ -n "$icon" ]; then
+        echo "${chatwork_to:-$chatwork_user}[info][title]$icon Create '$ref_type' '$repository' '$ref' by '$sender' ($push_type)[/title]$html_url/tree/$ref[/info]$HTTP_X_GITHUB_EVENT" > $message_file
+        timeout 10 curl --silent -F rid=$chat_id -F text="`cat $message_file`" $sonya_chan_url || exit $?
+      fi
       ;;
   esac
 fi
