@@ -2,9 +2,6 @@
 
 tool_dir=`pwd | sed -e 's/Box Sync/box/'`
 git_dir=/Users/jenkins/kms/asset
-asset_list_json=$git_dir/manifests/dev.asset_list.json
-vagrant_dir=/Users/jenkins/kms/provisioning
-in_vagrant_dir=/vagrant
 
 target=$1
 [ -n "$target" ] || exit 1
@@ -14,16 +11,6 @@ $tool_dir/script/build.py build $target --git-dir $git_dir || exit $?
 echo "build $target done"
 
 if [ $target = "master" ]; then
-  # update each user in master updated
-  #for user_target in `cat $asset_list_json | jq '.[]' -r`; do
-  #  $tool_dir/script/build.py build --target $user_target
-  #  if [ $? -ne 0 ]; then
-  #    echo "*** build $user_target via master failed ***"
-  #    #exit 1	# ignore other user error
-  #  fi
-  #  echo "build $user_target done"
-  #done
-
   # git commit + push
   cd $git_dir
 
@@ -55,12 +42,6 @@ if [ $target = "master" ]; then
   else
     echo "nothing to commit exists"
   fi
-
-  # build user data default
-  echo "install user data default"
-  cd $vagrant_dir
-  rsync -a --delete $git_dir/user_data/ user_data || exit $?
-  #vagrant ssh -- $in_vagrant_dir/app/server/cli/userdata.php -s develop install-default $in_vagrant_dir/user_data/default.json || exit $?
 fi
 
 exit 0
