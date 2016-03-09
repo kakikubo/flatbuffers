@@ -444,7 +444,7 @@ function checkLayers(parentLayer, parent, folderPath, parentPos){
 						continue layerLoop;
 					}
 
-					if(!imageLayer && !isCommon) {
+					if(!capInsetsLayer && !isCommon) {
 						// commonじゃない素材の場合、.capがないとエラー
 						// common_で始まる素材の場合、共通素材から引っ張ってくるので.capは不要です
 						catchError(currentLayer.name, 'Scale9Spriteに指定されていますが、.capレイヤーがありませんでした。');
