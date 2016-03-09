@@ -82,14 +82,14 @@ class DataImporter():
 
             # select label key
             if not self.label_map.has_key(table):
-                if 'name' in string_keys:
-                    self.label_map[table] = 'name'
                 for key in string_keys:
                     if re.search(r'label', key, re.IGNORECASE):
                         self.label_map[table] = key
                         break
             if not self.label_map.has_key(table):
-                if 'description' in string_keys:
+                if 'name' in string_keys:
+                    self.label_map[table] = 'name'
+                elif 'description' in string_keys:
                     self.label_map[table] = 'description'
                 elif 'comment' in string_keys:
                     self.label_map[table] = 'comment'
@@ -111,18 +111,18 @@ class DataImporter():
         return self.gdb.query(q)
 
     def create_data_node(self, label, table, item):
-        # determine name
-        if item.has_key('name'):
-            name = u"{name}@{table}".format(name = item['name'], table = table)
+        # determine label
+        if item.has_key('tag'):
+            tag = u"{tag}@{table}".format(tag = item['tag'], table = table)
         elif self.label_map.has_key(table) and item.has_key(self.label_map[table]):
-            name = item[self.label_map[table]]
+            tag = unicode(item[self.label_map[table]])
         else:
-            name = u"{id}@{table}".format(table = table, id = item[self.key_map[table]])
+            tag = u"{id}@{table}".format(table = table, id = item[self.key_map[table]])
 
         # reverse table.value -> value.table
-        splitted = name.split('.')
+        splitted = tag.split('.')
         splitted.reverse()
-        item['name'] = '.'.join(splitted)  
+        item['tag'] = '.'.join(splitted)  
 
         # create sub node for array or dict in item
         for k, v in item.iteritems():
@@ -161,7 +161,7 @@ class DataImporter():
             info("create data relationships: %s" % table)
 
             relationships = []
-            nodes = self.query_nodes('MATCH (n:{label}) RETURN n'.format(label = table))
+            nodes = self.query_nodes('MATCH (n:`{label}`) RETURN n'.format(label = table))
             for node in nodes:
                 for key, refs in reference.iteritems():
                     val = node.get(key, None)
@@ -169,7 +169,7 @@ class DataImporter():
                         continue
                     for ref in refs:
                         id = '"'+val+'"' if type(val) in (unicode, str) else val
-                        peers = self.query_nodes('MATCH (n:{label}) WHERE n.{key} = {id} RETURN n'.format(label = ref[0], key = ref[1], id = id))
+                        peers = self.query_nodes('MATCH (n:`{label}`) WHERE n.{key} = {id} RETURN n'.format(label = ref[0], key = ref[1], id = id))
                         for peer in peers:
                             #relation = u"{id}:{relation}".format(id = id, relation = '.'.join(ref))
                             relation = '.'.join(ref)
@@ -178,12 +178,12 @@ class DataImporter():
             #with self.gdb.transaction(for_query = True) as tx:
             for table, id, node, relation, peer in relationships:
                 debug("CREATE DATA RELATIONSHIP %s %s: %s" % (table, id, relation))
-                node.relationships.create(relation, peer)
+                node.relationships.create(relation, peer, id=id)
         return True
 
     def file_ref_label(self, table, fref):
         bname, ext = os.path.splitext(fref)
-        return "{table}_{ext}".format(table = table, ext = ext[1:])
+        return "{ext}@{table}".format(table = table, ext = ext[1:])
 
     def create_file_node(self, label, table, item, key, fref, required):
         if not item.has_key(key) or not item[key]:
@@ -224,21 +224,21 @@ class DataImporter():
             info("create file relationships: %s" % table)
 
             relationships = []
-            nodes = self.query_nodes('MATCH (n:{label}) RETURN n'.format(label = table))
+            nodes = self.query_nodes('MATCH (n:`{label}`) RETURN n'.format(label = table))
             for node in nodes:
                 for key, file_reference in self.file_reference_map[table].iteritems():
                     for fref, required in file_reference.iteritems():
                         id = node[self.key_map[table]]
                         id = '"'+id+'"' if type(id) in (unicode, str) else id
-                        peers = self.query_nodes('MATCH (n:{label}) WHERE n.id = {id} RETURN n'.format(label = self.file_ref_label(table, fref), id = id))
+                        peers = self.query_nodes('MATCH (n:`{label}`) WHERE n.id = {id} RETURN n'.format(label = self.file_ref_label(table, fref), id = id))
                         for peer in peers:
-                            relation = "{fref}:{table}.{key}".format(fref = fref, table = table, key = key)
+                            relation = "{name}@{table}.{key}".format(name = peer['name'], table = table, key = key)
                             relationships.append([table, id, node, relation, peer])
 
             #with self.gdb.transaction(for_query = True) as tx:
             for table, id, node, relation, peer in relationships:
                 debug("CREATE FILE RELATIONSHIP %s %s: %s" % (table, id, relation))
-                node.relationships.create(relation, peer)
+                node.relationships.create(relation, peer, id = id, name = peer['name'], key = peer['key'], path = peer['path'], required = peer['required'])
         return True
 
 if __name__ == '__main__':
