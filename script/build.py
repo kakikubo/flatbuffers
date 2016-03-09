@@ -173,26 +173,27 @@ class AssetBuilder():
         self.master_lua_dir           = self.master_dir+'/lua'
         self.master_crypto_dir        = self.master_dir+'/crypto'
 
-        self.manifest_generate_bin  = self_dir+'/manifest_generate.py'
-        self.manifest_queue_bin     = self_dir+'/manifest_queue.py'
-        self.xls2json_bin           = self_dir+'/master_data_xls2json.py'
-        self.json2fbs_bin           = self_dir+'/json2fbs.py'
-        self.json2macro_bin         = self_dir+'/json2macro.py'
-        self.flatc_bin              = self_dir+'/flatc'
-        self.fbs2class_bin          = self_dir+'/fbs2class.py'
-        self.make_bitmap_font_bin   = self_dir+'/make_bitmap_font.py'
-        self.merge_editor_json_bin  = self_dir+'/merge_editor_json.py'
-        self.lltext2json_bin        = self_dir+'/lltext2json.py'
-        self.sort_master_json_bin   = self_dir+'/sort-master-json.py'
-        self.verify_master_json_bin = self_dir+'/verify_master_json.py'
-        self.strip_master_json_bin  = self_dir+'/strip_master_json.py'
-        self.delete_element_bin     = self_dir+'/delete-element.py'
-        self.make_weapon_atlas_bin  = self_dir+'/make_weapon_atlas.py'
-        self.make_ui_atlas_bin      = self_dir+'/make_ui_atlas.py'
-        self.make_area_atlas_bin    = self_dir+'/make_area_atlas.py'
-        self.update_webviews_bin    = self_dir+'/update_webviews.py'
-        self.crypto_key_bin         = self_dir+'/crypto_key.py'
-        self.encrypt_bin            = self_dir+'/encrypt.py'
+        self.manifest_generate_bin    = self_dir+'/manifest_generate.py'
+        self.manifest_queue_bin       = self_dir+'/manifest_queue.py'
+        self.xls2json_bin             = self_dir+'/master_data_xls2json.py'
+        self.json2fbs_bin             = self_dir+'/json2fbs.py'
+        self.json2macro_bin           = self_dir+'/json2macro.py'
+        self.flatc_bin                = self_dir+'/flatc'
+        self.fbs2class_bin            = self_dir+'/fbs2class.py'
+        self.make_bitmap_font_bin     = self_dir+'/make_bitmap_font.py'
+        self.merge_editor_json_bin    = self_dir+'/merge_editor_json.py'
+        self.lltext2json_bin          = self_dir+'/lltext2json.py'
+        self.sort_master_json_bin     = self_dir+'/sort-master-json.py'
+        self.verify_master_json_bin   = self_dir+'/verify_master_json.py'
+        self.strip_master_json_bin    = self_dir+'/strip_master_json.py'
+        self.delete_element_bin       = self_dir+'/delete-element.py'
+        self.make_weapon_atlas_bin    = self_dir+'/make_weapon_atlas.py'
+        self.make_ui_atlas_bin        = self_dir+'/make_ui_atlas.py'
+        self.make_area_atlas_bin      = self_dir+'/make_area_atlas.py'
+        self.update_webviews_bin      = self_dir+'/update_webviews.py'
+        self.crypto_key_bin           = self_dir+'/crypto_key.py'
+        self.encrypt_bin              = self_dir+'/encrypt.py'
+        self.excel_diff_generator_bin = self_dir+'/../../ExcelDiffGenerator/excel-diff'
         
         self.PROJECT_MANIFEST_FILE          = 'project.manifest'
         self.VERSION_MANIFEST_FILE          = 'version.manifest'
@@ -212,6 +213,7 @@ class AssetBuilder():
         self.MASTER_HEADER_FILE             = 'master_data_generated.h'
         self.MASTER_MD5_FILE                = 'master_data_generated_md5.h'
         self.MASTER_MD5_DEFINE              = 'KMS_MASTER_DATA_VERSION'
+        self.MASTER_DIFF_FILE               = 'master_data.diff.html'
         self.EDITOR_MASTER_JSON_SCHEMA_FILE = 'editor_master_schema.json'
         self.EDITOR_MASTER_JSON_DATA_FILE   = 'editor_master_data.json'
         self.EDITOR_MASTER_MACRO_FILE       = 'EditorMasterAccessors.h'
@@ -406,6 +408,19 @@ class AssetBuilder():
         cmdline = [self.verify_master_json_bin, src_schema, src_data, '--file-reference-list', dest_dir, '--asset-dir'] + asset_dirs + opt_user_schema + opt_user_data + opt_verify_file_reference
         info(' '.join(cmdline))
         check_call(cmdline)
+        return True
+
+    # create excel diff
+    def build_master_diff(self, src_dir1=None, src_dir2=None, dest_diff=None):
+        src_dir1  = src_dir1 or self.master_xlsx_dir
+        src_dir2  = src_dir1 or self.main_xlsx_dir
+        dest_diff = dest_diff or self.build_dir+'/'+self.MASTER_DIFF_FILE
+
+        info("build master diff: %s" % os.path.basename(dest_diff))
+        cmdline = [self.excel_diff_generator_bin, '--ng', '--dir', src_dir1, src_dir2]
+        info(' '.join(cmdline))
+        with open(dest_diff, 'w') as f:
+            check_call(cmdline, stdout=f)
         return True
 
     # create fbs from json
@@ -699,6 +714,7 @@ class AssetBuilder():
             (self.MASTER_BUNDLED_ENC_FILE,        self.master_bin_dir,    self.org_master_bin_dir),
             (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
             (self.MASTER_MD5_FILE,                self.master_header_dir, self.org_master_header_dir),
+            (self.MASTER_DIFF_FILE,               self.master_data_dir,   self.org_master_data_dir),
             (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
             (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir,   self.org_master_data_dir),
             (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_bin_dir,    self.org_master_bin_dir),
@@ -973,6 +989,9 @@ class AssetBuilder():
         check_call(rsync + manifests + [dest_dir+'/'])
         info("deploy to dev cdn: %s" % self.ASSET_LIST_FILE)
         check_call(rsync + [self.build_dir+'/'+self.ASSET_LIST_FILE, self.cdn_dir+'/'])
+        if os.path.exists(self.build_dir+'/'+self.MASTER_DIFF_FILE):
+            info("deploy to dev cdn: master diff: %s" % self.MASTER_DIFF_FILE)
+            check_call(rsync + [self.build_dir+'/'+self.MASTER_DIFF_FILE, dest_dir+'/'])
         info("deploy to dev cdn: done")
         return True
 
@@ -1059,6 +1078,8 @@ class AssetBuilder():
 
         # verify
         self.verify_master_json()
+        if not self.is_master:
+            self.build_master_diff()
 
         # asset
         self.build_spine()
