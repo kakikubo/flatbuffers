@@ -9,6 +9,7 @@ import argparse
 import codecs
 import logging
 import json
+import hashlib
 from logging import info, warning, debug
 from os.path import basename, isfile, isdir, join
 from subprocess import check_call
@@ -41,8 +42,8 @@ class WebViewUpdater(object):
                     info("%s does not exists." % src_path)
                     continue
                 html_files = self.list_html_files(src_path, "kms://")
-                j["asset_hash"] = hashlib.sha224(json.dumps(html_files)).hexdigest()
-                j["files"] = html_files
+                j["assetHash"] = hashlib.sha224(json.dumps(html_files)).hexdigest()
+                j["fileList"] = html_files
                 if not isdir(dst_path):
                     os.makedirs(dst_path)
                 dst_file = join(dst_path, "webviews.json")
