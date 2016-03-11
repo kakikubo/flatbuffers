@@ -9,6 +9,7 @@ import argparse
 import codecs
 import logging
 import json
+import hashlib
 from logging import info, warning, debug
 from os.path import basename, isfile, isdir, join
 from subprocess import check_call
@@ -34,18 +35,21 @@ class WebViewUpdater(object):
         for env in self.envs:
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
-                src_path = join(self.root_dir, env_path, platform)
+                j = {}
+                src_path = join(self.root_dir , env_path, platform)
                 dst_path = join(self.build_dir, env_path, platform)
                 if not isdir(src_path):
                     info("%s does not exists." % src_path)
                     continue
                 html_files = self.list_html_files(src_path, "kms://")
+                j["assetHash"] = hashlib.sha224(json.dumps(html_files)).hexdigest()
+                j["fileList"] = html_files
                 if not isdir(dst_path):
                     os.makedirs(dst_path)
                 dst_file = join(dst_path, "webviews.json")
                 info("Generating webview json list for platform %s: %s", platform, dst_file)
                 with open(dst_file, 'w') as fout:
-                    json.dump(html_files, fout, indent=2)
+                    json.dump(j, fout, indent=2)
                 os.chmod(dst_file, 0664)
 
     def sync_with_root(self):
@@ -57,6 +61,16 @@ class WebViewUpdater(object):
             debug(' '.join(cmdline))
             check_call(cmdline)
 
+    def import_dynamodb(self):
+        aws = ['aws','dynamodb','--profile','put-item','--table-name','--item','file://']
+        for env in self.envs:
+            env_path = join("webview", env)
+            for platform in self.subdirs(join(self.root_dir, env_path)):
+                src_path = join(self.build_dir, env_path, platform)
+                src_file = join(src_path, "webviews.json")
+                f = open(src_file)
+                json_data = json.load(f)
+                # FIXME to be continue
 
     def list_html_files(self, path, url_prefix):
         if isfile(path) and path.endswith(".html") and basename(path) != "index.html":
@@ -123,6 +137,7 @@ examples:
     parser.add_argument('--build-dir',      help = 'build directory', required=True)
     parser.add_argument('--cdn-dir',        help = 'cdn directory to deploy. default: /var/www/cdn', default='/var/www/cdn')
     parser.add_argument('--skip-sync-root', help = 'skip syncing build_dir contents to root_dir(ignored if command is `deploy`) (0|1)', default=0, type=int)
+    parser.add_argument('--skip-import-dynamodb', help = 'skip syncing webviews.json to dynamodb table (ignored if command is `deploy`) (0|1)', default=0, type=int)
     parser.add_argument('--log-level',      help = 'log level (WARNING|INFO|DEBUG). default: INFO', default='INFO')
 
     args = parser.parse_args()
@@ -132,6 +147,8 @@ examples:
         updater.generate_json()
         if not args.skip_sync_root:
             updater.sync_with_root()
+        if not args.skip_import_dynamodb:
+            updater.import_dynamodb()
     if args.command in ('deploy', 'update_deploy'):
         success = updater.deploy_dev_cdn(args.cdn_dir)
         success = updater.deploy_s3_cdn() and success
