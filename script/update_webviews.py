@@ -68,10 +68,14 @@ class WebViewUpdater(object):
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
                 src_path = join(self.build_dir, env_path, platform)
-                src_file = join(src_path, "webviews.json")
-                f = open(src_file)
-                json_data = json.load(f)
-                cmdline = aws + [env + '_NoticeWebview'] + fopt + [src_path]
+                #src_file = join(src_path, "webviews.json")
+                #f = open(src_file)
+                #json_data = json.load(f)
+                if env == dev
+                    dbenv = "develop"
+                else
+                    dbenv = env
+                cmdline = aws + [dbenv + '_NoticeWebview'] + fopt + [src_path]
                 debug(' '.join(cmdline))
                 check_call(cmdline)
                 # FIXME to be continue
@@ -136,7 +140,7 @@ examples:
       $ ./script/update_webviews.py --root-dir ${ROOT_DIR} --build-dir ${BUILD_DIR} update_deploy
         """)
     parser.add_argument('command',          help = 'command (update|deploy|update_deploy)')
-    parser.add_argument('--environment',    help = 'environment (all|develop|qa|vagrant|release). default: all', default='all')
+    parser.add_argument('--environment',    help = 'environment (all|dev|qa|vagrant|release). default: all', default='all')
     parser.add_argument('--root-dir',       help = 'root directory (webview folder\'s parent)', required=True)
     parser.add_argument('--build-dir',      help = 'build directory', required=True)
     parser.add_argument('--cdn-dir',        help = 'cdn directory to deploy. default: /var/www/cdn', default='/var/www/cdn')
