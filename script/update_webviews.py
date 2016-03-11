@@ -137,7 +137,7 @@ examples:
       $ ./script/update_webviews.py --root-dir ${ROOT_DIR} --build-dir ${BUILD_DIR} update_deploy
         """)
     parser.add_argument('command',          help = 'command (update|deploy|update_deploy)')
-    parser.add_argument('--environment',    help = 'environment (all|dev|qa|release). default: all', default='all')
+    parser.add_argument('--environment',    help = 'environment (all|develop|qa|vagrant|release). default: all', default='all')
     parser.add_argument('--root-dir',       help = 'root directory (webview folder\'s parent)', required=True)
     parser.add_argument('--build-dir',      help = 'build directory', required=True)
     parser.add_argument('--cdn-dir',        help = 'cdn directory to deploy. default: /var/www/cdn', default='/var/www/cdn')
