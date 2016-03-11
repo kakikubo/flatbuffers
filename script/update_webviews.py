@@ -72,9 +72,8 @@ class WebViewUpdater(object):
                 f = open(src_file)
                 json_data = json.load(f)
                 cmdline = aws + [env + '_NoticeWebview'] + fopt + [src_path]
-                print cmdline
                 debug(' '.join(cmdline))
-                # check_call(cmdline)
+                check_call(cmdline)
                 # FIXME to be continue
 
     def list_html_files(self, path, url_prefix):
