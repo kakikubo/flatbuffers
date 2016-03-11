@@ -71,7 +71,7 @@ class WebViewUpdater(object):
                 src_file = join(src_path, "webviews.json")
                 f = open(src_file)
                 json_data = json.load(f)
-                cmdline = aws + [env + '_NoticeWebview'] + fopt + src_path
+                cmdline = aws + [env + '_NoticeWebview'] + fopt + [src_path]
                 print cmdline
                 debug(' '.join(cmdline))
                 # check_call(cmdline)
