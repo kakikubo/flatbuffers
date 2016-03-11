@@ -62,7 +62,8 @@ class WebViewUpdater(object):
             check_call(cmdline)
 
     def import_dynamodb(self):
-        aws = ['aws','dynamodb','--profile','put-item','--table-name','--item','file://']
+        aws = ['aws','dynamodb','--profile','dynamodb','put-item','--table-name']
+        fopt = ['--item','file://']
         for env in self.envs:
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
@@ -70,6 +71,10 @@ class WebViewUpdater(object):
                 src_file = join(src_path, "webviews.json")
                 f = open(src_file)
                 json_data = json.load(f)
+                cmdline = aws + [env + '_NoticeWebview'] + fopt + src_path
+                print cmdline
+                debug(' '.join(cmdline))
+                # check_call(cmdline)
                 # FIXME to be continue
 
     def list_html_files(self, path, url_prefix):
