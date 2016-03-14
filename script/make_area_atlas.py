@@ -54,11 +54,14 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
             textureFormat = "RGBA8888"
             pvrQuality = "very-low"
             scale = "1.0"
+            borderPadding = "2"
 
             fnum = get_file_count(work_dir)
             print "{0} : textures num[{1}]".format(category_src_dir, fnum)
             if fnum == 0:
                 continue
+            if "single" in category_dir:
+                borderPadding = "0"
 
             subprocess.check_call(["TexturePacker",
                 "--sheet", imageFile,
@@ -78,7 +81,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
                 "--common-divisor-x", "4",
                 "--common-divisor-y", "4",
                 "--shape-padding", "2",
-                "--border-padding", "2",
+                "--border-padding", borderPadding,
                 "--enable-rotation",
                 "--trim-mode", "None",
                 # "--disable-clean-transparency",
@@ -121,7 +124,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
                 "--common-divisor-x", "4",
                 "--common-divisor-y", "4",
                 "--shape-padding", "2",
-                "--border-padding", "2",
+                "--border-padding", borderPadding,
                 "--enable-rotation",
                 "--trim-mode", "None",
                 # "--disable-clean-transparency",
