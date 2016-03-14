@@ -34,12 +34,12 @@ def parse_type(type_str):
         for attr_str in re.split('[,\s]+', m.group(2)):
             attr = re.split('[:\s]+', attr_str)
             if len(attr[0].split('/')) > 1: # file reference
-                required = True if len(attr) > 1 and attr[1] != "false" else False
+                required = False if len(attr) > 1 and attr[1] == "false" else True
                 if not attribute_map.has_key('file_reference'):
                     attribute_map['file_reference'] = OrderedDict()
                 attribute_map['file_reference'][attr[0]] = required
             elif len(attr[0].split('.')) > 1: # reference
-                required = True if len(attr) > 1 and attr[1] != "false" else False
+                required = False if len(attr) > 1 and attr[1] == "false" else True
                 if not attribute_map.has_key('reference'):
                     attribute_map['reference'] = OrderedDict()
                 attribute_map['reference'][attr[0]] = required
