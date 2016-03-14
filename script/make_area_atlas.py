@@ -55,6 +55,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
             pvrQuality = "very-low"
             scale = "1.0"
             borderPadding = "2"
+            extrude = "4"
 
             fnum = get_file_count(work_dir)
             print "{0} : textures num[{1}]".format(category_src_dir, fnum)
@@ -62,6 +63,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
                 continue
             if "single" in category_dir:
                 borderPadding = "0"
+                extrude = "0"
 
             subprocess.check_call(["TexturePacker",
                 "--sheet", imageFile,
@@ -89,7 +91,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
                 "--pvr-quality", pvrQuality,
                 # "--premultiply-alpha",
                 "--png-opt-level", "0",
-                "--extrude", "4",
+                "--extrude", extrude,
                 "--scale", scale,
                 "--scale-mode", "Smooth",
                  work_dir])
@@ -132,7 +134,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
                 "--pvr-quality", pvrQuality,
                 # "--premultiply-alpha",
                 "--png-opt-level", "0",
-                "--extrude", "4",
+                "--extrude", extrude,
                 "--scale", scale,
                 "--scale-mode", "Smooth",
                  work_dir])
