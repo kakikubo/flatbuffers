@@ -153,7 +153,7 @@ examples:
     parser.add_argument('--build-dir',      help = 'build directory', required=True)
     parser.add_argument('--cdn-dir',        help = 'cdn directory to deploy. default: /var/www/cdn', default='/var/www/cdn')
     parser.add_argument('--skip-sync-root', help = 'skip syncing build_dir contents to root_dir(ignored if command is `deploy`) (0|1)', default=0, type=int)
-    parser.add_argument('--import-dynamodb', help = 'syncing webviews.json to dynamodb table (ignored if command is `deploy`) (0|1)', default=0, type=int)
+    parser.add_argument('--skip-import-dynamodb', help = 'skip syncing webviews.json to dynamodb table (ignored if command is `deploy`) (0|1)', default=0, type=int)
     parser.add_argument('--log-level',      help = 'log level (WARNING|INFO|DEBUG). default: INFO', default='INFO')
 
     args = parser.parse_args()
@@ -163,7 +163,7 @@ examples:
         updater.generate_json()
         if not args.skip_sync_root:
             updater.sync_with_root()
-        if args.import_dynamodb:
+        if not args.skip_import_dynamodb:
             updater.import_dynamodb()
     if args.command in ('deploy', 'update_deploy'):
         success = updater.deploy_dev_cdn(args.cdn_dir)
