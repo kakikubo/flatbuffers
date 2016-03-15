@@ -33,6 +33,10 @@ class WebViewUpdater(object):
 
     def generate_json(self):
         for env in self.envs:
+            if env == "dev":
+                dbenv = "develop"
+            else:
+                dbenv = env
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
                 json_file = []
@@ -44,12 +48,15 @@ class WebViewUpdater(object):
                 html_files = self.list_html_files(src_path, "kms://")
                 assetHash = hashlib.sha224(json.dumps(html_files)).hexdigest()
                 for html in html_files:
+                    request = {}
+                    item = {}
                     notice = {}
-                    notice["url"] = html
-                    notice["assetHash"] = assethash
-                    notice["os"] = platform
-                    json_file.append(notice)
-
+                    notice["url"] = {"S" : html }
+                    notice["assetHash"] = {"S" : assethash}
+                    notice["os"] = {"S" : platform}
+                    item["Item"].append(notice)
+                    request["PutRequest"].append(item)
+                    json_file[dbenv].append(request)
                 # json_file["fileList"] = html_files
                 if not isdir(dst_path):
                     os.makedirs(dst_path)
@@ -69,20 +76,16 @@ class WebViewUpdater(object):
             check_call(cmdline)
 
     def import_dynamodb(self):
-        aws = ['aws','dynamodb','--profile','dynamodb','put-item','--table-name']
-        fopt = ['--item','file://']
+        aws = ['aws','dynamodb','--profile','batch-write-item','--request-items', 'file://']
         for env in self.envs:
+            if env == "dev":
+                dbenv = "develop"
+            else:
+                dbenv = env
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
                 src_path = join(self.build_dir, env_path, platform)
-                #src_file = join(src_path, "webviews.json")
-                #f = open(src_file)
-                #json_data = json.load(f)
-                if env == "dev":
-                    dbenv = "develop"
-                else:
-                    dbenv = env
-                cmdline = aws + [dbenv + '_NoticeWebview'] + fopt + [src_path]
+                cmdline = aws + [src_path]
                 debug(' '.join(cmdline))
                 #check_call(cmdline)
                 # FIXME to be continue
