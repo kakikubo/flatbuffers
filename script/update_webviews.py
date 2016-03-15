@@ -39,7 +39,8 @@ class WebViewUpdater(object):
                 dbenv = env
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
-                json_file = []
+                json_file = {}
+                json_file[dbenv] = []
                 src_path = join(self.root_dir , env_path, platform)
                 dst_path = join(self.build_dir, env_path, platform)
                 if not isdir(src_path):
@@ -54,9 +55,9 @@ class WebViewUpdater(object):
                     notice["url"] = {"S" : html }
                     notice["assetHash"] = {"S" : assetHash}
                     notice["os"] = {"S" : platform}
-                    item["Item"].append(notice)
+                    item["Item"] = notice
                     request["PutRequest"] = item
-                    json_file[dbenv] = request
+                    json_file[dbenv].append(request)
                 # json_file["fileList"] = html_files
                 if not isdir(dst_path):
                     os.makedirs(dst_path)
