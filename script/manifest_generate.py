@@ -50,9 +50,9 @@ class ManifestGenerator():
 
         filtered_files = []
         if not filter_list:
-            for dpath, dnames, fnames in os.walk(self.local_asset_search_path):
-                for fname in fnames:
-                    filtered_files.append(os.path.normpath(os.path.join(dpath, fname)))
+            for root_dir, dirs, files in os.walk(self.local_asset_search_path):
+                for file in files:
+                    filtered_files.append(os.path.normpath(os.path.join(root_dir, file)))
         else:
             info("filter glob: %d" % len(filter_list))
             for l in filter_list:
@@ -60,9 +60,12 @@ class ManifestGenerator():
                 if not filtered and self.validate_filter:
                     raise Exception("filter targets does not exist: %s" % l)
                 for f in filtered:
-                    if os.path.isdir(f):
-                        continue
-                    filtered_files.append(f)
+                    if os.path.isfile(f):
+                        filtered_files.append(f)
+                    elif os.path.isdir(f):
+                        for root_dir, dirs, files in os.walk(f):
+                            for file in files:
+                                filtered_files.append(os.path.normpath(os.path.join(root_dir, file)))
 
         if ext_list:
             info("filter ext list: %s" % ', '.join(ext_list))
