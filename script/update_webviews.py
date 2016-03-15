@@ -52,7 +52,7 @@ class WebViewUpdater(object):
                     item = {}
                     notice = {}
                     notice["url"] = {"S" : html }
-                    notice["assetHash"] = {"S" : assethash}
+                    notice["assetHash"] = {"S" : assetHash}
                     notice["os"] = {"S" : platform}
                     item["Item"].append(notice)
                     request["PutRequest"].append(item)
