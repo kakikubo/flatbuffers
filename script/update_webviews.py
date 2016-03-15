@@ -78,7 +78,7 @@ class WebViewUpdater(object):
                 #src_file = join(src_path, "webviews.json")
                 #f = open(src_file)
                 #json_data = json.load(f)
-                if env == dev:
+                if env == "dev":
                     dbenv = "develop"
                 else:
                     dbenv = env
