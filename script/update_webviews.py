@@ -37,6 +37,7 @@ class WebViewUpdater(object):
                 dbenv = "develop"
             else:
                 dbenv = env
+            dbenv += '_NoticeWebview'
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
                 json_file = {}
@@ -84,7 +85,7 @@ class WebViewUpdater(object):
                 src_path = join(self.build_dir, env_path, platform)
                 cmdline = aws + [src_path]
                 debug(' '.join(cmdline))
-                #check_call(cmdline)
+                check_call(cmdline)
                 # FIXME to be continue
 
     def list_html_files(self, path, url_prefix):
