@@ -53,7 +53,7 @@ class WebViewUpdater(object):
                     request = {}
                     item = {}
                     notice = {}
-                    notice["url"] = {"S" : html }
+                    notice["kmsUrl"] = {"S" : html }
                     notice["assetHash"] = {"S" : assetHash}
                     notice["os"] = {"S" : platform}
                     item["Item"] = notice
