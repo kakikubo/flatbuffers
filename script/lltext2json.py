@@ -32,6 +32,10 @@ def collect_layoutloader_text(src_dir, target_filename="stringtable.txt"):
                     raise Exception("invalid entry exists")
                 key = os.path.dirname(base_dir)+'.'+m.group(1)
                 font = m.group(2)
+                if font == 'undefined':
+                    error("不正な font 名です: %s" % (os.path.join(base_dir, target_filename), font))
+                    raise Exception("invalid entry exists")
+
                 message = m.group(3)
                 messages[key] = message
                 for char in list(message):
@@ -40,9 +44,7 @@ def collect_layoutloader_text(src_dir, target_filename="stringtable.txt"):
                     if not char_map[font].has_key(char):
                         char_map[font][char] = 0
                     char_map[font][char] += 1
-                #debug("%s %s: %s" % (key, font, messages[key]))
                 info("%s %s: %s" % (key, font, messages[key]))
-            #info("%s: %d" % (base_dir, len(lines)))
             debug("%s: %d" % (base_dir, len(lines)))
     return (messages, char_map)
 
