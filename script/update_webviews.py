@@ -35,21 +35,28 @@ class WebViewUpdater(object):
         for env in self.envs:
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
-                j = {}
+                json_file = []
                 src_path = join(self.root_dir , env_path, platform)
                 dst_path = join(self.build_dir, env_path, platform)
                 if not isdir(src_path):
                     info("%s does not exists." % src_path)
                     continue
                 html_files = self.list_html_files(src_path, "kms://")
-                j["assetHash"] = hashlib.sha224(json.dumps(html_files)).hexdigest()
-                j["fileList"] = html_files
+                assetHash = hashlib.sha224(json.dumps(html_files)).hexdigest()
+                for html in html_files:
+                    notice = {}
+                    notice["url"] = html
+                    notice["assetHash"] = assethash
+                    notice["os"] = platform
+                    json_file.append(notice)
+
+                # json_file["fileList"] = html_files
                 if not isdir(dst_path):
                     os.makedirs(dst_path)
                 dst_file = join(dst_path, "webviews.json")
                 info("Generating webview json list for platform %s: %s", platform, dst_file)
                 with open(dst_file, 'w') as fout:
-                    json.dump(j, fout, indent=2)
+                    json.dump(json_file, fout, indent=2)
                 os.chmod(dst_file, 0664)
 
     def sync_with_root(self):
@@ -77,7 +84,7 @@ class WebViewUpdater(object):
                     dbenv = env
                 cmdline = aws + [dbenv + '_NoticeWebview'] + fopt + [src_path]
                 debug(' '.join(cmdline))
-                check_call(cmdline)
+                #check_call(cmdline)
                 # FIXME to be continue
 
     def list_html_files(self, path, url_prefix):
