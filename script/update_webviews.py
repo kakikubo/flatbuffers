@@ -55,8 +55,8 @@ class WebViewUpdater(object):
                     notice["assetHash"] = {"S" : assetHash}
                     notice["os"] = {"S" : platform}
                     item["Item"].append(notice)
-                    request["PutRequest"].append(item)
-                    json_file[dbenv].append(request)
+                    request["PutRequest"] = item
+                    json_file[dbenv] = request
                 # json_file["fileList"] = html_files
                 if not isdir(dst_path):
                     os.makedirs(dst_path)
@@ -78,10 +78,6 @@ class WebViewUpdater(object):
     def import_dynamodb(self):
         aws = ['aws','dynamodb','--profile','batch-write-item','--request-items', 'file://']
         for env in self.envs:
-            if env == "dev":
-                dbenv = "develop"
-            else:
-                dbenv = env
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
                 src_path = join(self.build_dir, env_path, platform)
