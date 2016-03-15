@@ -85,6 +85,25 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         timeout 10 curl --silent -F rid=$chat_id -F text="`cat $message_file`" $sonya_chan_url || exit $?
       fi
       ;;
+    pull_request_review_comment)
+      chat_id=44255707 # KMS リリース
+      repository=`echo $REQUEST_BODY | jq -r '.repository.full_name'`
+      action=`echo $REQUEST_BODY | jq -r '.action'`
+      sender=`echo $REQUEST_BODY | jq -r '.comment.user.login'`
+      html_url=`echo $REQUEST_BODY | jq -r '.comment.html_url'`
+      body=`echo $REQUEST_BODY | jq -r '.comment.body'`
+      user=`echo $REQUEST_BODY | jq -r '.pull_request.user.login'`
+      chatwork_user=`echo $user | tr '-' '.'`
+      chatwork_to=`jq -r ".[\"$chatwork_user\"]" chatwork-users.json | grep -v null`
+      case $action in
+        created) icon="(talk)";;
+        *) icon=":#)";;
+      esac
+      if [ -n "$icon" ]; then
+        echo "${chatwork_to:-$chatwork_user}[info][title]$icon Pull Request Comment '$number' for '$repository' by '$user' is '$action' by '$sender'[/title]$html_url[code]$body[/code][/info]" > $message_file
+        timeout 10 curl --silent -F rid=$chat_id -F text="`cat $message_file`" $sonya_chan_url || exit $?
+      fi
+      ;;
     create|*)
       chat_id=44255707 # KMS リリース
       repository=`echo $REQUEST_BODY | jq -r '.repository.full_name'`
