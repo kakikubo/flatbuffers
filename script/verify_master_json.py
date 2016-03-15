@@ -82,7 +82,7 @@ class MasterDataVerifier():
                 for sch in schema:
                     name = sch['name']
                     schema_map[table][name] = sch
-                    if sch['attribute']:
+                    if sch.has_key('attribute') and sch['attribute']:
                         for k, v in sch['attribute'].iteritems():
                             if k in ('key', 'index'):
                                 # id_map columns
@@ -223,11 +223,15 @@ class MasterDataVerifier():
                 try:
                     has_err = self.has_err(v, item, value_type, spec)
                 except:
-                    error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, str(v).decode('utf-8')))
+                    error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, unicode(v)))
                     raise
                 if has_err:
-                    error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, str(v).decode('utf-8')))
+                    error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, unicode(v)))
                     raise Exception("invalid value spec")
+        if k == 'label':
+            if v and not re.match('^[a-z0-9_./]+$', v):
+                error(u"%s[%d].%s: 不正なラベルです: %s" % (table, i, k, unicode(v)))
+                raise Exception("invalid filename name")
 
     @staticmethod
     def has_err(v, i, value_type, value_spec):
@@ -509,7 +513,6 @@ class MasterDataVerifier():
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
     #sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
-    parser = argparse.ArgumentParser(description = 'verify master data json')
     parser = argparse.ArgumentParser(description='verify master data and default user data, and generate file reference list', epilog="""\
 example:
     $ ./verify_master_json.py master_derivatives/master_schema.json master_derivatives/master_data.json --file-reference-list manifests --asset-dir kms_master_asset kms_master_asset --user-schema user_derivatives/user_schema.json --user-data user_data/default.json --verify-file-reference""")
