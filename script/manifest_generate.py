@@ -8,6 +8,7 @@ import json
 import os
 import re
 import fnmatch
+from glob import glob
 from collections import OrderedDict
 import logging
 from logging import info, warning, debug
@@ -45,22 +46,26 @@ class ManifestGenerator():
         return manifest
 
     def create_asset_list(self, remote_dir, filter_list, ext_list):
-        walk_files = []
-        for dpath, dnames, fnames in os.walk(self.local_asset_search_path):
-            for fname in fnames:
-                walk_files.append(os.path.normpath(os.path.join(dpath, fname)))
+        info("scan asset: %s" % self.local_asset_search_path)
 
         filtered_files = []
         if not filter_list:
-            filtered_files = walk_files
+            for dpath, dnames, fnames in os.walk(self.local_asset_search_path):
+                for fname in fnames:
+                    filtered_files.append(os.path.normpath(os.path.join(dpath, fname)))
         else:
+            info("filter glob: %d" % len(filter_list))
             for l in filter_list:
-                filtered = fnmatch.filter(walk_files, l)
+                filtered = glob(l)
                 if not filtered and self.validate_filter:
                     raise Exception("filter targets does not exist: %s" % l)
-                filtered_files += filtered
+                for f in filtered:
+                    if os.path.isdir(f):
+                        continue
+                    filtered_files.append(f)
 
         if ext_list:
+            info("filter ext list: %s" % ', '.join(ext_list))
             file_map = OrderedDict()
             for f in filtered_files:
                 file_map[f] = True
@@ -77,6 +82,7 @@ class ManifestGenerator():
                     del file_map[f]
             filtered_files = file_map.keys()
 
+        info("generate asset list: %d" % len(filtered_files))
         assetsDic = OrderedDict()
         for path in filtered_files:
             with open(path, 'r') as f:
@@ -198,23 +204,30 @@ class ManifestGenerator():
 
         filter_list = ext_list = location_list = character_list = ui_list = None
         if self.filter_fnmatch_path:
+            info("load_filter_list")
             filter_list, ext_list, location_list, character_list, ui_list = self.load_filter_list(self.filter_fnmatch_path)
         if location_list and self.location_list_path:
+            info("expand_filter_list: %s" % self.location_list_path)
             filter_list += self.expand_filter_list(location_list, self.location_list_path)
             manifest['locations'] = location_list
         if character_list and self.character_list_path:
+            info("expand_filter_list: %s" % self.character_list_path)
             filter_list += self.expand_filter_list(character_list, self.character_list_path)
             manifest['characters'] = character_list
         if ui_list and self.ui_list_path:
+            info("expand_filter_list: %s" % self.ui_list_path)
             filter_list += self.expand_filter_list(ui_list, self.ui_list_path)
             manifest['uis'] = ui_list
         debug("filter_list: "+json.dumps(filter_list, indent=2))
 
+        info("create_asset_list: %s" % self.remote_dir_asset)
         assets = self.create_asset_list(self.remote_dir_asset, filter_list, ext_list)
         if self.reference_manifest_path:
+            info("filter_by_reference_manifest: %s" % self.reference_manifest_path)
             assets = generator.filter_by_reference_manifest(assets, self.reference_manifest_path)
         manifest['assets'] = assets
 
+        info("finish")
         for key in manifest['assets'].keys():
             manifest['assets'][key]['path'] = urllib.quote(manifest['assets'][key]['path'])
 
