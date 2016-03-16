@@ -96,6 +96,7 @@ class WebViewUpdater(object):
                     updates = {}
                     key["os"] = {"S" : platform }
                     key["kmsUrl"] = {"S": html}
+                    key["updatedAt"] = {"N" : datetime.datetime.now().strftime('%s') }
                     value["Value"] = {"S": assetHash }
                     updates["assetHash"] = value
                     key_json = json.dumps(key)
