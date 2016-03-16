@@ -54,7 +54,7 @@ class WebViewUpdater(object):
                     item = {}
                     notice = {}
                     request = {}
-                    notice["updatedAt"] = {"N" : datetime.datetime.now().strftime('%s') }
+                    # notice["updatedAt"] = {"N" : datetime.datetime.now().strftime('%s') }
                     notice["kmsUrl"] = {"S" : html }
                     notice["assetHash"] = {"S" : assetHash}
                     notice["os"] = {"S" : platform}
@@ -96,9 +96,11 @@ class WebViewUpdater(object):
                     updates = {}
                     key["os"] = {"S" : platform }
                     key["kmsUrl"] = {"S": html}
-                    key["updatedAt"] = {"N" : datetime.datetime.now().strftime('%s') }
-                    value["Value"] = {"S": assetHash }
-                    updates["assetHash"] = value
+                    # key["updatedAt"] = {"N" : datetime.datetime.now().strftime('%s') }
+                    value["Value"] = {"S": assetHash}
+                    updates["assetHash"] = value 
+                    value["Value"] = {"N" : datetime.datetime.now().strftime('%s') }
+                    updates["updatedAt"] = value
                     key_json = json.dumps(key)
                     attr_json = json.dumps(updates)
                     aws += [dbenv, "--key", key_json, "--attribute-updates", attr_json]
