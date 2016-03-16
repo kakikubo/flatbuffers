@@ -10,6 +10,7 @@ import codecs
 import logging
 import json
 import hashlib
+import datetime
 from logging import info, warning, debug
 from os.path import basename, isfile, isdir, join
 from subprocess import check_call
@@ -33,24 +34,76 @@ class WebViewUpdater(object):
 
     def generate_json(self):
         for env in self.envs:
+            if env == "dev":
+                dbenv = "develop"
+            else:
+                dbenv = env
+            dbenv += '_NoticeWebview'
             env_path = join("webview", env)
             for platform in self.subdirs(join(self.root_dir, env_path)):
-                j = {}
+                json_file = {}
+                json_file[dbenv] = []
                 src_path = join(self.root_dir , env_path, platform)
                 dst_path = join(self.build_dir, env_path, platform)
                 if not isdir(src_path):
                     info("%s does not exists." % src_path)
                     continue
                 html_files = self.list_html_files(src_path, "kms://")
-                j["assetHash"] = hashlib.sha224(json.dumps(html_files)).hexdigest()
-                j["fileList"] = html_files
+                assetHash = hashlib.sha224(json.dumps(html_files)).hexdigest()
+                for html in html_files:
+                    item = {}
+                    notice = {}
+                    request = {}
+                    notice["updatedAt"] = {"N" : datetime.datetime.now().strftime('%s') }
+                    notice["kmsUrl"] = {"S" : html }
+                    notice["assetHash"] = {"S" : assetHash}
+                    notice["os"] = {"S" : platform}
+                    item["Item"] = notice
+                    request["PutRequest"] = item
+                    json_file[dbenv].append(request)
                 if not isdir(dst_path):
                     os.makedirs(dst_path)
                 dst_file = join(dst_path, "webviews.json")
                 info("Generating webview json list for platform %s: %s", platform, dst_file)
                 with open(dst_file, 'w') as fout:
-                    json.dump(j, fout, indent=2)
+                    json.dump(json_file, fout, indent=2)
                 os.chmod(dst_file, 0664)
+
+    def update_dynamodb(self):
+        for env in self.envs:
+            if env == "dev":
+                dbenv = "develop"
+            else:
+                dbenv = env
+            dbenv += '_NoticeWebview'
+            env_path = join("webview", env)
+            for platform in self.subdirs(join(self.root_dir, env_path)):
+                json_file = {}
+                json_file[dbenv] = []
+                src_path = join(self.root_dir , env_path, platform)
+                if not isdir(src_path):
+                    info("%s does not exists." % src_path)
+                    continue
+                html_files = self.list_html_files(src_path, "kms://")
+                assetHash = hashlib.sha224(json.dumps(html_files)).hexdigest()
+                for html in html_files:
+                    # aws dynamodb update-item  --table-name vagrant_NoticeWebview
+                    # --key '{"os": {"S":"ios"}, "kmsUrl": {"S":"kms://ios/notice/sample_9.html"}}'
+                    # --attribute-updates '{"assetHash": {"Value": {"S":"hogehogehogehogehoge"}}}'
+                    aws = ['aws','dynamodb','update-item', '--profile','dynamodb', '--table-name']
+                    key = {}
+                    value = {}
+                    updates = {}
+                    key["os"] = {"S" : platform }
+                    key["kmsUrl"] = {"S": html}
+                    value["Value"] = {"S": assetHash }
+                    updates["assetHash"] = value
+                    key_json = json.dumps(key)
+                    attr_json = json.dumps(updates)
+                    aws += [dbenv, "--key", key_json, "--attribute-updates", attr_json]
+                    cmdline = aws
+                    debug(' '.join(cmdline))
+                    check_call(cmdline)
 
     def sync_with_root(self):
         rsync = ['rsync', '-ac', '--exclude', '*.DS_Store']
@@ -60,17 +113,6 @@ class WebViewUpdater(object):
             cmdline = rsync + [src_path, dst_path]
             debug(' '.join(cmdline))
             check_call(cmdline)
-
-    def import_dynamodb(self):
-        aws = ['aws','dynamodb','--profile','put-item','--table-name','--item','file://']
-        for env in self.envs:
-            env_path = join("webview", env)
-            for platform in self.subdirs(join(self.root_dir, env_path)):
-                src_path = join(self.build_dir, env_path, platform)
-                src_file = join(src_path, "webviews.json")
-                f = open(src_file)
-                json_data = json.load(f)
-                # FIXME to be continue
 
     def list_html_files(self, path, url_prefix):
         if isfile(path) and path.endswith(".html") and basename(path) != "index.html":
@@ -132,12 +174,12 @@ examples:
       $ ./script/update_webviews.py --root-dir ${ROOT_DIR} --build-dir ${BUILD_DIR} update_deploy
         """)
     parser.add_argument('command',          help = 'command (update|deploy|update_deploy)')
-    parser.add_argument('--environment',    help = 'environment (all|dev|qa|release). default: all', default='all')
+    parser.add_argument('--environment',    help = 'environment (all|dev|qa|vagrant|release). default: all', default='all')
     parser.add_argument('--root-dir',       help = 'root directory (webview folder\'s parent)', required=True)
     parser.add_argument('--build-dir',      help = 'build directory', required=True)
     parser.add_argument('--cdn-dir',        help = 'cdn directory to deploy. default: /var/www/cdn', default='/var/www/cdn')
     parser.add_argument('--skip-sync-root', help = 'skip syncing build_dir contents to root_dir(ignored if command is `deploy`) (0|1)', default=0, type=int)
-    parser.add_argument('--skip-import-dynamodb', help = 'skip syncing webviews.json to dynamodb table (ignored if command is `deploy`) (0|1)', default=0, type=int)
+    parser.add_argument('--skip-update-dynamodb', help = 'skip update  dynamodb table (ignored if command is `deploy`) (0|1)', default=0, type=int)
     parser.add_argument('--log-level',      help = 'log level (WARNING|INFO|DEBUG). default: INFO', default='INFO')
 
     args = parser.parse_args()
@@ -147,8 +189,8 @@ examples:
         updater.generate_json()
         if not args.skip_sync_root:
             updater.sync_with_root()
-        if not args.skip_import_dynamodb:
-            updater.import_dynamodb()
+        if not args.skip_update_dynamodb:
+            updater.update_dynamodb()
     if args.command in ('deploy', 'update_deploy'):
         success = updater.deploy_dev_cdn(args.cdn_dir)
         success = updater.deploy_s3_cdn() and success
