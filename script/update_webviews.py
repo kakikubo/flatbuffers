@@ -10,6 +10,7 @@ import codecs
 import logging
 import json
 import hashlib
+import datetime
 from logging import info, warning, debug
 from os.path import basename, isfile, isdir, join
 from subprocess import check_call
@@ -53,6 +54,7 @@ class WebViewUpdater(object):
                     request = {}
                     item = {}
                     notice = {}
+                    notice["updatedAt"] = {"N" : datetime.datetime.now.strftime('%s') }
                     notice["kmsUrl"] = {"S" : html }
                     notice["assetHash"] = {"S" : assetHash}
                     notice["os"] = {"S" : platform}
