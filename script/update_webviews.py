@@ -87,24 +87,17 @@ class WebViewUpdater(object):
                 html_files = self.list_html_files(src_path, "kms://")
                 assetHash = hashlib.sha224(json.dumps(html_files)).hexdigest()
                 for html in html_files:
-                    # aws dynamodb update-item  --table-name vagrant_NoticeWebview
-                    # --key '{"os": {"S":"ios"}, "kmsUrl": {"S":"kms://ios/notice/sample_9.html"}}'
-                    # --attribute-updates '{"assetHash": {"Value": {"S":"hogehogehogehogehoge"}}}'
                     aws = ['aws','dynamodb','update-item', '--profile','dynamodb', '--table-name']
                     key = {}
                     value = {}
                     updates = {}
                     key["os"] = {"S" : platform }
                     key["kmsUrl"] = {"S": html}
-                    # key["updatedAt"] = {"N" : datetime.datetime.now().strftime('%s') }
-                    value["Value"] = {"S": assetHash}
-                    updates["assetHash"] = value 
-                    value["Value"] = {"N" : datetime.datetime.now().strftime('%s') }
-                    updates["updatedAt"] = value
+                    updates["assetHash"] = {"Value" : {"S" : assetHash} }
+                    updates["updatedAt"] = {"Value" : {"N" : datetime.datetime.now().strftime('%s') }}
                     key_json = json.dumps(key)
                     attr_json = json.dumps(updates)
-                    aws += [dbenv, "--key", key_json, "--attribute-updates", attr_json]
-                    cmdline = aws
+                    cmdline = aws + [dbenv, "--key", key_json, "--attribute-updates", attr_json]
                     debug(' '.join(cmdline))
                     check_call(cmdline)
 
