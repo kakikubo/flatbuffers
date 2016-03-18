@@ -253,8 +253,8 @@ class MasterDataVerifier():
             return v < int(value_spec)
         if value_type in('float') and i == 'min_value':
             return v < float(value_spec)
-        if i == 'required':
-            return v is None or re.match('^$', str(v)) is not None
+        if value_type == 'string' and i == 'required':
+            return  (v is None or len(v) == 0)
 
         return False
 
