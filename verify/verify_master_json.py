@@ -7,6 +7,7 @@ import sys
 import re
 import codecs
 import argparse
+import importlib
 import json
 import logging
 from traceback import print_exc
@@ -48,6 +49,11 @@ class MasterDataVerifier():
         self.user_validation_map     = None
 
         self.do_verify_file_reference = verify_file_reference
+
+    def load_table_verifier(self, module_name):
+        m = importlib.import_module(module_name)
+        c = getattr(m, module_name.split('.')[-1])
+        return c()
 
     def upper_camel_case(self, src):
         return src[0:1].upper() + src[1:]
@@ -231,7 +237,7 @@ class MasterDataVerifier():
         if k == 'label':
             if v and not re.match('^[a-z0-9_./]+$', v):
                 error(u"%s[%d].%s: 不正なラベルです: %s" % (table, i, k, unicode(v)))
-                raise Exception("invalid filename name")
+                #raise Exception("invalid filename name")
 
     @staticmethod
     def has_err(v, i, value_type, value_spec):
@@ -264,6 +270,11 @@ class MasterDataVerifier():
                 else:
                     for i, d in enumerate(data):
                         self.verify_master_record(table, i, d, schema, reference, file_reference, validations)
+
+                if os.path.exists(os.path.join(os.path.dirname(__file__), 'master_data', table+'.py')):
+                     table_verifier = self.load_table_verifier('master_data.'+table)
+                     if not table_verifier.verify(data, schema, reference, file_reference, validations):
+                         raise Exception("some taable validation errors are detected: %s" % table)
             except:
                 print('=======================')
                 print('   MASTER DATA ERROR   ')
@@ -525,7 +536,6 @@ example:
     parser.add_argument('--file-reference-list', help = 'output dir of referenced file lists generated')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
 
     info("input master schema = %s" % args.input_master_schema)
