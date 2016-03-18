@@ -237,7 +237,7 @@ class MasterDataVerifier():
         if k == 'label':
             if v and not re.match('^[a-z0-9_./]+$', v):
                 error(u"%s[%d].%s: 不正なラベルです: %s" % (table, i, k, unicode(v)))
-                #raise Exception("invalid filename name")
+                raise Exception("invalid filename name")
 
     @staticmethod
     def has_err(v, i, value_type, value_spec):
