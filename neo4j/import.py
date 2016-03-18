@@ -29,6 +29,7 @@ class Neo4jImporter():
         self.data   = None
 
         self.key_map            = OrderedDict()
+        self.index_map          = OrderedDict()
         self.caption_map        = OrderedDict()
         self.reference_map      = OrderedDict()
         self.file_reference_map = OrderedDict()
@@ -56,6 +57,11 @@ class Neo4jImporter():
                         if k == 'key':
                             # primary key
                             self.key_map[table] = name
+                        elif k == 'index':
+                            # primary key
+                            if not self.index_map.has_key(table):
+                                self.index_map[table] = []
+                            self.index_map[table].append(name)
                         elif k == 'caption':
                             self.caption_map[table] = name
                         elif k == 'file_reference':
@@ -284,6 +290,10 @@ class Neo4jImporter():
             if self.key_map.has_key(table):
                 index = self.create_index(table, self.key_map[table])
                 self.created_indexes['data'].append(index)
+            if self.index_map.has_key(table):
+                for name in self.index_map[table]:
+                    index = self.create_index(table, name)
+                    self.created_indexes['data'].append(index)
         return True
 
     def create_data_relationships(self):
