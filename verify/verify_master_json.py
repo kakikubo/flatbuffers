@@ -93,7 +93,7 @@ class MasterDataVerifier():
                             if k in ('key', 'index'):
                                 # id_map columns
                                 index_map[table][name] = sch
-                            elif k in ('max_length', 'max_value', 'min_length', 'min_value'):
+                            elif k in ('max_length', 'max_value', 'min_length', 'min_value', 'required'):
                                 # value spec
                                 if not validation_map[table].has_key(name):
                                     validation_map[table][name] = {}
@@ -253,6 +253,9 @@ class MasterDataVerifier():
             return v < int(value_spec)
         if value_type in('float') and i == 'min_value':
             return v < float(value_spec)
+        if i == 'required':
+            return v is None or re.match('^$', str(v)) is not None
+
         return False
 
     def verify_master_data(self):
