@@ -28,6 +28,7 @@ class Neo4jImporter():
         self.schema = None
         self.data   = None
 
+        # schema map
         self.key_map            = OrderedDict()
         self.index_map          = OrderedDict()
         self.caption_map        = OrderedDict()
@@ -37,10 +38,17 @@ class Neo4jImporter():
         self.cost_map           = OrderedDict()
         self.color_map          = OrderedDict()
 
+        # created items
         self.created_labels        = OrderedDict()
         self.created_nodes         = OrderedDict()
         self.created_indexes       = OrderedDict()
         self.created_relationships = OrderedDict()
+
+        # css
+        self.css_color_map      = OrderedDict()
+        self.file_color_map     = OrderedDict()
+        self.node_template = self.relationship_template = None
+        self.static_css = []
 
     def setup_reference(self):
         for table, schema in self.schema.iteritems():
@@ -172,7 +180,7 @@ class Neo4jImporter():
                 continue    # FIXME drop relationship for shortestPath
             debug("CREATE TABLE RELATIONSHIP %s %s: %s" % (table, key, relation))
             relationship = node.relationships.create(relation, peer, table = table, key = key, required = required, _relationType = 'table')
-            self.created_relationships['table'].append({'relationship': relationship, 'relation': relation, 'caption': 'key'})
+            self.created_relationships['table'].append({'relationship': relationship, 'relation': relation, 'caption': 'key', 'table': table})
         return True
 
     """
@@ -218,7 +226,7 @@ class Neo4jImporter():
         for table, key, node, peer, relation, required in relationships:
             debug("CREATE FREF RELATIONSHIP %s %s: %s" % (table, id, relation))
             relationship = node.relationships.create(relation, peer, key = key, required = required, _relationType = 'fref')
-            self.created_relationships['fref'].append({'relationship': relationship, 'relation': relation, 'caption': 'key'})
+            self.created_relationships['fref'].append({'relationship': relationship, 'relation': relation, 'caption': 'key', 'table': table})
         return True
 
     """
@@ -325,7 +333,7 @@ class Neo4jImporter():
                     continue    # FIXME drop relationship for shortestPath
                 debug("CREATE DATA RELATIONSHIP %s %s: %s" % (table, id, relation))
                 relationship = node.relationships.create(relation, peer, key = key, id = id, required = required, _relationType = 'data')
-                self.created_relationships['data'].append({'relationship': relationship, 'relation': relation, 'caption': 'key'})
+                self.created_relationships['data'].append({'relationship': relationship, 'relation': relation, 'caption': 'key', 'table': table})
         return True
 
     """
@@ -423,7 +431,7 @@ class Neo4jImporter():
                 relationship = node.relationships.create(relation, peer, 
                         key = key, id = id, required = required, 
                         _relationType = 'file', name = properties['name'], path = properties['path'])
-                self.created_relationships['file'].append({'relationship': relationship, 'relation': relation, 'caption': 'key'})
+                self.created_relationships['file'].append({'relationship': relationship, 'relation': relation, 'caption': 'key', 'table': table})
         return True
 
     """
@@ -441,9 +449,21 @@ class Neo4jImporter():
         lines.append(delimiters[1])
         return '\n'.join(lines)
 
-    def generate_style(self, css_path, template_path):
-        info("generate neo4j graph style: %s <- %s" % (css_path, template_path))
+    def get_color(self, key1, key2):
+        color = 'gray'
+        if self.color_map.has_key(key1):
+            color = self.color_map[key1];
+        elif self.color_map.has_key(key2):
+            color = self.color_map[key2];
+        elif self.file_color_map.has_key(key1):
+            color = self.color_map[key1];
+        elif self.file_color_map.has_key(key2):
+            color = self.color_map[key2];
+        if not self.css_color_map.has_key(color):
+            color = 'gray'  # fallback
+        return color
 
+    def parse_css_template(self, template_path):
         # parse css template
         css_parser = tinycss.make_parser('page3')
         with open(template_path, 'r') as f:
@@ -451,76 +471,75 @@ class Neo4jImporter():
             if parsed.errors:
                 raise Exception("cannot parse graphstyle_template: %s" % parsed.errors)
 
-        node_template = relationship_template = None
-        css_color_map = OrderedDict()
-        file_color_map = OrderedDict()
-        builtins = []
         for rule in parsed.rules:
             selector = rule.selector.as_css()
             m1 = re.match(r'^color\.(.+)', selector)
             m2 = re.match(r'^file\.(.+)', selector)
             if m1:
                 color = m1.group(1)
-                css_color_map[color] = {}
+                self.css_color_map[color] = {}
                 for dec in rule.declarations:
-                    css_color_map[color][dec.name] = dec.value.as_css()
+                    self.css_color_map[color][dec.name] = dec.value.as_css()
             elif m2:
                 type = m2.group(1)
-                file_color_map[type] = {}
+                self.file_color_map[type] = {}
                 for dec in rule.declarations:
                     if dec.name == 'color':
-                        file_color_map[type] = dec.value.as_css()
+                        self.file_color_map[type] = dec.value.as_css()
             elif selector == 'node.template':
-                node_template = self.css_str(rule, True)
+                self.node_template = self.css_str(rule, True)
             elif selector == 'relationship.template':
-                relationship_template = self.css_str(rule, True)
+                self.relationship_template = self.css_str(rule, True)
             else:
-                builtins.append(self.css_str(rule))
+                self.static_css.append(self.css_str(rule))
+
+    def generate_style(self, css_path, template_path):
+        info("generate neo4j graph style: %s <- %s" % (css_path, template_path))
+        self.parse_css_template(template_path)
 
         # output css
         written_nodes = {}
         written_relationships = {}
         with open(css_path, 'w') as f:
-            f.write('\n\n'.join(builtins))
+            f.write('\n\n'.join(self.static_css))
             f.write('\n\n')
 
+            # node
             for node_type, nodes in self.created_nodes.iteritems():
                 for c in nodes:
                     label = c['label']._label
-                    l = re.sub(':.+', '', label)
                     if written_nodes.has_key(label):
                         continue
 
                     diameter = 50   # default 50px
                     if self.cost_map.has_key(label):
                         diameter += self.cost_map[label];
+                    color = self.get_color(label, re.sub(':.+', '', label))
+                    conf = self.css_color_map[color]
 
-                    color = 'gray'
-                    if self.color_map.has_key(label):
-                        color = self.color_map[label];
-                    elif self.color_map.has_key(l):
-                        color = self.color_map[l];
-                    elif file_color_map.has_key(label):
-                        color = self.color_map[label];
-                    elif file_color_map.has_key(l):
-                        color = self.color_map[l];
-                    if not css_color_map.has_key(color):
-                        color = 'gray'  # fallback
-
-                    debug("write node grapthstyle: %s %s %s %s" % (label, c['caption'], diameter, css_color_map[color]))
-                    node_css = node_template.format(label = label, caption = c['caption'], diameter = diameter, **css_color_map[color])
+                    debug("write node grapthstyle: %s %s %s %s" % (label, c['caption'], diameter, color))
+                    node_css = self.node_template.format(label = label, caption = c['caption'], diameter = diameter, **conf)
                     f.write(re.sub(r'\.template', '.'+label, node_css))
                     f.write('\n\n')
 
                     written_nodes[label] = True
 
+            # relationship
             for relationship_type, relationships in self.created_relationships.iteritems():
                 for c in relationships:
                     if written_relationships.has_key(c['relation']):
                         continue
 
-                    debug("write relationship grapthstyle: %s %s" % (c['relation'], c['caption']))
-                    relationship_css = relationship_template.format(relation = c['relation'], caption = c['caption'])
+                    table = c['table']
+                    shaft_width = 2 # default 2px
+                    if self.cost_map.has_key(table) and self.cost_map[table] > 0:
+                        shaft_width += self.cost_map[table] / 10;
+                    color = self.get_color(table, re.sub(':.+', '', table))
+                    conf = {'shaft-width':  shaft_width}
+                    conf.update(self.css_color_map[color])
+
+                    debug("write relationship grapthstyle: %s %s %s %s" % (c['relation'], c['caption'], shaft_width, color))
+                    relationship_css = self.relationship_template.format(relation = c['relation'], caption = c['caption'], **conf)
                     f.write(re.sub(r'\.template', '.'+c['relation'], relationship_css))
                     f.write('\n\n')
 
