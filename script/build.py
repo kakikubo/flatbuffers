@@ -184,7 +184,7 @@ class AssetBuilder():
         self.merge_editor_json_bin    = self_dir+'/merge_editor_json.py'
         self.lltext2json_bin          = self_dir+'/lltext2json.py'
         self.sort_master_json_bin     = self_dir+'/sort-master-json.py'
-        self.verify_master_json_bin   = self_dir+'/verify_master_json.py'
+        self.verify_master_json_bin   = self_dir+'/../verify/verify_master_json.py'
         self.strip_master_json_bin    = self_dir+'/strip_master_json.py'
         self.delete_element_bin       = self_dir+'/delete-element.py'
         self.make_weapon_atlas_bin    = self_dir+'/make_weapon_atlas.py'
