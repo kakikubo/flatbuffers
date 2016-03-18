@@ -28,6 +28,10 @@ node.template {
 }
 
 relationship.template {
+  shaft-width: {shaft-width}px;
+  color: {color};
+  border-color: {border-color};
+  text-color-internal: {text-color-internal};
   caption: '{caption}';
 }
 

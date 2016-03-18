@@ -54,7 +54,7 @@ example:
                 aggrigated[key].append(d[1:])
             else:
                 aggrigated[key].append(d[1])    # flatten
-        info("aggrigated by %d items" % len(aggrigated))
+        info("aggrigated by %d items" % len(aggrigated.keys()))
         data = aggrigated
 
     with open(args.output_json, 'w') as f:
