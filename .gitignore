@@ -6,6 +6,7 @@ cgi-bin/chatwork-users.json
 
 .kms_asset_builder_build/
 
+*.pyc
 *.swp
 *.swo
 
