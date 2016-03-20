@@ -25,6 +25,16 @@ working
 
 Jenkins マシンでは ~/.tool を ~/Box Sync/tool にシンボリックリンクしています
 
+## セットアップ
+Asset パイプラインは python がメインで、サブで bash を用いています
+python は pip 経由でインストールし、必要なコマンドラインツールは brew でインストールしていきます
+
+```
+$ easy_install pip
+$ sudo pip install -r requirements.txt
+$ brew install jq imagemagick
+```
+
 ## Box Sync
 他のマシンでの更新が sync されてきたところを watchman でフックして git にコミットします
 
@@ -59,16 +69,6 @@ $ ./script/build.py debug kiyoto.suzuki
 ```
 
 debug と build の違いは、更新されたアセットを S3 やローカルの CDN 上にコピーするか否かの違いです
-
-#### python のセットアップ
-python のモジュールがいろいろ必要ですが、頑張っていれていきましょう
-
-```
-$ easy_install pip
-$ sudo pip install xlrd
-$ sudo pip install pillow
-$ brew install jq
-```
 
 #### すこし古いドキュメント
 パイプラインの詳細については以下を参照してください。
