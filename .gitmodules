@@ -1,3 +1,6 @@
 [submodule "ExcelDiffGenerator"]
 	path = ExcelDiffGenerator
 	url = git@git.gree-dev.net:kms/ExcelDiffGenerator.git
+[submodule "flatbuffers"]
+	path = flatbuffers
+	url = https://github.com/kiyoto-suzuki/flatbuffers.git
