@@ -193,7 +193,7 @@ class AssetBuilder():
         self.update_webviews_bin      = self_dir+'/update_webviews.py'
         self.crypto_key_bin           = self_dir+'/crypto_key.py'
         self.encrypt_bin              = self_dir+'/encrypt.py'
-        self.excel_diff_generator_bin = self_dir+'/../../ExcelDiffGenerator/excel-diff'
+        self.excel_diff_generator_bin = self_dir+'/../ExcelDiffGenerator/excel-diff'
         
         self.PROJECT_MANIFEST_FILE          = 'project.manifest'
         self.VERSION_MANIFEST_FILE          = 'version.manifest'
