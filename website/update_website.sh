@@ -33,7 +33,7 @@ src_dir=${1:-~/box/kms-website}
 git_dir=${2:-~/kms/website}
 dest_url=${3:-s3://gree-kms-website}
 profile=${profile:-website}
-sonya=${sonya:-~/kms/tool/script/sonya.sh}
+sonya=${sonya:-~/kms/tool/chatwork/sonya.sh}
 
 commit_log_file=/tmp/update-website.log
 github_url=http://git.gree-dev.net/kms/website
@@ -114,15 +114,15 @@ END
   invalidation_id=`jq -r '.Invalidation.Id' $invalidation_json` || exit $?
 
   # report to sonya
-  $sonya ":) update another-eden.jp website by `whoami`@`hostname`" $github_url/commit/$commit_id $commit_log_file $website_url $chat_id || exit $?
+  $sonya $chat_id "[info][title]:) update another-eden.jp website by `whoami`@`hostname`[/title]$github_url/commit/$commit_id[code]`cat $commit_log_file`[/code]$website_url[/info]" || exit $?
 
   # wait invalidation
   if [ -n "$do_wait" ]; then
     status=`aws cloudfront get-invalidation $cloudfront_options --distribution-id $distribution_id --id $invalidation_id | jq -r '.Invalidation.Status'`
     if [ "$status" = "InProgress" ]; then
-      $sonya "(dance) starting to invalidate content cache of CloudFront" $jenkins_url $create_invalidation_json $website_url $chat_id || exit $?
+      $sonya $chat_id "[info][title](dance) starting to invalidate content cache of CloudFront[/title]$jenkins_url[code]`cat $create_invalidation_json`[/code]$website_url[/info]" || exit $?
       aws cloudfront wait invalidation-completed $cloudfront_options --distribution-id $distribution_id --id $invalidation_id || exit $?
-      $sonya "(clap) CloudFront invalidation has done" $jenkins_url $create_invalidation_json $website_url $chat_id || exit $?
+      $sonya $chat_id "[info][title](clap) CloudFront invalidation has done[/title]$jenkins_url[code]`cat $create_invalidation_json`[/code]$website_url[/info]" || exit $?
     fi
   fi
 fi
