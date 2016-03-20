@@ -88,6 +88,15 @@ $ sudo pip install -r requirements.txt
 $ brew install jq imagemagick awscli
 ```
 
+### flatbuffers
+flatbuffers のツール flatc をビルドします
+
+```
+$ cd flatbuffers
+$ cmake .
+$ make
+```
+
 ## build.py
 自動生成するファイル一式を更新します
 

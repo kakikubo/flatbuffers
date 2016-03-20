@@ -178,7 +178,7 @@ class AssetBuilder():
         self.xls2json_bin             = self_dir+'/master_data_xls2json.py'
         self.json2fbs_bin             = self_dir+'/json2fbs.py'
         self.json2macro_bin           = self_dir+'/json2macro.py'
-        self.flatc_bin                = self_dir+'/flatc'
+        self.flatc_bin                = self_dir+'/flatbuffers/flatc'
         self.fbs2class_bin            = self_dir+'/fbs2class.py'
         self.make_bitmap_font_bin     = self_dir+'/make_bitmap_font.py'
         self.merge_editor_json_bin    = self_dir+'/merge_editor_json.py'
