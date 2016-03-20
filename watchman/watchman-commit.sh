@@ -19,6 +19,7 @@ excel_diff_dir=/var/www/excel-diff
 excel_diff_url=
 
 build_log_file=/tmp/watchman-build-message.log
+asset_chat_id=35615824  # KMSアセット
 build_chat_id=31118592 # KMSビルド
 
 exit_code=0
@@ -65,10 +66,10 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   # log
   icon=":)"
   grep -q -e '^D' $commit_log_file && icon="(devil)(devil)(devil)"
-  $sonya "$icon git commit by `whoami`@`hostname`" $github_url/kms/asset/commit/$commit_id $commit_log_file $excel_diff_url || exit $?
+  $sonya $asset_chat_id "[nfo][title]$icon git commit by `whoami`@`hostname`[/title]$github_url/kms/asset/commit/$commit_id[code]`cat $commit_log_file`[/code]$excel_diff_url[/info]" || exit $?
   if [ -s $build_log_file ]; then
     echo "=== C++ Header File is updated === " >> $build_log_file
-    $sonya "(F) C++ header file is updated. Please clean build your app" $github_url/kms/asset/commit/$commit_id $build_log_file $github_url/kms/asset $build_chat_id || exit $?
+    $sonya  $build_chat_id "[info][title](F) C++ header file is updated. Please clean build your app[/title]$github_url/kms/asset/commit/$commit_id[code]`cat $build_log_file`[/code]$github_url/kms/asset[/info]" || exit $?
   fi
 fi
 
