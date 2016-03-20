@@ -20,6 +20,6 @@ echo "\n\n\n\n\n---- $WATCHMAN_TRIGGER $LOGNAME@$WATCHMAN_ROOT (`date`)"
 read json
 echo $json | jq '.'
 echo $json | jq -r '.[] | (if .exists and .new then "A" elif .exists then "U" else "D" end) + " " + .["name"]' > $sonya_file
-$tool_dir/script/sonya2.sh $chat_id "[info][title](yawn) Box Sync $asset_dir is updated[/title]$jenkins_url[code]`cat $sonya_file`[/code][/info]" || exit $?
+$tool_dir/chatwork/sonya.sh $chat_id "[info][title](yawn) Box Sync $asset_dir is updated[/title]$jenkins_url[code]`cat $sonya_file`[/code][/info]" || exit $?
 
 exit 0
