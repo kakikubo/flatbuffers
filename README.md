@@ -92,6 +92,7 @@ $ brew install jq imagemagick awscli
 flatbuffers のツール flatc をビルドします
 
 ```
+$ brew install cmake
 $ cd flatbuffers
 $ cmake .
 $ make
