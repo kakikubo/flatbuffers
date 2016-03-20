@@ -7,7 +7,7 @@ branch=master
 sleep=$1
 [ -n "$sleep" ] || sleep=0
 
-sonya=`dirname $0`/../script/sonya.sh
+sonya=`dirname $0`/../chatwork/sonya.sh
 commit_log_file=/tmp/watchman-commit-message.log
 github_url=http://git.gree-dev.net
 #jenkins_url="http://127.0.0.1:8081/jenkins/job/001_KMS_GHE_CommitHook/build"
