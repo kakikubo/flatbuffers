@@ -4,3 +4,4 @@ xlrd
 tinycss
 neo4jrestclient
 boxsdk
+deepdiff
