@@ -9,6 +9,7 @@ import argparse
 import json
 import logging
 import tinycss
+from deepdiff import DeepDiff 
 from neo4jrestclient import client
 from collections import OrderedDict
 from glob import glob
@@ -37,12 +38,6 @@ class Neo4jImporter():
         self.category_map       = OrderedDict()
         self.cost_map           = OrderedDict()
         self.color_map          = OrderedDict()
-
-        # created items
-        self.created_labels        = OrderedDict()
-        self.created_nodes         = OrderedDict()
-        self.created_indexes       = OrderedDict()
-        self.created_relationships = OrderedDict()
 
         # css
         self.css_color_map      = OrderedDict()
@@ -117,16 +112,66 @@ class Neo4jImporter():
             self.data = json.load(f, object_pairs_hook=OrderedDict)
         return True
 
-    def clear_gdb(self):
-        q = "MATCH (n) DETACH DELETE n"
-        debug("CLEAR GDB: %s" % q)
-        return self.gdb.query(q)
-
     def query_nodes(self, q):
-        debug("QUERY: '%s'" % q)
+        debug("QUERY NODES: '%s'" % q)
         dest = []
-        for container in self.gdb.query(q, returns=(client.Node, unicode)):
-            dest.append(container[0])
+        for node, in self.gdb.query(q, returns=(client.Node)):
+            dest.append(node)
+        return dest
+
+    def query_node_pairs(self, q):
+        debug("QUERY NODE PAIRS: '%s'" % q)
+        dest = []
+        for node1, node2 in self.gdb.query(q, returns=(client.Node, client.Node)):
+            dest.append([node1, node2])
+        return dest
+
+    def query_node_map(self, node_type, key, sub_key_map = False):
+        q = 'MATCH (n {_nodeType: "%s"}) RETURN n' % node_type
+        debug("QUERY NODE MAP: '%s'" % q)
+
+        node_map = {}
+        for node, in self.gdb.query(q, returns=(client.Node)):
+            val = node.properties[key]
+            if sub_key_map:
+                sub_key = self.key_map[val]
+                sub_val = node.properties[sub_key]
+                if not node_map.has_key(val):
+                    node_map[val] = OrderedDict()
+                node_map[val][sub_val] = node
+            else:
+                if not node_map.has_key(val):
+                    node_map[val] = []
+                node_map[val].append(node)
+        return node_map
+
+    def query_labels(self, node_type):
+        q = 'MATCH (n {_nodeType: "%s"}) RETURN DISTINCT labels(n)' % node_type
+        debug("QUERY LABELS: '%s'" % q)
+        dest = {}
+        for labels, in self.gdb.query(q, data_contents=True):
+            for label in labels:
+                dest[label] = True
+        return dest.keys()
+
+    def query_relationship_map(self, node_type):
+        q = 'MATCH ()-[r {_relationType: "%s"}]-() RETURN r' % node_type
+        debug("QUERY RELATIONSHIP MAP: '%s'" % q)
+
+        relationship_map = {}
+        for relationship, in self.gdb.query(q, returns=(client.Relationship)):
+            val = relationship.properties['_id']
+            if not relationship_map.has_key(val):
+                relationship_map[val] = OrderedDict()
+            relationship_map[val] = relationship
+        return relationship_map
+
+    def query_relationship_types(self, relationship_type):
+        q = 'MATCH ()-[r {_relationType: "%s"}]-() RETURN DISTINCT type(r), r.table' % relationship_type
+        debug("QUERY RELATIONSHIP TYPES: '%s'" % q)
+        dest = {}
+        for type, table in self.gdb.query(q, data_contents=True):
+            dest[type] = table
         return dest
 
     def create_index(self, label, key):
@@ -134,106 +179,222 @@ class Neo4jImporter():
         debug("CREATE INDEX: '%s'" % q)
         return self.gdb.query(q)
 
+    def delete_nodes(self, q):
+        debug("DELETE NODES: '%s'" % q)
+        return self.gdb.query(q)
+
+    def delete_relationships(self, relation_type, _id):
+        q = 'MATCH ()-[r {_relationType: "%s", _id: %s}]-() DELETE r' % (relation_type, _id)
+        debug("DELETE RELATIONSHIPS: '%s'" % q)
+        return self.gdb.query(q)
+
+    def clear_gdb(self):
+        q = "MATCH (n) DETACH DELETE n"
+        debug("CLEAR GDB: %s" % q)
+        return self.gdb.query(q)
+
     """
         Table nodes (schema)
     """
+
     def create_table_nodes(self):
-        self.created_labels['table'] = []
-        self.created_nodes['table'] = []
-        #with self.gdb.transaction(for_query = True) as tx:
+        info("create table nodes")
+        table_node_map = self.query_node_map('table', '_table')
+
+        # create or update table nodes
         for table, schema in self.schema.iteritems():
             if isinstance(schema, dict) or table == self.meta_table:
                 continue
             info("create table nodes: %s" % table)
 
-            label = self.gdb.labels.create('{table}:t'.format(table = table))
-            self.created_labels['table'].append({'label': label})
-
-            columns = OrderedDict()
+            # setup node properties
+            properties = {}
             for sch in schema:
-                columns[sch['name']] = sch['type']
-            debug("CREATE TABLE NODE %s" % table)
+                properties[sch['name']] = sch['type']
             category = self.category_map[table] if self.category_map.has_key(table) else None
             cost = self.cost_map[table] if self.cost_map.has_key(table) else 0
-            node = label.create(_table = table, _nodeType = 'table', _category = category, _cost = cost, **columns)
-            self.created_nodes['table'].append({'node': node, 'label': label, 'caption': '_table'})
+            properties.update({
+                u'_table': unicode(table), 
+                u'_nodeType': u'table', 
+                u'_category': unicode(category), 
+                u'_cost': cost
+            })
+
+            # update or create
+            nodes = table_node_map[table] if table_node_map.has_key(table) else None
+            if not nodes:
+                label = self.gdb.labels.create('{table}:t'.format(table = table))
+
+                debug("CREATE TABLE NODE %s" % table)
+                node = label.create(**properties)
+            else:
+                diff = DeepDiff(nodes[0].properties, properties, ignore_order = True)
+                if diff:
+                    debug("UPDATE TABLE NODE: %s (%s)" % (table, diff.changes))
+                    nodes[0].properties = properties
+                else:
+                    debug("STABLE TABLE NODE: %s" % table)
+                del table_node_map[table]   # mark updated
+
+        # deleted nodes
+        for table, nodes in table_node_map.iteritems():
+            self.delete_nodes("MATCH (n:`{table}:t`) DETACH DELETE n".format(table = table))
+        return True
 
     def create_table_relationships(self):
-        self.created_relationships['table'] = [];
-        relationships = []
+        info("create table relationships: begin")
+        table_relationship_map = self.query_relationship_map('table')
+
+        # create or update table relationships
         for table, references in self.reference_map.iteritems():
             info("create table relationships: %s" % table)
 
-            nodes = self.query_nodes('MATCH (n:`{table}:t`) RETURN n'.format(table = table))
-            for node in nodes:
-                for key, refs in references.iteritems():
-                    for ref, required in refs.iteritems():
-                        r = ref.split('.')
-                        peers = self.query_nodes('MATCH (n:`{table}:t`) RETURN n'.format(table = r[0]))
-                        for peer in peers:
-                            relation = "{ref}:t".format(ref = ref)
-                            relationships.append([table, key, node, peer, relation, required])
+            for key, refs in references.iteritems():
+                for ref, required in refs.iteritems():
+                    # setup relationship properties
+                    r = ref.split('.')
+                    relation = "{ref}:t".format(ref = ref)
+                    _id = u'{table}-{key}-{ref}'.format(table = table, key = key, ref = ref)
+                    properties = {
+                        u'_id': _id, 
+                        u'table': unicode(table), 
+                        u'key': unicode(key), 
+                        u'required': required, 
+                        u'_relationType': u'table'
+                    }
 
-        #with self.gdb.transaction(for_query = True) as tx:
-        for table, key, node, peer, relation, required in relationships:
-            if not required:
-                continue    # FIXME drop relationship for shortestPath
-            debug("CREATE TABLE RELATIONSHIP %s %s: %s" % (table, key, relation))
-            relationship = node.relationships.create(relation, peer, table = table, key = key, required = required, _relationType = 'table')
-            self.created_relationships['table'].append({'relationship': relationship, 'relation': relation, 'caption': 'key', 'table': table})
+                    # create or update
+                    if not table_relationship_map.has_key(_id):
+                        pairs = self.query_node_pairs('MATCH (n:`{table}:t`), (p:`{peer}:t`) RETURN n, p'.format(table = table, peer = r[0]))
+                        if pairs:
+                            debug("CREATE TABLE RELATIONSHIP (%s.%s)-[%s]-(%s)" % (table, key, relation, r[0]))
+                        for node, peer in pairs:
+                            relationship = node.relationships.create(relation, peer, **properties)
+                    else:
+                        relationship = table_relationship_map[_id]
+                        diff = DeepDiff(relationship.properties, properties, ignore_order = True)
+                        if diff:
+                            debug("UPDATE TABLE RELATIONSHIP (%s.%s)-[%s]-(%s): %s" % (table, key, relation, r[0], diff.changes))
+                            relationship.properties = properties
+                        else:
+                            debug("STABLE TABLE RELATIONSHIP (%s.%s)-[%s]-(%s)" % (table, key, relation, r[0]))
+                        del table_relationship_map[_id]  # mark updated
+
+        # deleted relationships
+        for _id, relationships in table_relationship_map.iteritems():
+            self.delete_relationships('table', _id)
         return True
 
     """
         Fref nodes (schema)
     """
     def create_fref_nodes(self):
-        self.created_labels['fref'] = []
-        self.created_nodes['fref'] = []
-        #with self.gdb.transaction(for_query = True) as tx:
+        info("create fref nodes: begin")
+        fref_node_map = self.query_node_map('fref', 'id')
+        debug(fref_node_map)
+
+        # create or update file nodes
         fref_label_map = OrderedDict()
         for table, file_references in self.file_reference_map.iteritems():
             info("create fref nodes: %s" % table)
             for key, file_reference in file_references.iteritems():
                 for fref, required in file_reference.iteritems():
+                    # setup node properties
                     bname, ext = os.path.splitext(fref)
-                    if not fref_label_map.has_key(ext):
-                        fref_label_map[ext] = self.gdb.labels.create('{ext}:f'.format(ext = ext))
-                        self.created_labels['fref'].append({'label': fref_label_map[ext]})
-                    label = fref_label_map[ext]
-                    debug("CREATE FREF NODE %s %s: %s %s" % (table, key, fref, required))
-                    node = label.create(table = table, key = key, extension = ext, 
-                            name = os.path.basename(fref), path = fref, required = required, _cost = 0, _nodeType = 'fref')
-                    self.created_nodes['fref'].append({'node': node, 'label': label, 'caption': 'path'})
+                    id = u'{table}-{key}-{fref}'.format(table = table, key = key, fref = fref)
+                    properties = {
+                        u'id': id,
+                        u'table': unicode(table), 
+                        u'key': unicode(key), 
+                        u'extension': unicode(ext), 
+                        u'name': unicode(os.path.basename(fref)), 
+                        u'path': unicode(fref), 
+                        u'required': required, 
+                        u'_cost': 0, 
+                        u'_nodeType': u'fref'
+                    }
+
+                    # update or create
+                    nodes = fref_node_map[id] if fref_node_map.has_key(id) else None
+                    if not nodes:
+                        # FIXME label map
+                        if not fref_label_map.has_key(ext):
+                            fref_label_map[ext] = self.gdb.labels.create('{ext}:f'.format(ext = ext))
+                        label = fref_label_map[ext]
+
+                        debug("CREATE FREF NODE %s %s: %s %s" % (table, key, fref, required))
+                        node = label.create(**properties)
+                    else:
+                        diff = DeepDiff(nodes[0].properties, properties, ignore_order = True)
+                        if diff:
+                            debug("UPDATE FREF NODE: %s (%s)" % (table, diff.changes))
+                            nodes[0].properties = properties
+                        else:
+                            debug("STABLE FREF NODE: %s" % table)
+                        del fref_node_map[id]   # mark updated
+
+        # deleted nodes
+        for id, nodes in fref_node_map.iteritems():
+            self.delete_nodes('MATCH (n: {id: "%s", _nodeType: "fref"}) DETACH DELETE n' % id)
         return True
 
     def create_fref_relationships(self):
-        self.created_relationships['fref'] = [];
-        relationships = []
+        info("create fref relationships: begin")
+        fref_relationship_map = self.query_relationship_map('fref')
+
+        # create or update fref relationships
         for table, schema in self.schema.iteritems():
+            if not self.file_reference_map.has_key(table):
+                continue
             info("create fref relationships: %s" % table)
 
-            nodes = self.query_nodes('MATCH (n:`{table}:t`) RETURN n'.format(table = table))
-            for node in nodes:
-                for key, file_reference in self.file_reference_map[table].iteritems():
-                    for fref, required in file_reference.iteritems():
-                        bname, ext = os.path.splitext(fref)
-                        peers = self.query_nodes('MATCH (n:`{ext}:f`) WHERE n.table = "{table}" and n.path = "{path}" RETURN n'.format(ext = ext, table = table, path = fref))
-                        for peer in peers:
-                            relation = '{fref}:f'.format(fref = fref)
-                            relationships.append([table, key, node, peer, relation, required])
+            for key, file_reference in self.file_reference_map[table].iteritems():
+                for fref, required in file_reference.iteritems():
+                    relation = '{fref}:f'.format(fref = fref)
+                    bname, ext = os.path.splitext(fref)
+                    _id = u'{table}-{key}-{fref}'.format(table = table, key = key, fref = fref)
+                    properties = {
+                        u'_id': _id,
+                        u'key': unicode(key), 
+                        u'required': required, 
+                        u'_relationType': u'fref'
+                    }
 
-        #with self.gdb.transaction(for_query = True) as tx:
-        for table, key, node, peer, relation, required in relationships:
-            debug("CREATE FREF RELATIONSHIP %s %s: %s" % (table, id, relation))
-            relationship = node.relationships.create(relation, peer, key = key, required = required, _relationType = 'fref')
-            self.created_relationships['fref'].append({'relationship': relationship, 'relation': relation, 'caption': 'key', 'table': table})
+                    if not fref_relationship_map.has_key(_id):
+                        pairs = self.query_node_pairs('MATCH (n:`{table}:t`), (p:`{ext}:f`) RETURN n, p'.format(table = table, ext = ext))
+                        if pairs:
+                            debug("CREATE FREF RELATIONSHIP (%s.%s)-[%s]-(%s)" % (table, key, relation, ext))
+                        for node, peer in pairs:
+                            relationship = node.relationships.create(relation, peer, **properties)
+                    else:
+                        relationship = fref_relationship_map[_id]
+                        diff = DeepDiff(relationship.properties, properties, ignore_order = True)
+                        if diff:
+                            debug("UPDATE FREF RELATIONSHIP (%s.%s)-[%s]-(%s): %s" % (table, key, relation, ext, diff.changes))
+                            relationship.properties = properties
+                        else:
+                            debug("STABLE FREF RELATIONSHIP (%s.%s)-[%s]-(%s)" % (table, key, relation, ext))
+                        del fref_relationship_map[_id]  # mark updated
+
+        # deleted relationships
+        for _id, relationships in fref_relationship_map.iteritems():
+            self.delete_relationships('fref', _id)
         return True
 
     """
         Data nodes (table data)
     """
-    def create_data_node(self, label, table, item):
-        # set caption
+    def create_data_node(self, label, table, item, data_node_map):
+        # create sub node for array or dict in item
+        for k, v in item.iteritems():
+            # FIXME too large and nested -> expand target item
+            if isinstance(v, dict) or isinstance(v, list):
+                return data_node_map
+
+        # setup properties
+        id = item[self.key_map[table]]
+        category = self.category_map[table] if self.category_map.has_key(table) else None
+        cost = self.cost_map[table] if self.cost_map.has_key(table) else 0
         if self.caption_map.has_key(table) and item.has_key(self.caption_map[table]):
             caption = unicode(item[self.caption_map[table]])
             # reverse table.id_name -> id_name.table for readability
@@ -249,91 +410,131 @@ class Neo4jImporter():
         elif item.has_key('label'):
             caption = unicode(item['label'])
         else:
-            caption = u"{id}@{table}".format(table = table, id = item[self.key_map[table]])
+            caption = u"{id}@{table}".format(table = table, id = id)
+        properties = {
+            u'_table': unicode(table), 
+            u'_caption': unicode(caption), 
+            u'_nodeType': u'data', 
+            u'_category': unicode(category), 
+            u'_cost': cost
+        }
+        properties.update(item)
 
-        # create sub node for array or dict in item
-        for k, v in item.iteritems():
-            # FIXME too large and nested -> expand target item
-            if isinstance(v, dict) or isinstance(v, list):
-                return None
+        # update or create
+        if not data_node_map.has_key(table) or not data_node_map[table].has_key(id):
+            debug("CREATE DATA NODE %s.%s: %s" % (table, id, json.dumps(item, indent=2)))
+            node = label.create(**properties)
+        else:
+            node = data_node_map[table][id]
+            diff = DeepDiff(node.properties, properties, ignore_order = True)
+            if diff:
+                debug("UPDATE DATA NODE %s.%s: %s (%s)" % (table, id, diff.changes))
+                node.properties = properties
+            else:
+                debug("STABLE DATA NODE %s.%s" % (table, id))
+            del data_node_map[table][id]   # mark updated
 
-        debug("CREATE DATA NODE %s: %s" % (table, json.dumps(item, indent=2)))
-        category = self.category_map[table] if self.category_map.has_key(table) else None
-        cost = self.cost_map[table] if self.cost_map.has_key(table) else 0
-        node = label.create(_table = table, _caption = caption, _nodeType = 'data', _category = category, _cost = cost, **item)
-        self.created_nodes['data'].append({'node': node, 'label': label, 'caption': '_caption'})
-        return node
+        return data_node_map
 
     def create_data_nodes(self):
-        self.created_labels['data'] = []
-        self.created_nodes['data'] = []
-        #with self.gdb.transaction(for_query = True) as tx:
+        info("create data nodes: begin")
+        data_node_map = self.query_node_map('data', '_table', True)
+
+        # create or update table nodes
         for table, schema in self.schema.iteritems():
             table_key = self.lower_camel_case(re.sub(self.data_table_prefix, '', table))
             if not self.data.has_key(table_key):
                 continue
             info("create data nodes: %s (%s)" % (table, table_key))
-
-            #with self.gdb.transaction(for_query = True) as tx:
             table_data = self.data[table_key]
+
             label = self.gdb.labels.create(table)
-            self.created_labels['data'].append({'label': label})
 
             if isinstance(table_data, dict):
-                self.create_data_node(label, table, table_data)
+                data_node_map = self.create_data_node(label, table, table_data, data_node_map)
             elif isinstance(table_data, list):
                 for item in table_data:
-                    self.create_data_node(label, table, item)
+                    data_node_map = self.create_data_node(label, table, item, data_node_map)
             else:
                 raise Exception("invalid data type in %s: %s" % (table, table_data))
+
+            # deleted nodes
+            if data_node_map.has_key(table):
+                for id, nodes in data_node_map[table].iteritems():
+                    self.delete_nodes("MATCH (n:`%s` {id: %d}) DETACH DELETE n" % (table, id))
         return True
 
     def create_data_indexes(self):
-        self.created_indexes['data'] = []
-        for label in self.created_labels['data']:
-            table = label['label']
+        info("create data indexes: begin")
+        for table in self.query_labels('data'):
             for key in ['_table', '_category', '_nodeType']:
                 index = self.create_index(table, key)
-                self.created_indexes['data'].append(index)
             if self.key_map.has_key(table):
                 index = self.create_index(table, self.key_map[table])
-                self.created_indexes['data'].append(index)
             if self.index_map.has_key(table):
                 for name in self.index_map[table]:
                     index = self.create_index(table, name)
-                    self.created_indexes['data'].append(index)
         return True
 
     def create_data_relationships(self):
-        self.created_relationships['data'] = [];
+        info("create data relationships: begin")
+        data_node_map = self.query_node_map('data', '_table', True)
+        data_relationship_map = self.query_relationship_map('data')
+
         for table, references in self.reference_map.iteritems():
-            if not self.key_map.has_key(table):
+            if not self.key_map.has_key(table) or not data_node_map.has_key(table):
                 continue
             id_key = self.key_map[table]
             info("create data relationships: %s" % table)
 
-            relationships = []
-            nodes = self.query_nodes('MATCH (n:`{label}`) RETURN n'.format(label = table))
-            for node in nodes:
-                for key, refs in references.iteritems():
-                    val = node.get(key, None)
-                    if not val:
-                        continue
-                    for ref, required in refs.iteritems():
-                        r = ref.split('.')
-                        id = '"'+val+'"' if type(val) in (unicode, str) else val
-                        peers = self.query_nodes('MATCH (n:`{label}`) WHERE n.{key} = {id} RETURN n'.format(label = r[0], key = r[1], id = id))
-                        for peer in peers:
-                            relation = ref
-                            relationships.append([table, key, id, node, peer, relation, required])
+            for key, refs in references.iteritems():
+                for ref, required in refs.iteritems():
+                    relation = ref
+                    r = ref.split('.')
 
-            #with self.gdb.transaction(for_query = True) as tx:
-            for table, key, id, node, peer, relation, required in relationships:
-                if not required:
-                    continue    # FIXME drop relationship for shortestPath
-                debug("CREATE DATA RELATIONSHIP %s %s: %s" % (table, id, relation))
-                relationship = node.relationships.create(relation, peer, key = key, id = id, required = required, _relationType = 'data')
-                self.created_relationships['data'].append({'relationship': relationship, 'relation': relation, 'caption': 'key', 'table': table})
+                    # map peers by referenced key
+                    peer_node_map = OrderedDict()
+                    if data_node_map.has_key(r[0]):
+                        for peer_id, peer in data_node_map[r[0]].iteritems():
+                            peer_node_map[peer.properties[r[1]]] = peer
+
+                    # create or update data relationships for target table
+                    for id, node in data_node_map[table].iteritems():
+                        _id = u'{table}-{key}-{ref}-{id}'.format(table = table, key = key, ref = ref, id = id)
+                        peer_val = node.properties[key]
+                        if not peer_node_map.has_key(peer_val):
+                            continue
+                        peer = peer_node_map[peer_val]
+                        peer_id = peer.properties[self.key_map[r[0]]]
+                        properties = {
+                            u'_id': _id,
+                            u'name': ref,
+                            u'table': table,
+                            u'key': key, 
+                            u'id': id,
+                            u'peerTable': r[0],
+                            u'peerKey': r[1],
+                            u'peerId': peer_id,
+                            u'required': required, 
+                            u'_relationType': u'data'
+                        }
+
+                        if not data_relationship_map.has_key(_id):
+                            debug("CREATE DATA RELATIONSHIP (%s {id: %s, %s: %s})-[%s {_id: %s}]-(%s {id: %s})" % (table, id, key, peer_val, relation, _id, ref, peer_id))
+                            relationship = node.relationships.create(relation, peer, **properties)
+                        else:
+                            relationship = data_relationship_map[_id]
+                            diff = DeepDiff(relationship.properties, properties, ignore_order = True)
+                            if diff:
+                                debug("UPDATE DATA RELATIONSHIP (%s {id: %s, %s: %s})-[%s {_id: %s}]-(%s {id: %s}): %s" % (table, id, key, peer_val, relation, _id, ref, peer_id, diff.changes))
+                                relationship.properties = properties
+                            else:
+                                debug("STABLE DATA RELATIONSHIP (%s {id: %s, %s: %s})-[%s {_id: %s}]-(%s {id: %s})" % (table, id, key, peer_val, relation, _id, ref, peer_id))
+                            del data_relationship_map[_id]  # mark updated
+
+        # deleted relationships
+        for _id, relationships in data_relationship_map.iteritems():
+            self.delete_relationships('data', _id)
         return True
 
     """
@@ -349,45 +550,61 @@ class Neo4jImporter():
         if not item.has_key(key) or not item[key]:
             return file_node_map
 
-        id = item[self.key_map[table]]
         path = self.file_ref_path(fref, table, key, item)
-        bname, ext = os.path.splitext(path)
-
         for real_path in glob(os.path.join(self.asset_dir, path)):
+            bname, ext = os.path.splitext(real_path)
+            # setup properties
             file_size = os.path.getsize(real_path)
             real_path = self.file_real_path(real_path)
-            if file_node_map.has_key(real_path):
-                continue
+            properties = {
+                u'name': unicode(os.path.basename(real_path)), 
+                u'extension': unicode(ext), 
+                u'path': unicode(path), 
+                u'realPath': unicode(real_path), 
+                u'fileSize': unicode(file_size), 
+                u'required': required, 
+                u'_cost': 0, 
+                u'_nodeType': u'file'
+            }
             
-            debug("CREATE FILE NODE %s %s: %s %s %s (%s) %d" % (table, id, key, required, path, real_path, file_size))
-            node = label.create(name = os.path.basename(real_path), extension = ext, 
-                    table = table, key = key, path = path, real_path = real_path, file_size = file_size, 
-                    required = required, id = id, _cost = 0, _nodeType = 'file')
-            file_node_map[real_path] = node
-            self.created_nodes['file'].append({'node': node, 'label': label, 'caption': 'name'})
+            # update or create
+            if not file_node_map.has_key(real_path):
+                debug("CREATE FILE NODE %s: %s %s %s (%s) %d" % (table, key, required, path, real_path, file_size))
+                node = label.create(**properties)
+                file_node_map[real_path] = [node]
+            else:
+                node = file_node_map[real_path][0]
+                diff = DeepDiff(node.properties, properties, ignore_order = True)
+                if diff:
+                    debug("UPDATE FILE NODE %s: %s %s %s (%s) %d: %s" % (table, key, required, path, real_path, file_size, diff.changes))
+                    node.properties = properties
+                else:
+                    debug("STABLE FILE NODE %s: %s %s %s (%s) %d" % (table, key, required, path, real_path, file_size))
+                #del file_node_map[real_path] # mark updated FIXME
         return file_node_map
 
     def create_file_nodes(self):
-        self.created_labels['file'] = []
-        self.created_nodes['file'] = []
-        #with self.gdb.transaction(for_query = True) as tx:
+        info("create file nodes: begin")
+        file_node_map = self.query_node_map('file', 'realPath')
+
+        # create or update file nodes
         file_label_map = OrderedDict()
-        file_node_map = OrderedDict()
+        processed_file_node_map = OrderedDict()
         for table, schema in self.schema.iteritems():
             table_key = self.lower_camel_case(re.sub(self.data_table_prefix, '', table))
             if not self.data.has_key(table_key) or not self.file_reference_map.has_key(table):
                 continue
             info("create file nodes: %s (%s)" % (table, table_key))
 
-            #with self.gdb.transaction(for_query = True) as tx:
             table_data = self.data[table_key]
             for key, file_reference in self.file_reference_map[table].iteritems():
                 for fref, required in file_reference.iteritems():
                     bname, ext = os.path.splitext(fref)
+
                     if not file_label_map.has_key(ext):
                         file_label_map[ext] = self.gdb.labels.create(ext)
-                        self.created_labels['file'].append({'label': file_label_map[ext]})
                     label = file_label_map[ext]
+
                     if isinstance(table_data, dict):
                         file_node_map = self.create_file_node(label, table, table_data, key, fref, required, file_node_map)
                     elif isinstance(table_data, list):
@@ -395,43 +612,67 @@ class Neo4jImporter():
                             file_node_map = self.create_file_node(label, table, item, key, fref, required, file_node_map)
                     else:
                         raise Exception("invalid data type in %s: %s" % (table, table_data))
+
+        # deleted nodes
+        # FIXME processed_file_node_map
+        #for real_path, nodes in org_file_node_map.iteritems():
+        #    self.delete_nodes('MATCH (n {_nodeType: "file", realPath: "%s"}) DETACH DELETE n' % real_path)
         return True
 
     def create_file_indexes(self):
-        self.created_indexes['file'] = []
-        for label in self.created_labels['file']:
-            ext = label['label']
-            for key in ['name', 'extension', 'table', 'key', 'required', 'id', '_nodeType']:
-                index = self.create_index(label, key)
-                self.created_indexes['file'].append(index)
+        info("create file indexes: begin")
+        for ext in self.query_labels('file'):
+            for key in ['name', 'extension', 'path', 'realPath', 'required', '_nodeType']:
+                index = self.create_index(ext, key)
         return True
 
     def create_file_relationships(self):
-        self.created_relationships['file'] = [];
+        info("create file relatioships: begin")
+        data_node_map = self.query_node_map('data', '_table', True)
+        file_node_map = self.query_node_map('file', 'realPath')
+        file_relationship_map = self.query_relationship_map('file')
+
         for table, schema in self.schema.iteritems():
             info("create file relationships: %s" % table)
+            if not self.file_reference_map.has_key(table):
+                continue
 
-            relationships = []
-            nodes = self.query_nodes('MATCH (n:`{label}`) RETURN n'.format(label = table))
-            for node in nodes:
-                for key, file_reference in self.file_reference_map[table].iteritems():
-                    for fref, required in file_reference.iteritems():
-                        id = node[self.key_map[table]]
-                        bname, ext = os.path.splitext(fref)
+            for key, file_reference in self.file_reference_map[table].iteritems():
+                for fref, required in file_reference.iteritems():
+                    for id, node in data_node_map[table].iteritems():
                         path = self.file_ref_path(fref, table, key, node.properties)
-                        peers = self.query_nodes('MATCH (n:`{label}`) WHERE n.path = "{path}" RETURN n'.format(label = ext, path = path))
-                        for peer in peers:
-                            relation = self.file_real_path(peer['real_path'])
-                            relationships.append([table, key, id, node, peer, relation, required])
+                        for real_path in glob(os.path.join(self.asset_dir, path)):
+                            real_path = self.file_real_path(real_path)
+                            if not file_node_map.has_key(real_path):
+                                continue
+                            for peer in file_node_map[real_path]:
+                                _id = "{table}-{real_path}".format(table = table, real_path = peer.properties['realPath'])
+                                relation = self.file_real_path(peer.properties['realPath'])
+                                properties = {
+                                    u'key': key, 
+                                    u'id': id,
+                                    u'_id': unicode(_id), 
+                                    u'required': required, 
+                                    u'_relationType': 'file', 
+                                    u'name': peer.properties['name'], 
+                                    u'path': peer.properties['path']
+                                }
+                                if not file_relationship_map.has_key(_id):
+                                    debug("CREATE FILE RELATIONSHIP (%s {id: %s})-[%s {_id: %s}]-(%s {path: %s})" % (table, id, relation, _id, fref, path))
+                                    relationship = node.relationships.create(relation, peer, **properties)
+                                else:
+                                    relationship = file_relationship_map[_id]
+                                    diff = DeepDiff(relationship.properties, properties, ignore_order = True)
+                                    if diff:
+                                        debug("UPDATE FILE RELATIONSHIP (%s {id: %s})-[%s {_id: %s}]-(%s {path: %s}): %s" % (table, id, relation, _id, fref, path, diff.changes))
+                                        relationship.properties = properties
+                                    else:
+                                        debug("STABLE FILE RELATIONSHIP (%s {id: %s})-[%s {_id: %s}]-(%s {path: %s})" % (table, id, relation, _id, fref, path))
+                                    del file_relationship_map[_id]  # mark updated
 
-            #with self.gdb.transaction(for_query = True) as tx:
-            for table, key, id, node, peer, relation, required in relationships:
-                debug("CREATE FILE RELATIONSHIP %s %s: %s" % (table, id, relation))
-                properties = peer.properties
-                relationship = node.relationships.create(relation, peer, 
-                        key = key, id = id, required = required, 
-                        _relationType = 'file', name = properties['name'], path = properties['path'])
-                self.created_relationships['file'].append({'relationship': relationship, 'relation': relation, 'caption': 'key', 'table': table})
+        # deleted relationships
+        for _id, relationships in file_relationship_map.iteritems():
+            self.delete_relationships('file', _id)
         return True
 
     """
@@ -498,61 +739,62 @@ class Neo4jImporter():
         self.parse_css_template(template_path)
 
         # output css
-        written_nodes = {}
-        written_relationships = {}
         with open(css_path, 'w') as f:
             f.write('\n\n'.join(self.static_css))
             f.write('\n\n')
 
             # node
-            for node_type, nodes in self.created_nodes.iteritems():
-                for c in nodes:
-                    label = c['label']._label
-                    if written_nodes.has_key(label):
-                        continue
-
+            node_caption_map = {
+                'table': '_table',
+                'fref': 'path',
+                'data': '_caption',
+                'file': 'name',
+            }
+            for node_type, caption in node_caption_map.iteritems():
+                for label in self.query_labels(node_type):
                     diameter = 50   # default 50px
                     if self.cost_map.has_key(label):
                         diameter += self.cost_map[label];
                     color = self.get_color(label, re.sub(':.+', '', label))
                     conf = self.css_color_map[color]
 
-                    debug("write node grapthstyle: %s %s %s %s" % (label, c['caption'], diameter, color))
-                    node_css = self.node_template.format(label = label, caption = c['caption'], diameter = diameter, **conf)
+                    debug("write node grapthstyle: %s %s %s %s" % (label, caption, diameter, color))
+                    node_css = self.node_template.format(label = label, caption = caption, diameter = diameter, **conf)
                     f.write(re.sub(r'\.template', '.'+label, node_css))
                     f.write('\n\n')
 
-                    written_nodes[label] = True
-
             # relationship
-            for relationship_type, relationships in self.created_relationships.iteritems():
-                for c in relationships:
-                    if written_relationships.has_key(c['relation']):
-                        continue
-
-                    table = c['table']
+            relationship_caption_map = {
+                'table': 'key',
+                'fref':  'key',
+                'data':  'name',
+                'file':  'name',
+            }
+            for relationship_type, caption in relationship_caption_map.iteritems():
+                for relation, table in self.query_relationship_types(relationship_type).iteritems():
                     shaft_width = 2 # default 2px
-                    if self.cost_map.has_key(table) and self.cost_map[table] > 0:
-                        shaft_width += self.cost_map[table] / 10;
-                    color = self.get_color(table, re.sub(':.+', '', table))
+                    color = 'gray'
+                    if table:
+                        if self.cost_map.has_key(table) and self.cost_map[table] > 0:
+                            shaft_width += self.cost_map[table] / 10;
+                        color = self.get_color(table, re.sub(':.+', '', table))
                     conf = {'shaft-width':  shaft_width}
                     conf.update(self.css_color_map[color])
 
-                    debug("write relationship grapthstyle: %s %s %s %s" % (c['relation'], c['caption'], shaft_width, color))
-                    relationship_css = self.relationship_template.format(relation = c['relation'], caption = c['caption'], **conf)
-                    f.write(re.sub(r'\.template', '.'+c['relation'], relationship_css))
+                    debug("write relationship grapthstyle: %s %s %s %s" % (relation, caption, shaft_width, color))
+                    relationship_css = self.relationship_template.format(relation = relation, caption = caption, **conf)
+                    f.write(re.sub(r'\.template', '.'+relation, relationship_css))
                     f.write('\n\n')
-
-                    written_relationships[c['relation']] = True
         return True
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='import master|user data into neo4j database', epilog="""\
 example:
-    $ ./neo4j/import_data.py master_derivatives/master_schema.json master_derivatives/master_data.json kms_master_asset""")
+    $ ./neo4j/import.py master_derivatives/master_schema.json master_derivatives/master_data.json kms_master_asset""")
     parser.add_argument('input_schema', metavar = 'xxx_schema.json',  help = 'input (master|user) data schema json file')
     parser.add_argument('input_data',   metavar = 'xxx_data.json',    help = 'input (master|user) data json file')
     parser.add_argument('asset_dir',    metavar = 'kms_master_asset', help = 'asset root dir')
+    parser.add_argument('--rebuild',    action = 'store_true', default = False, help = 'rebuild all data after clean up db')
     parser.add_argument('--css-path',   metavar = 'graphstyle.grass', help = 'generate Neo4j Graph Style Sheet')
     parser.add_argument('--neo4j-url',  default = neo4j_url_default, help = 'neo4j server to connect. e.g. http://<username>:<password>@<host>:<port>/db/data')
     parser.add_argument('--graphstyle-template', default = graphstyle_template_default, help = 'graphstyle.grass template file')
@@ -564,7 +806,8 @@ example:
     importer.load_json(args.input_schema, args.input_data)
     importer.setup_reference()
 
-    importer.clear_gdb()
+    if args.rebuild:
+        importer.clear_gdb()
 
     # schema
     importer.create_table_nodes()
@@ -578,9 +821,10 @@ example:
     importer.create_file_relationships()
     importer.create_data_relationships()
 
-    # index
-    importer.create_file_indexes()
-    importer.create_data_indexes()
+    # reconstruct index
+    if args.rebuild:
+        importer.create_file_indexes()
+        importer.create_data_indexes()
 
     if args.css_path:
         importer.generate_style(args.css_path, args.graphstyle_template)
