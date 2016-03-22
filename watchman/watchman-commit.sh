@@ -66,7 +66,7 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   # log
   icon=":)"
   grep -q -e '^D' $commit_log_file && icon="(devil)(devil)(devil)"
-  $sonya $asset_chat_id "[nfo][title]$icon git commit by `whoami`@`hostname`[/title]$github_url/kms/asset/commit/$commit_id[code]`cat $commit_log_file`[/code]$excel_diff_url[/info]" || exit $?
+  $sonya $asset_chat_id "[info][title]$icon git commit by `whoami`@`hostname`[/title]$github_url/kms/asset/commit/$commit_id[code]`cat $commit_log_file`[/code]$excel_diff_url[/info]" || exit $?
   if [ -s $build_log_file ]; then
     echo "=== C++ Header File is updated === " >> $build_log_file
     $sonya  $build_chat_id "[info][title](F) C++ header file is updated. Please clean build your app[/title]$github_url/kms/asset/commit/$commit_id[code]`cat $build_log_file`[/code]$github_url/kms/asset[/info]" || exit $?
