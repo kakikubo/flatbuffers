@@ -184,7 +184,7 @@ class Neo4jImporter():
         return self.gdb.query(q)
 
     def delete_relationships(self, relation_type, _id):
-        q = 'MATCH ()-[r {_relationType: "%s", _id: %s}]-() DELETE r' % (relation_type, _id)
+        q = 'MATCH ()-[r {_relationType: "%s", _id: "%s"}]-() DELETE r' % (relation_type, _id)
         debug("DELETE RELATIONSHIPS: '%s'" % q)
         return self.gdb.query(q)
 
@@ -428,7 +428,7 @@ class Neo4jImporter():
             node = data_node_map[table][id]
             diff = DeepDiff(node.properties, properties, ignore_order = True)
             if diff:
-                debug("UPDATE DATA NODE %s.%s: %s (%s)" % (table, id, diff.changes))
+                debug("UPDATE DATA NODE %s.%s: %s" % (table, id, diff.changes))
                 node.properties = properties
             else:
                 debug("STABLE DATA NODE %s.%s" % (table, id))
