@@ -949,8 +949,8 @@ class AssetBuilder():
         return True
 
     def build_manifest_queue(self, src_dir=None, project_dir=None, phase_dir=None):
-        src_dir        = src_dir     or self.distribution_dir
         master_src_dir = src_dir     or self.master_distribution_dir
+        src_dir        = src_dir     or self.distribution_dir
         project_dir    = project_dir or self.build_dir
         phase_dir      = phase_dir   or self.build_dir
         manifest_paths = []
