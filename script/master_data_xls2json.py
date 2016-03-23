@@ -193,7 +193,7 @@ def parse_xls(xls_path, except_sheets=[]):
                     elif t.find('bool') >= 0:
                         v = bool(v)
                     elif t.find('string') >= 0:
-                        v = re.sub('\\\\n', "\n", "%s" % v)
+                        v = unicode(re.sub('\\\\n', "\n", "%s" % v))
                     else:
                         error(u"不正な型指定です: key = %s type = %s" % (k, t))
                         raise Exception("unknown cell type")
