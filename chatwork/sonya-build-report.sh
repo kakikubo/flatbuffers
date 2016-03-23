@@ -1,7 +1,7 @@
 #/bin/bash
 commit_id=`git log | head -1 | cut -c 8-`
 job_url=
-if [ `whoami` = 'jenkins' ]; then
+if [ `whoami` = 'jenkins' -o `whoami` = 'kms.jenkins' ]; then
   job_url=$JENKINS_URL/job/$JOB_NAME/$BUILD_ID
 fi
 git_url=`git config --get remote.origin.url | sed -ne 's!git@\(.*\):\(.*\).git!https://\1/\2!p'` # git -> https
