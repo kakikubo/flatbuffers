@@ -252,6 +252,8 @@ class AssetBuilder():
         self.LOCATION_CYPHER_FILE           = 'location_file_list.cypher'
         self.CHARACTER_CYPHER_FILE          = 'character_file_list.cypher'
         self.UI_CYPHER_FILE                 = 'ui_file_list.cypher'
+        self.NEO4J_URL_FORMAT               = "http://neo4j:fflkms001@localhost:{port}/db/data/"
+        self.NEO4J_PORT_BASE                = 7500
         self.NEO4J_GRAPHSTYLE_FILE          = 'graphstyle.grass'
         self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
         self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets'
@@ -259,6 +261,12 @@ class AssetBuilder():
         self.S3_DEPLOY_INTERNAL_URL         = 's3://gree-kms-deploy'
         self.S3_CREDENTIALS_FILE            = '~/.aws/credentials'
         self.MASTER_DATA_ROW_START          = 3
+
+        # setup Neo4j URL
+        with open(self.master_manifest_dir+'/'+self.ASSET_LIST_FILE, 'r') as f:
+            data = json.loads(f.read())
+            port = self.NEO4J_PORT_BASE + data.index(self.target) * 10
+            self.neo4j_url = self.NEO4J_URL_FORMAT.format(port = port)
 
     # prepare and isolate source data via box
     def prepare_dir(self, src, dest):
@@ -675,25 +683,23 @@ class AssetBuilder():
         return True
 
     # import master data into neo4j
-    def build_neo4j(self, src_schema=None, src_data=None, asset_dir=None, dest_graphstyle=None):
+    def build_neo4j(self, src_schema=None, src_data=None, asset_dir=None, dest_graphstyle=None, neo4j_url=None):
         src_schema = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
         src_data   = src_data   or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
         asset_dir  = asset_dir  or self.main_dir
         dest_graphstyle = dest_graphstyle or self.build_dir+'/'+self.NEO4J_GRAPHSTYLE_FILE
+        neo4j_url  = neo4j_url  or self.neo4j_url
 
-        # TODO support each personal asset
-        if not self.is_master:
-            return False
-
-        cmdline = [self.neo4j_import_bin, src_schema, src_data, asset_dir, '--css-path', dest_graphstyle]
+        cmdline = [self.neo4j_import_bin, src_schema, src_data, asset_dir, '--css-path', dest_graphstyle, '--neo4j-url', neo4j_url]
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
 
     # generate flie list by neo4j query
-    def build_file_list(self, src_cypher_dir=None, dest_file_list_dir=None):
+    def build_file_list(self, src_cypher_dir=None, dest_file_list_dir=None, neo4j_url=None):
         src_cypher_dir     = src_cypher_dir or self.cypher_dir
         dest_file_list_dir = dest_file_list_dir or self.build_dir
+        neo4j_url          = neo4j_url or self.neo4j_url
 
         list = (
             (self.LOCATION_CYPHER_FILE,  self.LOCATION_FILE_LIST), 
@@ -704,7 +710,7 @@ class AssetBuilder():
             src_cypher     = self._get_exist_file((src_cypher_dir+'/'+cypher, self.master_cypher_dir+'/'+cypher))
             dest_file_list = dest_file_list_dir+'/'+file_list
 
-            cmdline = [self.neo4j_query_bin, src_cypher, dest_file_list, '--aggrigate']
+            cmdline = [self.neo4j_query_bin, src_cypher, dest_file_list, '--aggrigate', '--neo4j-url', neo4j_url]
             info(' '.join(cmdline))
             check_call(cmdline)
         return True
