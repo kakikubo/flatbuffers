@@ -15,7 +15,7 @@ template_bin=`dirname $0`/../../script/template.py
 env_template_json=`dirname $0`/env.template.json
 
 # directory
-for dir in data conf; do
+for dir in data/log conf; do
   mkdir -p $NEO4J_HOME/$dir || exit $?
 done
 
@@ -26,7 +26,7 @@ for dir in bin lib system; do
 done
 
 # environment configuration file
-env_json=/tmp/neo4j_env.$user_name.json
+env_json=/$NEO4J_HOME/neo4j_env.json
 $template_bin $env_template_json "{\"NEO4J_HOME\": \"$NEO4J_HOME\", \"NEO4J_ROOT\": \"$NEO4J_ROOT\", \"port\": $NEO4J_PORT}" > $env_json
 
 # neo4j conf
