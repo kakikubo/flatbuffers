@@ -682,7 +682,7 @@ class AssetBuilder():
         dest_graphstyle = dest_graphstyle or self.build_dir+'/'+self.NEO4J_GRAPHSTYLE_FILE
 
         # TODO support each personal asset
-        if not self.is_master
+        if not self.is_master:
             return False
 
         cmdline = [self.neo4j_import_bin, src_schema, src_data, asset_dir, '--css-path', dest_graphstyle]
