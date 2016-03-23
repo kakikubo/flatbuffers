@@ -5,3 +5,4 @@ tinycss
 neo4jrestclient
 boxsdk
 deepdiff
+jinja2
