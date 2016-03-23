@@ -128,8 +128,9 @@ class AssetBuilder():
         self.imesta_dir             = self.main_dir+'/imesta'
         self.distribution_dir       = self.main_dir+'/distribution'
         self.webview_dir            = self.main_dir+'/webview'
-        self.crypto_dir             = self.main_dir+'/crypto'
         self.lua_dir                = self.main_dir+'/lua'
+        self.crypto_dir             = self.main_dir+'/crypto'
+        self.cypher_dir             = self.main_dir+'/cypher'
 
         self.org_manifest_dir       = self.org_main_dir+'/manifests'
         self.org_master_schema_dir  = self.org_main_dir+'/master_derivatives'
@@ -152,7 +153,9 @@ class AssetBuilder():
         self.org_imesta_dir         = self.org_main_dir+'/imesta'
         self.org_distribution_dir   = self.org_main_dir+'/distribution'
         self.org_webview_dir        = self.org_main_dir+'/webview'
+        self.org_lua_dir            = self.org_main_dir+'/lua'
         self.org_crypto_dir         = self.org_main_dir+'/crypto'
+        self.org_cypher_dir         = self.org_main_dir+'/cypher'
 
         self.main_xlsx_dir            = self.main_dir+'/master'
         self.main_editor_dir          = self.main_dir+'/editor'
@@ -172,6 +175,7 @@ class AssetBuilder():
         self.master_ui_dir            = self.master_dir+'/ui'
         self.master_lua_dir           = self.master_dir+'/lua'
         self.master_crypto_dir        = self.master_dir+'/crypto'
+        self.master_cypher_dir        = self.master_dir+'/cypher'
 
         self.manifest_generate_bin    = self_dir+'/manifest_generate.py'
         self.manifest_queue_bin       = self_dir+'/manifest_queue.py'
@@ -193,6 +197,8 @@ class AssetBuilder():
         self.update_webviews_bin      = self_dir+'/update_webviews.py'
         self.crypto_key_bin           = self_dir+'/crypto_key.py'
         self.encrypt_bin              = self_dir+'/encrypt.py'
+        self.neo4j_import_bin         = self_dir+'/../neo4j/import.py'
+        self.neo4j_query_bin          = self_dir+'/../neo4j/query.py'
         self.excel_diff_generator_bin = self_dir+'/../ExcelDiffGenerator/excel-diff'
         
         self.PROJECT_MANIFEST_FILE          = 'project.manifest'
@@ -243,6 +249,10 @@ class AssetBuilder():
         self.LOCATION_FILE_LIST             = 'location_file_list.json'
         self.CHARACTER_FILE_LIST            = 'character_file_list.json'
         self.UI_FILE_LIST                   = 'ui_file_list.json'
+        self.LOCATION_CYPHER_FILE           = 'location_file_list.cypher'
+        self.CHARACTER_CYPHER_FILE          = 'character_file_list.cypher'
+        self.UI_CYPHER_FILE                 = 'ui_file_list.cypher'
+        self.NEO4J_GRAPHSTYLE_FILE          = 'graphstyle.grass'
         self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
         self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets'
         self.S3_CDN_INTERNAL_URL            = 's3://gree-kms-assets'
@@ -398,14 +408,13 @@ class AssetBuilder():
         src_user_schema = self._get_exist_file((src_user_schema, self.build_dir+'/'+self.USER_JSON_SCHEMA_FILE, self.master_user_schema_dir+'/'+self.USER_JSON_SCHEMA_FILE)) if src_user_schema != False else False
         src_user_data   = self._get_exist_file((src_user_data, self.user_data_dir+'/'+self.USER_JSON_DATA_FILE, self.master_user_data_dir+'/'+self.USER_JSON_DATA_FILE)) if src_user_data != False else False
         asset_dirs      = asset_dirs or [self.org_main_dir, self.org_master_dir]
-        dest_dir        = dest_dir or self.build_dir
         info("verify master data: %s + %s" % (os.path.basename(src_schema), os.path.basename(src_data)))
 
         opt_verify_file_reference = ['--verify-file-reference']        if verify_file_reference else []
         opt_user_schema           = ['--user-schema', src_user_schema] if src_user_schema else []
         opt_user_data             = ['--user-data', src_user_data]     if src_user_data else []
 
-        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--file-reference-list', dest_dir, '--asset-dir'] + asset_dirs + opt_user_schema + opt_user_data + opt_verify_file_reference
+        cmdline = [self.verify_master_json_bin, src_schema, src_data, '--asset-dir'] + asset_dirs + opt_user_schema + opt_user_data + opt_verify_file_reference
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -458,11 +467,9 @@ class AssetBuilder():
                 l = int(m.group(2))
                 with open(m.group(1), 'r') as f:
                     lines = f.readlines()
-                    print("".join(lines[l-20:l+20]))
                     stdout += ": "+lines[l-1]
             error(stdout);
             raise CalledProcessError(p.returncode, cmdline)
-        print(stdout)
         return True
 
     # create bin+header from json+fbs
@@ -515,18 +522,13 @@ class AssetBuilder():
         dest_dir      = dest_dir      or self.build_dir
 
         config = [
-            #['characterSpine', '300:550'],
-            #['npcSpine',       '450:550'],
-            #['snpcSpine',      '350:550']
             ['characterSpine', '0:2000'],
             ['npcSpine',       '0:2000'],
             ['snpcSpine',      '0:2000']
         ]
         for xlsx in self._get_xlsxes():
             sheets = self._get_xlsx_sheets(xlsx)
-            for conf in config:
-                sheet_name = conf[0]
-                size_limit = conf[1]
+            for sheet_name, size_limit in config:
                 if not sheet_name in sheets:
                     continue
                 spine_file     = re.sub('Spine$', '.json', sheet_name)
@@ -672,6 +674,42 @@ class AssetBuilder():
         check_call(cmdline)
         return True
 
+    # import master data into neo4j
+    def build_neo4j(self, src_schema=None, src_data=None, asset_dir=None, dest_graphstyle=None):
+        src_schema = src_schema or self.build_dir+'/'+self.MASTER_JSON_SCHEMA_FILE
+        src_data   = src_data   or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        asset_dir  = asset_dir  or self.main_dir
+        dest_graphstyle = dest_graphstyle or self.build_dir+'/'+self.NEO4J_GRAPHSTYLE_FILE
+
+        # TODO support each personal asset
+        if not self.is_master
+            return False
+
+        cmdline = [self.neo4j_import_bin, src_schema, src_data, asset_dir, '--css-path', dest_graphstyle]
+        info(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    # generate flie list by neo4j query
+    def build_file_list(self, src_cypher_dir=None, dest_file_list_dir=None):
+        src_cypher_dir     = src_cypher_dir or self.cypher_dir
+        dest_file_list_dir = dest_file_list_dir or self.build_dir
+
+        list = (
+            (self.LOCATION_CYPHER_FILE,  self.LOCATION_FILE_LIST), 
+            (self.CHARACTER_CYPHER_FILE, self.CHARACTER_FILE_LIST), 
+            (self.UI_CYPHER_FILE, self.UI_FILE_LIST), 
+        )
+        for cypher, file_list in list:
+            src_cypher     = self._get_exist_file((src_cypher_dir+'/'+cypher, self.master_cypher_dir+'/'+cypher))
+            dest_file_list = dest_file_list_dir+'/'+file_list
+
+            cmdline = [self.neo4j_query_bin, src_cypher, dest_file_list, '--aggrigate']
+            info(' '.join(cmdline))
+            check_call(cmdline)
+        return True
+
+
     # copy all generated files 
     def install_list(self, list, build_dir=None):
         build_dir = build_dir or self.build_dir
@@ -734,6 +772,7 @@ class AssetBuilder():
             (self.USER_MD5_FILE,                  self.user_header_dir,   self.org_user_header_dir),
             (self.AES_KEY_HEADER_FILE,            self.crypto_dir,        self.org_crypto_dir),
             (self.AES_IV_HEADER_FILE,             self.crypto_dir,        self.org_crypto_dir),
+            (self.NEO4J_GRAPHSTYLE_FILE,          self.cypher_dir,        self.org_cypher_dir),
         ]
         # spine
         for spine_path in glob("%s/*Spine/*" % build_dir):
@@ -910,14 +949,17 @@ class AssetBuilder():
         return True
 
     def build_manifest_queue(self, src_dir=None, project_dir=None, phase_dir=None):
-        src_dir     = src_dir     or self.master_distribution_dir
-        project_dir = project_dir or self.build_dir
-        phase_dir   = phase_dir   or self.build_dir
+        src_dir        = src_dir     or self.distribution_dir
+        master_src_dir = src_dir     or self.master_distribution_dir
+        project_dir    = project_dir or self.build_dir
+        phase_dir      = phase_dir   or self.build_dir
         manifest_paths = []
 
         # create phased manifests
-        phase_list = glob(src_dir+'/phase_*.list')
-        for filter_file in phase_list:
+        phase_list = glob(master_src_dir+'/phase_*.list')
+        for master_filter_file in phase_list:
+            filter_file = os.path.join(src_dir, os.path.basename(master_filter_file))
+            filter_file = filter_file if os.path.exists(filter_file) else master_filter_file
             m = re.match('phase_([0-9]+).list', os.path.basename(filter_file))
             phase = m.group(1)
             dest_project_manifest = os.path.join(project_dir, self.PROJECT_MANIFEST_FILE+'.'+phase)
@@ -1094,6 +1136,10 @@ class AssetBuilder():
         # crypto key
         self.build_crypto_key()
         self.build_encrypted_bin()
+
+        # setup neo4j
+        self.build_neo4j()
+        self.build_file_list()
 
         # install
         self.install_generated()

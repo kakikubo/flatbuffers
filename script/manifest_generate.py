@@ -191,8 +191,8 @@ class ManifestGenerator():
         filter_list = []
         for expand_target in expand_list:
             filtered = fnmatch.filter(file_list.keys(), expand_target)
-            if not filtered and self.validate_filter:
-                raise Exception("filter targets does not exist: %s" % expand_target)
+            #if not filtered and self.validate_filter:
+            #    raise Exception("filter targets does not exist: %s" % expand_target)
             for key in filtered:
                 for l in file_list[key]:
                     if l[0] != '/':

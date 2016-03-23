@@ -17,8 +17,6 @@ from subprocess import check_call
 from glob import glob
 
 # TODO areaInfo.position.id 親の areaList の id とセットで語る必要がある
-# TODO enemySpine.id -> contents/files/spine/enemySpine/{}.png, contents/files/spine/enemySpine/{}.atlas, contents/files/spine/enemySpine/{}.json
-# x characterJob.id -> contents/files/thumb/job/{}.png
 
 class MasterDataVerifier():
     def __init__(self, asset_dirs=None, verify_file_reference=True):
@@ -42,10 +40,8 @@ class MasterDataVerifier():
         self.user_schema_map         = None
         self.user_index_map          = None
         self.user_reference_map      = None
-        self.user_referenced_map     = None
         self.user_file_reference_map = None
         self.user_id_map             = None
-        self.user_referenced_id_map  = None
         self.user_validation_map     = None
 
         self.do_verify_file_reference = verify_file_reference
@@ -237,7 +233,7 @@ class MasterDataVerifier():
         if k == 'label':
             if v and not re.match('^[a-z0-9_./]+$', v):
                 error(u"%s[%d].%s: 不正なラベルです: %s" % (table, i, k, unicode(v)))
-                raise Exception("invalid filename name")
+                #raise Exception("invalid filename name")
 
     @staticmethod
     def has_err(v, i, value_type, value_spec):
@@ -434,93 +430,6 @@ class MasterDataVerifier():
                 path = path.replace('{'+k+'}', str(d[k]))
         return path
 
-    # TODO support user data
-    def collect_file_list(self, table, key, id, root_id, septums, is_septum, visited_map):
-        if visited_map.has_key(table) and visited_map[table].has_key(key) and visited_map[table][key].has_key(id):
-            return []
-        if not self.id_map[table].has_key(key) or not self.id_map[table][key].has_key(id):
-            return []
-        if not visited_map.has_key(table):
-            visited_map[table] = OrderedDict()
-        if not visited_map[table].has_key(key):
-            visited_map[table][key] = OrderedDict()
-        visited_map[table][key][id] = True
-
-        dest = []
-        for d in self.id_map[table][key][id]:
-            # add file reference
-            if self.file_reference_map.has_key(table):
-                for fref, paths in self.file_reference_map[table].iteritems():
-                    for path, required in paths.iteritems():
-                        debug('%d: file %s.%s(%s) -> %s(%s): %s' % (root_id, table, key, id, fref, d[fref], path))
-                        for asset_dir in self.asset_dirs:
-                            glob_path = os.path.join(asset_dir, self.complete_file_path(path, d[fref], d))
-                            debug("%d: glob: %s" % (root_id, glob_path))
-                            for file in glob(glob_path):
-                                dest.append(re.sub('^'+asset_dir+'/', '', file))
-            if is_septum:
-                continue
-
-            # recursive for referenced
-            if self.referenced_id_map.has_key(table) and self.referenced_id_map[table].has_key(key) and self.referenced_id_map[table][key].has_key(id):
-                for ref in self.referenced_id_map[table][key][id]:
-                    for ref_table, ref_data in ref.iteritems():
-                        is_septum = ref_table in septums
-                        schema = self.schema_map[ref_table]
-                        for name, sch in schema.iteritems():
-                            if sch['attribute'] and sch['attribute'].has_key('key'):
-                                for ref_name, data in ref_data.iteritems():
-                                    debug('%d: from %s.%s(%s) -> %s.%s -> %s.%s(%s): %s' % (root_id, table, key, id, ref_table, ref_name, ref_table, name, data[name], is_septum))
-                                    dest += self.collect_file_list(ref_table, name, data[name], root_id, septums, is_septum, visited_map)
-
-            # recursive for reference
-            if self.reference_map.has_key(table):
-                for name, refs in self.reference_map[table].iteritems():
-                    for ref in refs:
-                        is_septum = ref[0] in septums
-                        debug('%d: to %s(%s).%s -> %s.%s(%s): %s' % (root_id, table, id, name, ref[0], ref[1], d[name], is_septum))
-                        dest += self.collect_file_list(ref[0], ref[1], d[name], root_id, septums, is_septum, visited_map)
-        return dest
-
-    def generate_file_reference_list(self, dest_dir):
-        self.referenced_map      = self.create_referenced_map(self.reference_map)
-        #self.user_referenced_map = self.create_referenced_map(self.user_reference_map)
-        self.referenced_id_map   = self.create_referenced_id_map(self.referenced_map, self.master_data, self.id_map)
-        septums = []
-        for sheet in self.master_data['sheet']:
-            if sheet['referenceSeptum']:
-                septums.append(self.upper_camel_case(sheet['name']))
-        info("reference septums: %s" % ', '.join(septums))
-
-        # create referenced file list from Location
-        location_file_list = OrderedDict()
-        for d in self.master_data['location']:
-            l = self.collect_file_list('Location', 'id', d['id'], d['id'], septums, False, OrderedDict())
-            location_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
-        info("generate file reference list: location_file_list.json: %d" % len(location_file_list))
-        with open(os.path.join(dest_dir, 'location_file_list.json'), 'w') as f:
-            json.dump(location_file_list, f, indent=2)
-
-        # create referenced file list from Character
-        character_file_list = OrderedDict()
-        for d in self.master_data['character']:
-            l = self.collect_file_list('Character', 'id', d['id'], d['id'], septums, False, OrderedDict())
-            character_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
-        info("generate file reference list: character_file_list.json: %d" % len(character_file_list))
-        with open(os.path.join(dest_dir, 'character_file_list.json'), 'w') as f:
-            json.dump(character_file_list, f, indent=2)
-
-        # create referenced file list from LayoutLoader
-        ui_file_list = OrderedDict()
-        for d in self.master_data['layoutLoader']:
-            l = self.collect_file_list('LayoutLoader', 'id', d['id'], d['id'], septums, False, OrderedDict())
-            ui_file_list[d['id']] = sorted(dict(zip(l[0::1], l[0::1])).keys())
-        info("generate file reference list: ui_file_list.json: %d" % len(ui_file_list))
-        with open(os.path.join(dest_dir, 'ui_file_list.json'), 'w') as f:
-            json.dump(ui_file_list, f, indent=2)
-
-        return True
-
 # ---
 # main function
 #
@@ -536,7 +445,6 @@ example:
     parser.add_argument('--user-data', help = 'input user data json file ')
     parser.add_argument('--asset-dir', default = [], nargs='*', help = 'asset dir root default: .')
     parser.add_argument('--verify-file-reference', default = False, action = 'store_true', help = 'verify file reference')
-    parser.add_argument('--file-reference-list', help = 'output dir of referenced file lists generated')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
@@ -547,14 +455,11 @@ example:
     info("input user data = %s", args.user_data)
     info("input asset dir = %s", ', '.join(args.asset_dir))
     info("verify file reference = %s", args.verify_file_reference)
-    info("output file reference list = %s", args.file_reference_list)
     verifier = MasterDataVerifier(args.asset_dir, args.verify_file_reference)
     verifier.load_master_data(args.input_master_schema, args.input_master_data)
     verifier.verify_master_data()
     if args.user_schema:
         verifier.load_user_data(args.user_schema, args.user_data)
         verifier.verify_user_data()
-    if args.file_reference_list:
-        verifier.generate_file_reference_list(args.file_reference_list)
     info("no error is detected")
     exit(0)
