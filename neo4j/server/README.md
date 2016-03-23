@@ -24,3 +24,13 @@ Neo4j のマルチサーバ + データベース設定を作成するための�
 ```
 
 port は配列のインデックス * 10 で決定されます
+
+## サーバの起動
+環境変数 NEO4J_HOME をそれぞれのユーザのディレクトリに指定して起動します
+
+```
+ $ NEO4J_HOME=~/neo4j/kiyoto.suzuki ./neo4j start
+ Starting Neo4j Server...WARNING: not changing user
+ process [63608]... waiting for server to be ready...... OK.
+ http://localhost:7600/ is ready.
+```
