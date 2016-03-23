@@ -44,4 +44,5 @@ if [ $target = "master" ]; then
   fi
 fi
 
+echo "--- WATCHMAN BUILD SUCCESS ----"
 exit 0
