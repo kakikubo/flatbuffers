@@ -480,6 +480,9 @@ class Neo4jImporter():
         info("create data relationships: begin")
         data_node_map = self.query_node_map('data', '_table', True)
         data_relationship_map = self.query_relationship_map('data')
+        org_data_relationship_map = {}
+        for key in data_relationship_map.keys():
+            org_data_relationship_map[key] = True
 
         for table, references in self.reference_map.iteritems():
             if not self.key_map.has_key(table) or not data_node_map.has_key(table):
@@ -522,6 +525,7 @@ class Neo4jImporter():
                         if not data_relationship_map.has_key(_id):
                             debug("CREATE DATA RELATIONSHIP (%s {id: %s, %s: %s})-[%s {_id: %s}]-(%s {id: %s})" % (table, id, key, peer_val, relation, _id, ref, peer_id))
                             relationship = node.relationships.create(relation, peer, **properties)
+                            data_relationship_map[_id] = relationship
                         else:
                             relationship = data_relationship_map[_id]
                             diff = DeepDiff(relationship.properties, properties, ignore_order = True)
@@ -530,7 +534,8 @@ class Neo4jImporter():
                                 relationship.properties = properties
                             else:
                                 debug("STABLE DATA RELATIONSHIP (%s {id: %s, %s: %s})-[%s {_id: %s}]-(%s {id: %s})" % (table, id, key, peer_val, relation, _id, ref, peer_id))
-                            del data_relationship_map[_id]  # mark updated
+                            if org_data_relationship_map.has_key(_id):
+                                del data_relationship_map[_id]  # mark updated
 
         # deleted relationships
         for _id, relationships in data_relationship_map.iteritems():
@@ -546,7 +551,7 @@ class Neo4jImporter():
     def file_real_path(self, path):
         return re.sub('^/', '', re.sub(self.asset_dir, '', path))
 
-    def create_file_node(self, label, table, item, key, fref, required, file_node_map):
+    def create_file_node(self, label, table, item, key, fref, required, file_node_map, org_file_node_map):
         if not item.has_key(key) or not item[key]:
             return file_node_map
 
@@ -580,12 +585,16 @@ class Neo4jImporter():
                     node.properties = properties
                 else:
                     debug("STABLE FILE NODE %s: %s %s %s (%s) %d" % (table, key, required, path, real_path, file_size))
-                #del file_node_map[real_path] # mark updated FIXME
+                if org_file_node_map.has_key(real_path):
+                    del org_file_node_map[real_path] # mark updated
         return file_node_map
 
     def create_file_nodes(self):
         info("create file nodes: begin")
         file_node_map = self.query_node_map('file', 'realPath')
+        org_file_node_map = {}
+        for key in file_node_map.keys():
+            org_file_node_map[key] = True
 
         # create or update file nodes
         file_label_map = OrderedDict()
@@ -606,17 +615,16 @@ class Neo4jImporter():
                     label = file_label_map[ext]
 
                     if isinstance(table_data, dict):
-                        file_node_map = self.create_file_node(label, table, table_data, key, fref, required, file_node_map)
+                        file_node_map = self.create_file_node(label, table, table_data, key, fref, required, file_node_map, org_file_node_map)
                     elif isinstance(table_data, list):
                         for item in table_data:
-                            file_node_map = self.create_file_node(label, table, item, key, fref, required, file_node_map)
+                            file_node_map = self.create_file_node(label, table, item, key, fref, required, file_node_map, org_file_node_map)
                     else:
                         raise Exception("invalid data type in %s: %s" % (table, table_data))
 
         # deleted nodes
-        # FIXME processed_file_node_map
-        #for real_path, nodes in org_file_node_map.iteritems():
-        #    self.delete_nodes('MATCH (n {_nodeType: "file", realPath: "%s"}) DETACH DELETE n' % real_path)
+        for real_path, nodes in org_file_node_map.iteritems():
+            self.delete_nodes('MATCH (n {_nodeType: "file", realPath: "%s"}) DETACH DELETE n' % real_path)
         return True
 
     def create_file_indexes(self):
@@ -631,6 +639,9 @@ class Neo4jImporter():
         data_node_map = self.query_node_map('data', '_table', True)
         file_node_map = self.query_node_map('file', 'realPath')
         file_relationship_map = self.query_relationship_map('file')
+        org_file_relationship_map = {}
+        for key in file_relationship_map.keys():
+            org_file_relationship_map[key] = True
 
         for table, schema in self.schema.iteritems():
             info("create file relationships: %s" % table)
@@ -646,20 +657,21 @@ class Neo4jImporter():
                             if not file_node_map.has_key(real_path):
                                 continue
                             for peer in file_node_map[real_path]:
-                                _id = "{table}-{real_path}".format(table = table, real_path = peer.properties['realPath'])
+                                _id = "{table}-{key}-{id}-{real_path}".format(table = table, key = key, id = id, real_path = peer.properties['realPath'])
                                 relation = self.file_real_path(peer.properties['realPath'])
                                 properties = {
-                                    u'key': key, 
+                                    u'key': unicode(key), 
                                     u'id': id,
                                     u'_id': unicode(_id), 
                                     u'required': required, 
-                                    u'_relationType': 'file', 
+                                    u'_relationType': u'file', 
                                     u'name': peer.properties['name'], 
                                     u'path': peer.properties['path']
                                 }
                                 if not file_relationship_map.has_key(_id):
                                     debug("CREATE FILE RELATIONSHIP (%s {id: %s})-[%s {_id: %s}]-(%s {path: %s})" % (table, id, relation, _id, fref, path))
                                     relationship = node.relationships.create(relation, peer, **properties)
+                                    file_relationship_map[_id] = relationship
                                 else:
                                     relationship = file_relationship_map[_id]
                                     diff = DeepDiff(relationship.properties, properties, ignore_order = True)
@@ -668,10 +680,11 @@ class Neo4jImporter():
                                         relationship.properties = properties
                                     else:
                                         debug("STABLE FILE RELATIONSHIP (%s {id: %s})-[%s {_id: %s}]-(%s {path: %s})" % (table, id, relation, _id, fref, path))
-                                    del file_relationship_map[_id]  # mark updated
+                                    if org_file_relationship_map.has_key(_id):
+                                        del org_file_relationship_map[_id] # mark updated
 
         # deleted relationships
-        for _id, relationships in file_relationship_map.iteritems():
+        for _id, relationships in org_file_relationship_map.iteritems():
             self.delete_relationships('file', _id)
         return True
 
