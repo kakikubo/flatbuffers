@@ -31,7 +31,7 @@ if __name__ == '__main__':
 example:
     $ ./neo4j/import_data.py master_derivatives/master_schema.json master_derivatives/master_data.json kms_master_asset""")
     parser.add_argument('input_cypher', metavar = 'xxx.cypher',  help = 'input cypher file')
-    parser.add_argument('output_json',  metavar = 'xxx.json', help = 'output json file')
+    parser.add_argument('output_json',  metavar = 'xxx.json', nargs = '?', default = None, help = 'output json file')
     parser.add_argument('--aggrigate',  action = 'store_true', default = False, help = 'build map by most left key')
     parser.add_argument('--neo4j-url',  default = neo4j_url_default, help = 'neo4j server to connect. e.g. http://<username>:<password>@<host>:<port>/db/data')
     parser.add_argument('--log-level',  help = 'log level (WARNING|INFO|DEBUG). default: INFO')
@@ -57,7 +57,10 @@ example:
         info("aggrigated by %d items" % len(aggrigated.keys()))
         data = aggrigated
 
-    with open(args.output_json, 'w') as f:
-        json.dump(data, f, indent=2)
+    if args.output_json:
+        with open(args.output_json, 'w') as f:
+            json.dump(data, f, indent=2)
+    else:
+        print(json.dumps(data, indent=2))
 
     exit(0)
