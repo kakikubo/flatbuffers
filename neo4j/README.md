@@ -132,6 +132,15 @@ https://github.com/jexp/neo4j-shell-tools
 
 そうでないと、結果が発散してしまい、クエリが返ってこなくなります。
 
+#### 特定のファイルパスが DB 上に登録されているかを調べる
+ファイルノードを探索してもよいですが、実パスでセットされたリレーションを調べるほうがシンプルになります
+
+```
+match ()-[r]-() where type(r) ends with "tsukikage/ground/ground01.png" return r;
+```
+
+実際には contens/files/areaAtlas の下に ends with あるので、ends with で探索しましょう
+
 #### 特定のファイルパスが対象の Location に所属しているかを調べる
 ```
 match p = shortestpath((s:Location {id: 510000001})-[r*]-(d {real_path: "contents/files/areaAtlas/route99/route99_ground_0.png"})) return p;
