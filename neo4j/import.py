@@ -813,7 +813,7 @@ example:
     parser.add_argument('--graphstyle-template', default = graphstyle_template_default, help = 'graphstyle.grass template file')
     parser.add_argument('--log-level',  help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     importer = Neo4jImporter(args.neo4j_url, args.asset_dir)
     importer.load_json(args.input_schema, args.input_data)

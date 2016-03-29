@@ -43,7 +43,7 @@ example:
     parser.add_argument('editor_jsons', default = [], nargs='*', help = 'source editor {schema|data} files')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     merge_editor_files(args.master_json, args.master_json, args.editor_jsons)
     exit(0)

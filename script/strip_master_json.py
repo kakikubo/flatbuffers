@@ -40,7 +40,7 @@ example:
     parser.add_argument('bundle_keys_json', metavar='bundle_list.json', help='filtering keys list by json flat array')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     info("input master data json file =  %s" % args.src_json)
     info("output master data json file =  %s" % args.dest_json)

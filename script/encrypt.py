@@ -66,8 +66,6 @@ def encrypt_dir(src_dir, dest_dir, src_ext, dest_ext, aes_key, aes_iv, gzip):
     return True
 
 if __name__ == '__main__':
-    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
-
     parser = argparse.ArgumentParser(description = 'encrypt files by AES-256-CBC and gzip')
     parser.add_argument('input_dir',  metavar = 'input.dir',  help = 'input dir containing input files')
     parser.add_argument('output_dir', metavar = 'output.dir', help = 'output dir for encrypted files')
@@ -78,7 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-extension', default = 'enc', help = 'output file extension encrpted into output.dir')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     info("input dir = %s" % args.input_dir)
     info("output dir = %s" % args.output_dir)

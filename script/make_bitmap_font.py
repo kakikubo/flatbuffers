@@ -102,15 +102,15 @@ def generate_bitmap_font(char_map, gd_dir, font_dir):
                 raise Exception("too large font file png: %s (%d x %d)" % (font_file+'.png', image.size[0], image.size[1]))
 
 if __name__ == '__main__':
-    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
-
     parser = argparse.ArgumentParser(description = 'build bitmap font by GlyphDesigner CLI and master data')
     parser.add_argument('input_json', metavar = 'master_data.json', help = 'input master data json')
     parser.add_argument('gd_dir',     help = 'input glyph designer project dir')
     parser.add_argument('font_dir',   help = 'output bitmap font dir')
     parser.add_argument('--lua-dir',  default = [], nargs='*', help = 'input lua script dir')
     parser.add_argument('--char-map-json', metavar = 'char_map.json', help = 'output char map json')
+    parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     if not os.path.exists(gdcl):
         warning("GlyphDesigner Command Line is not installed: %s" % gdcl)

@@ -301,15 +301,16 @@ def normalize_data(data):
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
     #sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
-    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
-
     parser = argparse.ArgumentParser(description = 'master data xlsx to json converter')
     parser.add_argument('input_xlsxes',    metavar = 'input.xlsx(es)',  nargs = "+", help = 'input Excel master data files')
     parser.add_argument('--schema-json',   metavar = 'schema.json', help = 'output schema json file. default:  master_schema.json')
     parser.add_argument('--data-json',     metavar = 'data.json',   help = 'output data json file. default:  master_data.json')
     parser.add_argument('--except-sheets', default = '',            help = 'except sheets (, separated list) default: ')
     parser.add_argument('--except-json',   default = False, action = 'store_true', help = 'except json master data (srcType = json, json_array)')
+    parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
+
     schema_json_file = args.schema_json or 'master_schema.json'
     data_json_file   = args.data_json   or 'master_data.json'
     except_sheets    = args.except_sheets.split(',')

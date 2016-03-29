@@ -72,6 +72,6 @@ example:
     parser.add_argument('--src-dir', help = 'src png dir (just with --complete-png)')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     make_weapon_atlas(args.master_xlsx, args.sheet_name, args.start_row, args.start_col, args.dest_dir, args.complete_png, args.src_dir)

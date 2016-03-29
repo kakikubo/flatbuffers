@@ -177,9 +177,9 @@ examples:
     parser.add_argument('--skip-sync-root', help = 'skip syncing build_dir contents to root_dir(ignored if command is `deploy`) (0|1)', default=0, type=int)
     parser.add_argument('--skip-update-dynamodb', help = 'skip update  dynamodb table (ignored if command is `deploy`) (0|1)', default=0, type=int)
     parser.add_argument('--log-level',      help = 'log level (WARNING|INFO|DEBUG). default: INFO', default='INFO')
-
     args = parser.parse_args()
-    logging.basicConfig(level=args.log_level, format='%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
+
     updater = WebViewUpdater(args.root_dir, args.build_dir, args.environment)
     if args.command in ('update', 'update_deploy'):
         updater.generate_json()
