@@ -1,12 +1,15 @@
 #!/bin/sh
 
 asset_list=${KMS_ASSET_LIST:-~/box/kms_master_asset/manifests/dev.asset_list.json}
+query=`dirname $0`/../query.py
 
 exit_code=0
 for user_name in `jq -r '.[]' $asset_list`; do
   echo "$user_name $*..."
-  NEO4J_HOME=${NEO4J_MULTI_ROOT:-~/neo4j}/$user_name `dirname $0`/neo4j $*
+  index=`jq -r ". | index(\"$user_name\")" $asset_list`
+  port=$((7500+$index*10))
+  neo4j_url="http://neo4j:fflkms001@localhost:${port}/db/data/"
+  $query --neo4j-url $neo4j_url $*
   [ $? -eq 0 ] || exit_code=$?
 done
 exit $exit_code
-
