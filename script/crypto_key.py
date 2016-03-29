@@ -29,7 +29,7 @@ def generate_cpp_header(src_file, dest_file, variable_name):
 #
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
-    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
     parser = argparse.ArgumentParser(description = 'generate crypto keys (AES-256-CBC)')
     parser.add_argument('src_aes_key_text', metavar = 'aes_256_key.txt', help = 'src AES-256-CBC password text (32byte)')
     parser.add_argument('src_aes_iv_text',  metavar = 'aes_iv.txt',   help = 'src AES Initial Vector text (16byte)')

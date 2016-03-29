@@ -9,44 +9,47 @@ import subprocess
 import shutil
 import argparse
 import logging
+from multiprocessing import Process
 from logging import info, warning, debug
 
-def verify_filename(src_dir):
-    for root, dirs, files in os.walk(src_dir):
-        for f in dirs + files:
-            if not re.match('^[a-z0-9_./]+$', f):
-                raise Exception("invalid filename is detected: %s" % os.path.join(root, f))
-    return True
+class MakeAreaAtlas():
+    def __init__(self, src_dir, dest_dir, work_dir = None):
+        self.src_dir  = src_dir
+        self.dest_dir = dest_dir
+        self.work_dir = work_dir or dest_dir + "/_temp"
 
-def get_file_count(dir):
-    if not os.path.isdir(dir): return 0
-    i=0
-    for root, dirs, files in os.walk(dir):
-        i+=len(files)
-    return i
+    def verify_filename(self, dir):
+        for root, dirs, files in os.walk(dir):
+            for f in dirs + files:
+                if not re.match('^[a-z0-9_./]+$', f):
+                    raise Exception("invalid filename is detected: %s" % os.path.join(root, f))
+        return True
 
-def make_area_atlas(src_dir, dest_dir, work_dir=None):
-    work_dir = work_dir or dest_dir + "/_temp"
+    def get_file_count(self, dir):
+        if not os.path.isdir(dir): return 0
+        i=0
+        for root, dirs, files in os.walk(dir):
+            i+=len(files)
+        return i
 
-    top_dirs = os.listdir(src_dir)
-    for top_dir in top_dirs:
-        category_top_dir = os.path.join(src_dir, top_dir)
+    def make_area_atlas(self, top_dir):
+        category_top_dir = os.path.join(self.src_dir, top_dir)
         if not os.path.isdir(category_top_dir):
             continue
-        work_top_dir = os.path.join(work_dir, top_dir)
+        work_top_dir = os.path.join(self.work_dir, top_dir)
         category_dirs = os.listdir(category_top_dir)
         for category_dir in category_dirs:
             # フォルダ階層も名前に含みたいので作業フォルダにコピーしてからコンバートする
-            category_src_dir = os.path.join(src_dir, top_dir, category_dir)
+            category_src_dir = os.path.join(self.src_dir, top_dir, category_dir)
             if not os.path.isdir(category_src_dir):
                 continue
 
-            if os.path.exists(work_dir):
-                shutil.rmtree(work_dir)
-            work_category_dir = os.path.join(work_dir, top_dir, category_dir)
+            if os.path.exists(self.work_dir):
+                shutil.rmtree(self.work_dir)
+            work_category_dir = os.path.join(self.work_dir, top_dir, category_dir)
             shutil.copytree(category_src_dir, work_category_dir)
 
-            base = "{0}/{1}/{1}_{2}".format(dest_dir, top_dir, category_dir)
+            base = "{0}/{1}/{1}_{2}".format(self.dest_dir, top_dir, category_dir)
 
             plistFile = base + "_{n}.plist"
             imageFile = base + "_{n}.png"
@@ -57,7 +60,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
             borderPadding = "2"
             extrude = "4"
 
-            fnum = get_file_count(work_dir)
+            fnum = self.get_file_count(self.work_dir)
             print "{0} : textures num[{1}]".format(category_src_dir, fnum)
             if fnum == 0:
                 continue
@@ -94,7 +97,7 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
                 "--extrude", extrude,
                 "--scale", scale,
                 "--scale-mode", "Smooth",
-                 work_dir])
+                 self.work_dir])
 
             #現在png側をコンバートした時のplistを使っているので特に要らないファイル。が、上書きしちゃうと再ビルドの時に全部ビルドが走ってしまうらしい。。。
             plistFile = base + "_{n}.pvr.plist"
@@ -137,7 +140,18 @@ def make_area_atlas(src_dir, dest_dir, work_dir=None):
                 "--extrude", extrude,
                 "--scale", scale,
                 "--scale-mode", "Smooth",
-                 work_dir])
+                 self.work_dir])
+
+    def make_area_atlas_all(self):
+        top_dirs = os.listdir(self.src_dir)
+        processes = []
+        for top_dir in top_dirs:
+            processes.append(Process(target = self.make_area_atlas, args=(top_dir, )))
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+
 # ---
 # main function
 #
@@ -153,7 +167,7 @@ example:
     parser.add_argument('--verify-filename', default = False, action = 'store_true', help = 'verify filename is composed only by lower case')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     if not os.path.exists('/usr/local/bin/TexturePacker'):
         warning("TexturePacker is not installed: /usr/local/bin/TexturePacker")
@@ -165,7 +179,9 @@ example:
     info("output dir = %s" % dest_dir)
     info("work dir = %s" % args.work_dir)
     info("verify filename = %s" % args.verify_filename)
+
+    make = MakeAreaAtlas(args.src_dir, args.dest_dir, args.work_dir)
     if args.verify_filename:
-        verify_filename(src_dir)
-    make_area_atlas(src_dir, dest_dir, args.work_dir)
+        make.verify_filename(src_dir)
+    make.make_area_atlas_all()
 

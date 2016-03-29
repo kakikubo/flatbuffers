@@ -1020,8 +1020,6 @@ end
 # main function
 #
 if __name__ == '__main__':
-    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
-
     parser = argparse.ArgumentParser(description = 'convert fbs schema to C++ classes')
     parser.add_argument('input_fbs',     metavar = 'input.fbs',   help = 'input FlatBuffers schema file')
     parser.add_argument('output_header', metavar = 'output.h',    help = 'output class header file (C++ header)')
@@ -1032,7 +1030,9 @@ if __name__ == '__main__':
     parser.add_argument('--json',    action = 'store_true', default = True,  help = 'generate json IO code')
     parser.add_argument('--msgpack', action = 'store_true', default = True,  help = 'generate msgpack IO code')
     parser.add_argument('--fbs',     action = 'store_true', default = False, help = 'generate flatbuffers IO code')
+    parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     info("input  = %s" % args.input_fbs)
     info("output header = %s" % args.output_header)

@@ -359,7 +359,7 @@ if __name__ == '__main__':
     parser.add_argument('--size-limit', help = "spine size spiecified by max-width:max-height")
     parser.add_argument('--log-level',  help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     if args.size_limit:
         verify_spine(args.input_json, args.size_limit)

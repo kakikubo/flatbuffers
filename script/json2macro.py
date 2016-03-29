@@ -39,12 +39,13 @@ def json2fbs(input_json, output_h, key):
 #
 if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
-    logging.basicConfig(level = logging.INFO, format = '%(asctime)-15s %(levelname)s %(message)s')
     parser = argparse.ArgumentParser(description = 'generate accessor macro header file from json')
     parser.add_argument('input_json', metavar = 'input.json', help = 'input sheet definition data json file')
     parser.add_argument('output_h',   metavar = 'output.h',   help = 'output macro header file')
     parser.add_argument('--key',      default = 'sheet',      help = 'root node of macro generate')
+    parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     info("input.json = %s" % args.input_json)
     info("output.h = %s" % args.output_h)

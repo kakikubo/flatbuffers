@@ -128,7 +128,7 @@ example:
     parser.add_argument('--filter', metavar='filter.list', required=True, help='asset filter list (fnmatch format)')
     parser.add_argument('--log-level', help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     src_dir  = os.path.normpath(args.src_dir)
     dest_dir = os.path.normpath(args.dest_dir)

@@ -16,6 +16,7 @@ from time import strftime
 from subprocess import check_call, check_output, call, CalledProcessError, Popen, STDOUT, PIPE
 from shutil import move, rmtree, copy2, copytree
 from glob import glob
+from multiprocessing import Process
 from logging import info, warning, debug, error
 
 class AssetBuilder():
@@ -263,10 +264,13 @@ class AssetBuilder():
         self.MASTER_DATA_ROW_START          = 3
 
         # setup Neo4j URL
-        with open(self.master_manifest_dir+'/'+self.ASSET_LIST_FILE, 'r') as f:
-            data = json.loads(f.read())
-            port = self.NEO4J_PORT_BASE + data.index(self.target) * 10
-            self.neo4j_url = self.NEO4J_URL_FORMAT.format(port = port)
+        if command in ('debug'):
+            port = 7474 # default neo4j
+        else:
+            with open(self.master_manifest_dir+'/'+self.ASSET_LIST_FILE, 'r') as f:
+                data = json.loads(f.read())
+                port = self.NEO4J_PORT_BASE + data.index(self.target) * 10
+        self.neo4j_url = self.NEO4J_URL_FORMAT.format(port = port)
 
     # prepare and isolate source data via box
     def prepare_dir(self, src, dest):
@@ -432,6 +436,9 @@ class AssetBuilder():
         src_dir1  = src_dir1 or self.master_xlsx_dir
         src_dir2  = src_dir1 or self.main_xlsx_dir
         dest_diff = dest_diff or self.build_dir+'/'+self.MASTER_DIFF_FILE
+
+        if self.is_master:
+            return True
 
         info("build master diff: %s" % os.path.basename(dest_diff))
         cmdline = [self.excel_diff_generator_bin, '--ng', '--dir', src_dir1, src_dir2]
@@ -696,23 +703,14 @@ class AssetBuilder():
         return True
 
     # generate flie list by neo4j query
-    def build_file_list(self, src_cypher_dir=None, dest_file_list_dir=None, neo4j_url=None):
-        src_cypher_dir     = src_cypher_dir or self.cypher_dir
-        dest_file_list_dir = dest_file_list_dir or self.build_dir
-        neo4j_url          = neo4j_url or self.neo4j_url
+    def build_file_list(self, src_cypher, dest_file_list, neo4j_url=None):
+        neo4j_url = neo4j_url or self.neo4j_url
+        src_cypher     = self._get_exist_file((self.cypher_dir+'/'+src_cypher, self.master_cypher_dir+'/'+src_cypher))
+        dest_file_list = self.build_dir+'/'+dest_file_list
 
-        list = (
-            (self.LOCATION_CYPHER_FILE,  self.LOCATION_FILE_LIST), 
-            (self.CHARACTER_CYPHER_FILE, self.CHARACTER_FILE_LIST), 
-            (self.UI_CYPHER_FILE, self.UI_FILE_LIST), 
-        )
-        for cypher, file_list in list:
-            src_cypher     = self._get_exist_file((src_cypher_dir+'/'+cypher, self.master_cypher_dir+'/'+cypher))
-            dest_file_list = dest_file_list_dir+'/'+file_list
-
-            cmdline = [self.neo4j_query_bin, src_cypher, dest_file_list, '--aggrigate', '--neo4j-url', neo4j_url]
-            info(' '.join(cmdline))
-            check_call(cmdline)
+        cmdline = [self.neo4j_query_bin, src_cypher, dest_file_list, '--aggrigate', '--neo4j-url', neo4j_url]
+        info(' '.join(cmdline))
+        check_call(cmdline)
         return True
 
 
@@ -1091,10 +1089,7 @@ class AssetBuilder():
         info("deploy to s3 server: done")
         return True
 
-    # do all processes
-    def build(self):
-        self.setup_dir()
-
+    def build_master_data(self):
         # for standard master data
         self.build_master_json()
         self.merge_editor_schema()
@@ -1105,8 +1100,9 @@ class AssetBuilder():
         self.build_master_fbs()
         self.build_master_bin()
         self.build_master_bundled_bin()
+        return True
 
-        # for editor master data
+    def build_editor_master_data(self):
         editor_schema_file = self.build_dir+'/'+self.EDITOR_MASTER_JSON_SCHEMA_FILE
         editor_data_file   = self.build_dir+'/'+self.EDITOR_MASTER_JSON_DATA_FILE
         editor_macro_file  = self.build_dir+'/'+self.EDITOR_MASTER_MACRO_FILE
@@ -1120,40 +1116,67 @@ class AssetBuilder():
         self.build_master_macro(src_json=editor_data_file, dest_macro=editor_macro_file)
         self.build_master_fbs(src_json=editor_schema_file, dest_fbs=editor_fbs_file)
         self.build_master_bin(src_json=editor_data_file, src_fbs=editor_fbs_file, dest_bin=editor_bin_file, dest_header=editor_header_file, dest_md5=editor_md5_file, dest_define=editor_md5_define)
+        return True
 
-        # user data
-        self.build_user_class()
-
-        # verify
-        self.verify_master_json()
-        if not self.is_master:
-            self.build_master_diff()
-
-        # asset
-        self.build_spine()
-        # self.build_weapon()
-        self.build_area_atlas()
-        self.build_ui_atlas()
-        self.build_font()
-
-        # webviews
-        self.build_webviews()
-
-        # crypto key
+    def build_encrypt(self):
         self.build_crypto_key()
         self.build_encrypted_bin()
+        return True
 
-        # setup neo4j
-        self.build_neo4j()
-        self.build_file_list()
+    def run_build_phase(self, processes):
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+        for p in processes:
+            if p.exitcode != 0:
+                error("process '%s' exited by '%d'" % (p, p.exitcode))
+        return True
 
-        # install
+    # do all processes
+    def build(self):
+        # phase 0: setup
+        self.setup_dir()
+
+        # phase 1: master data + user data
+        processes = [
+            Process(target=self.build_master_data),
+            Process(target=self.build_editor_master_data),
+            Process(target=self.build_user_class),
+        ]
+        self.run_build_phase(processes)
+
+        # phase 2: verify
+        self.verify_master_json()
+
+        # phase 3: asset build
+        processes = [
+            Process(target=self.build_spine),
+            #Process(target=self.build_weapon),
+            Process(target=self.build_area_atlas),
+            Process(target=self.build_ui_atlas),
+            Process(target=self.build_font),
+            Process(target=self.build_neo4j),
+        ]
+        self.run_build_phase(processes)
+
+        # phase 4: asset packaging 
+        processes = [
+            Process(target=self.build_webviews),
+            Process(target=self.build_encrypt),
+            Process(target=self.build_file_list, args=(self.LOCATION_CYPHER_FILE, self.LOCATION_FILE_LIST)),
+            Process(target=self.build_file_list, args=(self.CHARACTER_CYPHER_FILE, self.CHARACTER_FILE_LIST)),
+            Process(target=self.build_file_list, args=(self.UI_CYPHER_FILE, self.UI_FILE_LIST)),
+        ]
+        self.run_build_phase(processes)
+
+        # phase 5: install
         self.install_generated()
         self.install_texture()
         self.build_asset_list()
         self.verify_master_json(src_user_schema = False, src_user_data = False, verify_file_reference = True)
 
-        # setup to deploy
+        # phase 6: deploy
         self.build_manifest()
         self.build_manifest_queue()
         self.install_manifest()
@@ -1219,7 +1242,7 @@ examples:
     parser.add_argument('--git-dir',       help = 'git directory to deploy. default: (not to deploy)')
     parser.add_argument('--log-level',     help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
-    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(levelname)s %(message)s')
+    logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
     asset_builder = AssetBuilder(command = args.command, target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, mirror_dir = args.mirror_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
     try:
