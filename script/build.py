@@ -264,7 +264,7 @@ class AssetBuilder():
         self.MASTER_DATA_ROW_START          = 3
 
         # setup Neo4j URL
-        if command in ('debug'):
+        if command in ('debug', 'clean'):
             port = 7474 # default neo4j
         else:
             with open(self.master_manifest_dir+'/'+self.ASSET_LIST_FILE, 'r') as f:
@@ -1130,7 +1130,7 @@ class AssetBuilder():
             p.join()
         for p in processes:
             if p.exitcode != 0:
-                error("process '%s' exited by '%d'" % (p, p.exitcode))
+                raise Exception("process '%s' exited by '%d'" % (p, p.exitcode))
         return True
 
     # do all processes
@@ -1159,6 +1159,7 @@ class AssetBuilder():
             Process(target=self.build_neo4j),
         ]
         self.run_build_phase(processes)
+# FIXME cannot build neo4j before create asset files
 
         # phase 4: asset packaging 
         processes = [

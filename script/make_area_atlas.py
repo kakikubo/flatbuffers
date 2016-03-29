@@ -32,115 +32,121 @@ class MakeAreaAtlas():
             i+=len(files)
         return i
 
+    def make_area_atlas_by_category(self, top_dir, category_dir):
+          # フォルダ階層も名前に含みたいので作業フォルダにコピーしてからコンバートする
+          category_src_dir = os.path.join(self.src_dir, top_dir, category_dir)
+          category_work_dir = os.path.join(self.work_dir, top_dir, category_dir)
+          if not os.path.isdir(category_src_dir):
+              return False
+          if os.path.exists(category_work_dir):
+              shutil.rmtree(category_work_dir)
+          if not os.path.exists(os.path.dirname(category_work_dir)):
+              os.makedirs(os.path.dirname(category_work_dir))
+          shutil.copytree(category_src_dir, category_work_dir)
+
+          base = "{0}/{1}/{1}_{2}".format(self.dest_dir, top_dir, category_dir)
+
+          plistFile = base + "_{n}.plist"
+          imageFile = base + "_{n}.png"
+          textureType = "png"
+          textureFormat = "RGBA8888"
+          pvrQuality = "very-low"
+          scale = "1.0"
+          borderPadding = "2"
+          extrude = "4"
+
+          fnum = self.get_file_count(category_work_dir)
+          print "{0} : textures num[{1}]".format(category_src_dir, fnum)
+          if fnum == 0:
+              return False
+          if "single" in category_dir:
+              borderPadding = "0"
+              extrude = "0"
+
+          subprocess.check_call(["TexturePacker",
+              "--sheet", imageFile,
+              "--texture-format", textureType,
+              "--format", "cocos2d",
+              "--data", plistFile,
+              "--algorithm", "MaxRects",
+              "--maxrects-heuristics", "Best",
+              "--basic-sort-by", "Best",
+              "--basic-order", "Ascending",
+              "--max-size", "2048",
+              "--size-constraints", "POT",
+              "--force-squared",
+              "--force-word-aligned",
+              "--pack-mode", "Best",
+              "--multipack",
+              "--common-divisor-x", "4",
+              "--common-divisor-y", "4",
+              "--shape-padding", "2",
+              "--border-padding", borderPadding,
+              "--enable-rotation",
+              "--trim-mode", "None",
+              # "--disable-clean-transparency",
+              "--opt", textureFormat,
+              "--pvr-quality", pvrQuality,
+              # "--premultiply-alpha",
+              "--png-opt-level", "0",
+              "--extrude", extrude,
+              "--scale", scale,
+              "--scale-mode", "Smooth",
+               category_work_dir])
+
+          #現在png側をコンバートした時のplistを使っているので特に要らないファイル。が、上書きしちゃうと再ビルドの時に全部ビルドが走ってしまうらしい。。。
+          plistFile = base + "_{n}.pvr.plist"
+          
+          #imageFile = base + "_{n}.pvr.ccz"
+          imageFile = base + "_{n}.pvr"
+          #textureType = "pvr3ccz"
+          textureType = "pvr3"
+          textureFormat = "PVRTC4"
+          pvrQuality = "very-low"
+          #pvrQuality = "best"
+          scale = "1.0"
+
+          subprocess.check_call(["TexturePacker",
+              "--sheet", imageFile,
+              "--texture-format", textureType,
+              "--format", "cocos2d",
+              "--data", plistFile,
+              "--algorithm", "MaxRects",
+              "--maxrects-heuristics", "Best",
+              "--basic-sort-by", "Best",
+              "--basic-order", "Ascending",
+              "--max-size", "2048",
+              "--size-constraints", "POT",
+              "--force-squared",
+              "--force-word-aligned",
+              "--pack-mode", "Best",
+              "--multipack",
+              "--common-divisor-x", "4",
+              "--common-divisor-y", "4",
+              "--shape-padding", "2",
+              "--border-padding", borderPadding,
+              "--enable-rotation",
+              "--trim-mode", "None",
+              # "--disable-clean-transparency",
+              "--opt", textureFormat,
+              "--pvr-quality", pvrQuality,
+              # "--premultiply-alpha",
+              "--png-opt-level", "0",
+              "--extrude", extrude,
+              "--scale", scale,
+              "--scale-mode", "Smooth",
+               category_work_dir])
+
     def make_area_atlas(self, top_dir):
         category_top_dir = os.path.join(self.src_dir, top_dir)
         if not os.path.isdir(category_top_dir):
-            continue
-        work_top_dir = os.path.join(self.work_dir, top_dir)
+            return True
+
         category_dirs = os.listdir(category_top_dir)
         for category_dir in category_dirs:
-            # フォルダ階層も名前に含みたいので作業フォルダにコピーしてからコンバートする
-            category_src_dir = os.path.join(self.src_dir, top_dir, category_dir)
-            if not os.path.isdir(category_src_dir):
-                continue
+            self.make_area_atlas_by_category(top_dir, category_dir)
 
-            if os.path.exists(self.work_dir):
-                shutil.rmtree(self.work_dir)
-            work_category_dir = os.path.join(self.work_dir, top_dir, category_dir)
-            shutil.copytree(category_src_dir, work_category_dir)
-
-            base = "{0}/{1}/{1}_{2}".format(self.dest_dir, top_dir, category_dir)
-
-            plistFile = base + "_{n}.plist"
-            imageFile = base + "_{n}.png"
-            textureType = "png"
-            textureFormat = "RGBA8888"
-            pvrQuality = "very-low"
-            scale = "1.0"
-            borderPadding = "2"
-            extrude = "4"
-
-            fnum = self.get_file_count(self.work_dir)
-            print "{0} : textures num[{1}]".format(category_src_dir, fnum)
-            if fnum == 0:
-                continue
-            if "single" in category_dir:
-                borderPadding = "0"
-                extrude = "0"
-
-            subprocess.check_call(["TexturePacker",
-                "--sheet", imageFile,
-                "--texture-format", textureType,
-                "--format", "cocos2d",
-                "--data", plistFile,
-                "--algorithm", "MaxRects",
-                "--maxrects-heuristics", "Best",
-                "--basic-sort-by", "Best",
-                "--basic-order", "Ascending",
-                "--max-size", "2048",
-                "--size-constraints", "POT",
-                "--force-squared",
-                "--force-word-aligned",
-                "--pack-mode", "Best",
-                "--multipack",
-                "--common-divisor-x", "4",
-                "--common-divisor-y", "4",
-                "--shape-padding", "2",
-                "--border-padding", borderPadding,
-                "--enable-rotation",
-                "--trim-mode", "None",
-                # "--disable-clean-transparency",
-                "--opt", textureFormat,
-                "--pvr-quality", pvrQuality,
-                # "--premultiply-alpha",
-                "--png-opt-level", "0",
-                "--extrude", extrude,
-                "--scale", scale,
-                "--scale-mode", "Smooth",
-                 self.work_dir])
-
-            #現在png側をコンバートした時のplistを使っているので特に要らないファイル。が、上書きしちゃうと再ビルドの時に全部ビルドが走ってしまうらしい。。。
-            plistFile = base + "_{n}.pvr.plist"
-            
-            #imageFile = base + "_{n}.pvr.ccz"
-            imageFile = base + "_{n}.pvr"
-            #textureType = "pvr3ccz"
-            textureType = "pvr3"
-            textureFormat = "PVRTC4"
-            pvrQuality = "very-low"
-            #pvrQuality = "best"
-            scale = "1.0"
-
-            subprocess.check_call(["TexturePacker",
-                "--sheet", imageFile,
-                "--texture-format", textureType,
-                "--format", "cocos2d",
-                "--data", plistFile,
-                "--algorithm", "MaxRects",
-                "--maxrects-heuristics", "Best",
-                "--basic-sort-by", "Best",
-                "--basic-order", "Ascending",
-                "--max-size", "2048",
-                "--size-constraints", "POT",
-                "--force-squared",
-                "--force-word-aligned",
-                "--pack-mode", "Best",
-                "--multipack",
-                "--common-divisor-x", "4",
-                "--common-divisor-y", "4",
-                "--shape-padding", "2",
-                "--border-padding", borderPadding,
-                "--enable-rotation",
-                "--trim-mode", "None",
-                # "--disable-clean-transparency",
-                "--opt", textureFormat,
-                "--pvr-quality", pvrQuality,
-                # "--premultiply-alpha",
-                "--png-opt-level", "0",
-                "--extrude", extrude,
-                "--scale", scale,
-                "--scale-mode", "Smooth",
-                 self.work_dir])
+        return True
 
     def make_area_atlas_all(self):
         top_dirs = os.listdir(self.src_dir)
@@ -151,6 +157,9 @@ class MakeAreaAtlas():
             p.start()
         for p in processes:
             p.join()
+        for p in processes:
+            if p.exitcode != 0:
+                raise Exception("process '%s' exited by '%d'" % (p, p.exitcode))
 
 # ---
 # main function
