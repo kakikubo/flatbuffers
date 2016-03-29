@@ -535,10 +535,10 @@ class Neo4jImporter():
                             else:
                                 debug("STABLE DATA RELATIONSHIP (%s {id: %s, %s: %s})-[%s {_id: %s}]-(%s {id: %s})" % (table, id, key, peer_val, relation, _id, ref, peer_id))
                             if org_data_relationship_map.has_key(_id):
-                                del data_relationship_map[_id]  # mark updated
+                                del org_data_relationship_map[_id]  # mark updated
 
         # deleted relationships
-        for _id, relationships in data_relationship_map.iteritems():
+        for _id in org_data_relationship_map.keys():
             self.delete_relationships('data', _id)
         return True
 
@@ -623,7 +623,7 @@ class Neo4jImporter():
                         raise Exception("invalid data type in %s: %s" % (table, table_data))
 
         # deleted nodes
-        for real_path, nodes in org_file_node_map.iteritems():
+        for real_path in org_file_node_map.keys():
             self.delete_nodes('MATCH (n {_nodeType: "file", realPath: "%s"}) DETACH DELETE n' % real_path)
         return True
 
@@ -684,7 +684,7 @@ class Neo4jImporter():
                                         del org_file_relationship_map[_id] # mark updated
 
         # deleted relationships
-        for _id, relationships in org_file_relationship_map.iteritems():
+        for _id in org_file_relationship_map.keys():
             self.delete_relationships('file', _id)
         return True
 
