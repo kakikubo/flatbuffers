@@ -143,11 +143,11 @@ match ()-[r]-() where type(r) ends with "tsukikage/ground/ground01.png" return r
 
 #### 特定のファイルパスが対象の Location に所属しているかを調べる
 ```
-match p = shortestpath((s:Location {id: 510000001})-[r*]-(d {real_path: "contents/files/areaAtlas/route99/route99_ground_0.png"})) return p;
+match p = shortestpath((s:Location {id: 510000001})-[r*]-(d {realPath: "contents/files/areaAtlas/route99/route99_ground_0.png"})) return p;
 ```
 
 - {id: 510000001} = 510000001 (バルオキー）
-- {real_path: "contents/files/areaAtlas/route99/route99_ground_0.png"} = route99_ground_0.png 
+- {realPath: "contents/files/areaAtlas/route99/route99_ground_0.png"} = route99_ground_0.png 
 
 所属していれば参照経路が表示されます。
 所属していなければ表示されません。
@@ -156,7 +156,7 @@ match p = shortestpath((s:Location {id: 510000001})-[r*]-(d {real_path: "content
 上記のクエリで Location 側の ID 指定をはずすことで、ファイルが関連づけられた Location とその経路をすべて洗い出すことができます。
 
 ```
-match p = shortestpath((s:Location)-[r*]-(d {real_path: "contents/files/areaAtlas/route99/route99_ground_0.png"})) return p;
+match p = shortestpath((s:Location)-[r*]-(d {realPath: "contents/files/areaAtlas/route99/route99_ground_0.png"})) return p;
 ```
 
 #### 特定の Location に所属するすべてのファイルを調べる
