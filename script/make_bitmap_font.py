@@ -64,7 +64,7 @@ def load_char_map_from_lua(lua_dirs):
                 with codecs.open(full_path, 'r', 'utf-8') as f:
                     data = f.read()
                     for char in list(data):
-                        for font_name in ['medium', 'bold', 'universal', 'universal_db', 'universal_b', 'emphasis']:
+                        for font_name in ['universal_b', 'emphasis']:
                             if not char_map.has_key(font_name):
                                 char_map[font_name] = OrderedDict()
                             if not char_map[font_name].has_key(char):
