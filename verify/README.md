@@ -3,12 +3,14 @@
 ## ルート
 verify_master_json.py
 
-- テーブル参照チェック
-- ファイル参照チェック
-- 最大値・最小値チェック（数値）
-- 最大長・最小長チェック（数値）
-- ラベルチェック
-- 必須チェック
+- テーブル参照チェック: reference (xxx.yyy.zzz)
+- ファイル参照チェック: file_reference (xxx/yyy/zzz)
+- 最大値・最小値チェック（数値）: max_value, min_value
+- 最大長・最小長チェック（数値）: max_length, min_length
+- 最大行数・1行あたりの最大文字数チェック: max_line_size, max_line_length
+- ラベルチェック: label
+- 必須チェック: required
+- 重複値チェック: unique
 
 ## マスタデータの個別のシートごとの評価
 
