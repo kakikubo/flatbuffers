@@ -89,7 +89,7 @@ class MasterDataVerifier():
                             if k in ('key', 'index'):
                                 # id_map columns
                                 index_map[table][name] = sch
-                            elif k in ('max_length', 'max_value', 'min_length', 'min_value', 'required'):
+                            elif k in ('max_length', 'max_value', 'min_length', 'min_value', 'required', 'unique', 'max_line_length', 'max_line_size'):
                                 # value spec
                                 if not validation_map[table].has_key(name):
                                     validation_map[table][name] = {}
@@ -206,37 +206,20 @@ class MasterDataVerifier():
                     raise Exception("no referenced file")
         return True
 
-    def verify_master_record(self, table, i, d, schema, reference, file_reference, validation_spec):
-        for k, v in d.iteritems():
-            sch  = schema[k]
-            refs = reference[k] if reference and reference.has_key(k) else []
-            frefs = file_reference[k] if file_reference and file_reference.has_key(k) else None
-            validations = validation_spec[k] if validation_spec and validation_spec.has_key(k) else []
-            value_type = sch["type"]
-            self.verify_reference(table, i, d, k, v, refs)
-            if self.do_verify_file_reference:
-                self.verify_file_reference(table, i, d, k, v, frefs)
-            self.verify_value_spec(table, i, d, k, v, value_type, validations)
-        return True
-
     def verify_value_spec(self, table, i, d, k, v, value_type, validations):
         if validations and self.validation_map:
             for item, spec in validations.iteritems():
                 try:
-                    has_err = self.has_err(v, item, value_type, spec)
+                    has_error = self.verify_value(v, item, value_type, spec)
                 except:
                     error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, unicode(v)))
                     raise
-                if has_err:
+                if has_error:
                     error(u"%s[%d].%s: 不正な値があります (%s: %s): %s" %(table, i, k, item, spec, unicode(v)))
                     raise Exception("invalid value spec")
-        if k == 'label':
-            if v and not re.match('^[a-z0-9_./]+$', v):
-                error(u"%s[%d].%s: 不正なラベルです: %s" % (table, i, k, unicode(v)))
-                #raise Exception("invalid filename name")
 
     @staticmethod
-    def has_err(v, i, value_type, value_spec):
+    def verify_value(v, i, value_type, value_spec):
         if value_type == 'string' and i == 'max_length':
             return len(v) > value_spec
         if value_type == 'string' and i == 'min_length':
@@ -251,8 +234,52 @@ class MasterDataVerifier():
             return v < float(value_spec)
         if value_type == 'string' and i == 'required':
             return  (v is None or len(v) == 0)
-
+        if value_type == 'string' and i == 'max_line_length':
+            for line in v.split('\n'):
+                if len(line) > value_spec:
+                    return True
+        if value_type == 'string' and i == 'max_line_size':
+            if len(v.split('\n')) > value_spec:
+                return True
         return False
+
+    def verify_unique(self, table, i, d, k, v, unique_map):
+        if v and unique_map.has_key(v):
+            error(u"%s[%d].%s: ユニーク値が重複しています: '%s'" % (table, i, k, unicode(v)))
+            raise Exception("duplicated unique value")
+        unique_map[v] = True
+        return True
+
+    def verify_label(self, table, i, d, k, v, label_map):
+        if not v:
+            debug(u"%s[%d].%s: ラベルが空です: '%s'" % (table, i, k, unicode(v)))
+            #error(u"%s[%d].%s: ラベルが空です: '%s'" % (table, i, k, unicode(v)))
+            #raise Exception("empty label")
+        elif not re.match('^[a-z0-9_./]+$', v):
+            error(u"%s[%d].%s: 不正なラベルです: '%s'" % (table, i, k, unicode(v)))
+            raise Exception("invalid label")
+        elif label_map.has_key(v):
+            error(u"%s[%d].%s: ラベルが重複しています: '%s'" % (table, i, k, unicode(v)))
+            raise Exception("duplicated label")
+        label_map[v] = True
+        return True
+
+    def verify_master_record(self, table, i, d, schema, reference, file_reference, validation_spec, label_map, unique_map):
+        for k, v in d.iteritems():
+            sch  = schema[k]
+            refs = reference[k] if reference and reference.has_key(k) else []
+            frefs = file_reference[k] if file_reference and file_reference.has_key(k) else None
+            validations = validation_spec[k] if validation_spec and validation_spec.has_key(k) else []
+            self.verify_reference(table, i, d, k, v, refs)
+            if self.do_verify_file_reference:
+                self.verify_file_reference(table, i, d, k, v, frefs)
+            self.verify_value_spec(table, i, d, k, v, sch['type'], validations)
+            if k == 'label':
+                self.verify_label(table, i, d, k, v, label_map)
+            if unique_map.has_key(k):
+                self.verify_unique(table, i, d, k, v, unique_map[k])
+
+        return True
 
     def verify_master_data(self):
         # check master data main
@@ -263,12 +290,17 @@ class MasterDataVerifier():
             reference      = self.reference_map[table_type]
             file_reference = self.file_reference_map[table_type]
             validations    = self.validation_map[table_type] if self.validation_map.has_key(table_type) else []
+            label_map      = OrderedDict()
+            unique_map     = OrderedDict()
+            for name, v in validations.iteritems():
+                if v.has_key('unique'):
+                    unique_map[name] = OrderedDict()
             try:
                 if not meta['is_vector']:
-                    self.verify_master_record(table, 0, data, schema, reference, file_reference, validations)
+                    self.verify_master_record(table, 0, data, schema, reference, file_reference, validations, label_map, unique_map)
                 else:
                     for i, d in enumerate(data):
-                        self.verify_master_record(table, i, d, schema, reference, file_reference, validations)
+                        self.verify_master_record(table, i, d, schema, reference, file_reference, validations, label_map, unique_map)
 
                 if os.path.exists(os.path.join(os.path.dirname(__file__), 'master_data', table+'.py')):
                      table_verifier = self.load_table_verifier('master_data.'+table)
@@ -438,7 +470,7 @@ if __name__ == '__main__':
     #sys.stderr = codecs.lookup('utf_8')[-1](sys.stderr)
     parser = argparse.ArgumentParser(description='verify master data and default user data, and generate file reference list', epilog="""\
 example:
-    $ ./verify_master_json.py master_derivatives/master_schema.json master_derivatives/master_data.json --file-reference-list manifests --asset-dir kms_master_asset kms_master_asset --user-schema user_derivatives/user_schema.json --user-data user_data/default.json --verify-file-reference""")
+    $ ./verify_master_json.py master_derivatives/master_schema.json master_derivatives/master_data.json --asset-dir kms_master_asset kms_master_asset --user-schema user_derivatives/user_schema.json --user-data user_data/default.json --verify-file-reference""")
     parser.add_argument('input_master_schema', metavar = 'input.master_schema', help = 'input master data schema json file')
     parser.add_argument('input_master_data',   metavar = 'input.master_data',   help = 'input master data json file')
     parser.add_argument('--user-schema', help = 'input user schema file')

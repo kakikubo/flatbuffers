@@ -1,4 +1,4 @@
-
+#!/usr/bin/env lua
 if arg[1] == nil then
     print("Usage:")
     print("lua generate_config.lua (path_to_kms_client_repo)")

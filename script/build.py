@@ -130,6 +130,7 @@ class AssetBuilder():
         self.distribution_dir       = self.main_dir+'/distribution'
         self.webview_dir            = self.main_dir+'/webview'
         self.lua_dir                = self.main_dir+'/lua'
+        self.lua_foundation_dir     = self.main_dir+'/lua/foundation'
         self.crypto_dir             = self.main_dir+'/crypto'
         self.cypher_dir             = self.main_dir+'/cypher'
 
@@ -155,6 +156,7 @@ class AssetBuilder():
         self.org_distribution_dir   = self.org_main_dir+'/distribution'
         self.org_webview_dir        = self.org_main_dir+'/webview'
         self.org_lua_dir            = self.org_main_dir+'/lua'
+        self.org_lua_foundation_dir = self.org_main_dir+'/lua/foundation'
         self.org_crypto_dir         = self.org_main_dir+'/crypto'
         self.org_cypher_dir         = self.org_main_dir+'/cypher'
 
@@ -183,6 +185,7 @@ class AssetBuilder():
         self.xls2json_bin             = self_dir+'/master_data_xls2json.py'
         self.json2fbs_bin             = self_dir+'/json2fbs.py'
         self.json2macro_bin           = self_dir+'/json2macro.py'
+        self.json2lua_label_bin       = self_dir+'/json2lua-label.py'
         self.flatc_bin                = self_dir+'/../flatbuffers/flatc'
         self.fbs2class_bin            = self_dir+'/fbs2class.py'
         self.make_bitmap_font_bin     = self_dir+'/make_bitmap_font.py'
@@ -243,6 +246,7 @@ class AssetBuilder():
         self.USER_JSON_DATA_FILE            = 'default.json'
         self.USER_LUA_ENUM_FILE             = 'user_enum.lua'
         self.USER_FBS_NAMESPACE             = 'kms.userdata'
+        self.LABEL_LUA_FILE                 = 'label.lua'
         self.AES_KEY_TEXT_FILE              = 'aes_256_key.txt'
         self.AES_IV_TEXT_FILE               = 'aes_iv.txt'
         self.AES_KEY_HEADER_FILE            = 'AesKey.h'
@@ -642,7 +646,18 @@ class AssetBuilder():
         src_lua_dirs  = src_lua_dirs or [self.lua_dir, self.master_lua_dir]
         dest_font_dir = dest_font_dir or self.build_dir
         dest_char_map = dest_char_map or self.build_dir+'/'+self.CHAR_MAP_FILE
+
         cmdline = [self.make_bitmap_font_bin, src_json, src_gd_dir, dest_font_dir, '--char-map-json', dest_char_map, '--lua-dir'] + src_lua_dirs
+        info(' '.join(cmdline))
+        check_call(cmdline)
+        return True
+
+    # create label.lua from master_data.json
+    def build_label_lua(self, src_json=None, dest_lua=None):
+        src_json = src_json or self.build_dir+'/'+self.MASTER_JSON_DATA_FILE
+        dest_lua = dest_lua or self.build_dir+'/'+self.LABEL_LUA_FILE
+
+        cmdline = [self.json2lua_label_bin, src_json, dest_lua]
         info(' '.join(cmdline))
         check_call(cmdline)
         return True
@@ -744,39 +759,40 @@ class AssetBuilder():
         build_dir = build_dir or self.build_dir
         # fixed pathes
         list = [
-            (self.MASTER_JSON_SCHEMA_FILE,        self.master_schema_dir, self.org_master_schema_dir),
-            (self.MASTER_JSON_DATA_FILE,          self.master_data_dir,   self.org_master_data_dir),
-            (self.MASTER_JSON_DATA_FILE,          self.master_bin_dir,    self.org_master_bin_dir),
-            (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_data_dir,   self.org_master_data_dir),
-            (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_bin_dir,    self.org_master_bin_dir),
-            (self.MASTER_MACRO_FILE,              self.master_header_dir, self.org_master_header_dir),
-            (self.MASTER_FBS_FILE,                self.master_fbs_dir,    self.org_master_fbs_dir),
-            (self.MASTER_FBS_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
-            (self.MASTER_ENC_FILE,                self.master_bin_dir,    self.org_master_bin_dir),
-            (self.MASTER_BUNDLED_ENC_FILE,        self.master_bin_dir,    self.org_master_bin_dir),
-            (self.MASTER_HEADER_FILE,             self.master_header_dir, self.org_master_header_dir),
-            (self.MASTER_MD5_FILE,                self.master_header_dir, self.org_master_header_dir),
-            (self.MASTER_DIFF_FILE,               self.master_data_dir,   self.org_master_data_dir),
-            (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir, self.org_master_schema_dir),
-            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir,   self.org_master_data_dir),
-            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_bin_dir,    self.org_master_bin_dir),
-            (self.EDITOR_MASTER_MACRO_FILE,       self.master_header_dir, self.org_master_header_dir),
-            (self.EDITOR_MASTER_FBS_FILE,         self.master_fbs_dir,    self.org_master_fbs_dir),
-            (self.EDITOR_MASTER_FBS_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
-            (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,    self.org_master_bin_dir),
-            (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir, self.org_master_header_dir),
-            (self.EDITOR_MASTER_MD5_FILE,         self.master_header_dir, self.org_master_header_dir),
-            (self.CHAR_MAP_FILE,                  self.master_data_dir,   self.org_master_data_dir),
-            (self.LL_MESSAGE_JSON_FILE,           self.master_data_dir,   self.org_master_data_dir),
-            (self.LL_CHAR_MAP_JSON_FILE,          self.master_data_dir,   self.org_master_data_dir),
-            (self.USER_HEADER_FILE,               self.user_header_dir,   self.org_user_header_dir),
-            (self.USER_CLASS_FILE,                self.user_header_dir,   self.org_user_header_dir),
-            (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,   self.org_user_schema_dir),
-            (self.USER_LUA_ENUM_FILE,             self.user_schema_dir,   self.org_user_schema_dir),
-            (self.USER_MD5_FILE,                  self.user_header_dir,   self.org_user_header_dir),
-            (self.AES_KEY_HEADER_FILE,            self.crypto_dir,        self.org_crypto_dir),
-            (self.AES_IV_HEADER_FILE,             self.crypto_dir,        self.org_crypto_dir),
-            (self.NEO4J_GRAPHSTYLE_FILE,          self.cypher_dir,        self.org_cypher_dir),
+            (self.MASTER_JSON_SCHEMA_FILE,        self.master_schema_dir,  self.org_master_schema_dir),
+            (self.MASTER_JSON_DATA_FILE,          self.master_data_dir,    self.org_master_data_dir),
+            (self.MASTER_JSON_DATA_FILE,          self.master_bin_dir,     self.org_master_bin_dir),
+            (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_data_dir,    self.org_master_data_dir),
+            (self.MASTER_BUNDLED_JSON_DATA_FILE,  self.master_bin_dir,     self.org_master_bin_dir),
+            (self.MASTER_MACRO_FILE,              self.master_header_dir,  self.org_master_header_dir),
+            (self.MASTER_FBS_FILE,                self.master_fbs_dir,     self.org_master_fbs_dir),
+            (self.MASTER_FBS_FILE,                self.master_bin_dir,     self.org_master_bin_dir),
+            (self.MASTER_ENC_FILE,                self.master_bin_dir,     self.org_master_bin_dir),
+            (self.MASTER_BUNDLED_ENC_FILE,        self.master_bin_dir,     self.org_master_bin_dir),
+            (self.MASTER_HEADER_FILE,             self.master_header_dir,  self.org_master_header_dir),
+            (self.MASTER_MD5_FILE,                self.master_header_dir,  self.org_master_header_dir),
+            (self.MASTER_DIFF_FILE,               self.master_data_dir,    self.org_master_data_dir),
+            (self.EDITOR_MASTER_JSON_SCHEMA_FILE, self.master_schema_dir,  self.org_master_schema_dir),
+            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_data_dir,    self.org_master_data_dir),
+            (self.EDITOR_MASTER_JSON_DATA_FILE,   self.master_bin_dir,     self.org_master_bin_dir),
+            (self.EDITOR_MASTER_MACRO_FILE,       self.master_header_dir,  self.org_master_header_dir),
+            (self.EDITOR_MASTER_FBS_FILE,         self.master_fbs_dir,     self.org_master_fbs_dir),
+            (self.EDITOR_MASTER_FBS_FILE,         self.master_bin_dir,     self.org_master_bin_dir),
+            (self.EDITOR_MASTER_BIN_FILE,         self.master_bin_dir,     self.org_master_bin_dir),
+            (self.EDITOR_MASTER_HEADER_FILE,      self.master_header_dir,  self.org_master_header_dir),
+            (self.EDITOR_MASTER_MD5_FILE,         self.master_header_dir,  self.org_master_header_dir),
+            (self.CHAR_MAP_FILE,                  self.master_data_dir,    self.org_master_data_dir),
+            (self.LL_MESSAGE_JSON_FILE,           self.master_data_dir,    self.org_master_data_dir),
+            (self.LL_CHAR_MAP_JSON_FILE,          self.master_data_dir,    self.org_master_data_dir),
+            (self.USER_HEADER_FILE,               self.user_header_dir,    self.org_user_header_dir),
+            (self.USER_CLASS_FILE,                self.user_header_dir,    self.org_user_header_dir),
+            (self.USER_JSON_SCHEMA_FILE,          self.user_schema_dir,    self.org_user_schema_dir),
+            (self.USER_LUA_ENUM_FILE,             self.user_schema_dir,    self.org_user_schema_dir),
+            (self.USER_MD5_FILE,                  self.user_header_dir,    self.org_user_header_dir),
+            (self.LABEL_LUA_FILE,                 self.lua_foundation_dir, self.org_lua_foundation_dir),
+            (self.AES_KEY_HEADER_FILE,            self.crypto_dir,         self.org_crypto_dir),
+            (self.AES_IV_HEADER_FILE,             self.crypto_dir,         self.org_crypto_dir),
+            (self.NEO4J_GRAPHSTYLE_FILE,          self.cypher_dir,         self.org_cypher_dir),
         ]
         # spine
         for spine_path in glob("%s/*Spine/*" % build_dir):
@@ -1156,6 +1172,7 @@ class AssetBuilder():
             Process(target=self.build_area_atlas),
             Process(target=self.build_ui_atlas),
             Process(target=self.build_font),
+            Process(target=self.build_label_lua),
             Process(target=self.build_neo4j),
         ]
         self.run_build_phase(processes)
