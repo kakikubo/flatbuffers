@@ -62,7 +62,7 @@ class Json2LuaLabel():
             table = self.upper_camel_case(sheet)
             self.collect_value(table, data, table_values)
 
-        pragma_once = 'PRAGMA_ONCE_'+output_lua.upper().replace('.', '_')
+        pragma_once = 'PRAGMA_ONCE_'+os.path.basename(output_lua).upper().replace('.', '_')
         s = self.generate_lua(pragma_once, table_values)
 
         with open(output_lua, 'w') as f:
