@@ -252,8 +252,9 @@ class MasterDataVerifier():
 
     def verify_label(self, table, i, d, k, v, label_map):
         if not v:
-            error(u"%s[%d].%s: ラベルが空です: '%s'" % (table, i, k, unicode(v)))
-            raise Exception("empty label")
+            debug(u"%s[%d].%s: ラベルが空です: '%s'" % (table, i, k, unicode(v)))
+            #error(u"%s[%d].%s: ラベルが空です: '%s'" % (table, i, k, unicode(v)))
+            #raise Exception("empty label")
         elif not re.match('^[a-z0-9_./]+$', v):
             error(u"%s[%d].%s: 不正なラベルです: '%s'" % (table, i, k, unicode(v)))
             raise Exception("invalid label")
