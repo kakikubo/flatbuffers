@@ -67,6 +67,14 @@ def typed_numeric_value(cell, t):
     else:
         return None
 
+
+def to_bool(val):
+    if isinstance(val, basestring):
+        # convert to False unless string value is "true"
+        return True if val.lower() == "true" else False
+    else:
+        return bool(val)
+
 def parse_enum_sheet(sheet):
     if sheet.ncols < 4 or sheet.ncols % 4 != 0:
         raise Exception("invalid column set: %s" % sheet.name)
@@ -191,7 +199,7 @@ def parse_xls(xls_path, except_sheets=[]):
                     elif t.find('float') >= 0:
                         v = float(v) if v != '' else 0
                     elif t.find('bool') >= 0:
-                        v = bool(v)
+                        v = to_bool(v)
                     elif t.find('string') >= 0:
                         v = unicode(re.sub('\\\\n', "\n", "%s" % v))
                     else:
