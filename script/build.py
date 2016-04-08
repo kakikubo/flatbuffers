@@ -542,7 +542,7 @@ class AssetBuilder():
         dest_dir      = dest_dir      or self.build_dir
 
         merge_spine_anim_sheet = [
-            ['characterSpine']
+            'characterSpine'
         ]
 
         for xlsx in self._get_xlsxes():

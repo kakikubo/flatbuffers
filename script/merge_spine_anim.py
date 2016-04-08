@@ -69,7 +69,7 @@ if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
     parser = argparse.ArgumentParser(description='merge spine files', epilog="""\
 example:
-    $ ./merge_spine.py src_file add_file output_file""")
+    $ ./merge_spine.py xls_file, sheet_name, start_row, column_label, input_file_dir, output_file_dir""")
 
     parser.add_argument('xls_file', help='excel file')
     parser.add_argument('sheet_name', help='sheet name in excel file')
