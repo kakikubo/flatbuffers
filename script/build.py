@@ -195,6 +195,7 @@ class AssetBuilder():
         self.verify_master_json_bin   = self_dir+'/../verify/verify_master_json.py'
         self.strip_master_json_bin    = self_dir+'/strip_master_json.py'
         self.delete_element_bin       = self_dir+'/delete-element.py'
+        self.merge_spine_anim_bin     = self_dir+'/merge_spine_anim.py'
         self.make_weapon_atlas_bin    = self_dir+'/make_weapon_atlas.py'
         self.make_ui_atlas_bin        = self_dir+'/make_ui_atlas.py'
         self.make_area_atlas_bin      = self_dir+'/make_area_atlas.py'
@@ -540,6 +541,31 @@ class AssetBuilder():
         src_spine_dir = src_spine_dir or self.spine_dir
         dest_dir      = dest_dir      or self.build_dir
 
+        merge_spine_anim_sheet = [
+            ['characterSpine']
+        ]
+
+        for xlsx in self._get_xlsxes():
+            sheets = self._get_xlsx_sheets(xlsx)
+            for sheet_name in merge_spine_anim_config:
+                if not sheet_name in sheets:
+                    continue
+
+                src_spine_dir = src_spine_dir+'/'+sheet_name
+                if not os.path.exists(src_spine_dir):
+                    continue
+
+                dest_spine_dir = dest_dir+'/'+sheet_name
+                if not os.path.exists(dest_spine_dir):
+                    os.makedirs(dest_spine_dir)
+
+                info("build spine: %s:%s %s" % (os.path.basename(xlsx), sheet_name, os.path.basename(src_spine_dir)))
+                cmdline = [self.merge_spine_anim_bin, xlsx, sheet_name, str(self.MASTER_DATA_ROW_START), "_fieldSpine", src_spine_dir, dest_spine_dir]
+                info(' '.join(cmdline))
+                check_call(cmdline)
+        return True
+
+        """
         config = [
             ['characterSpine', '0:2000'],
             ['npcSpine',       '0:2000'],
@@ -563,6 +589,7 @@ class AssetBuilder():
                 info(' '.join(cmdline))
                 check_call(cmdline)
         return True
+        """
 
     # create weapon atlas from json
     def build_weapon(self, src_xlsxes=None, src_weapon_dir=None, dest_dir=None, dummy_png=None):
