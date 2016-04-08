@@ -1,3 +1,6 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+
 import os
 import sys
 import re
@@ -49,7 +52,7 @@ def merge_spine_animation(xls_file, sheet_name, start_row, column_label, input_f
         model_field = os.path.abspath(input_file_dir) + "/" + sheet.cell_value(row, index_col) + spine_ext
         output_file = os.path.abspath(output_file_dir) + "/" + str(model_id) + spine_ext
 
-        #print "{0}+{1}->{2}".format(model_base, model_field, output_file)
+        # print "{0}+{1}->{2}".format(model_base, model_field, output_file)
 
         src_json = {}
         with open(model_base, 'r') as data:
