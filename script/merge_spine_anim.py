@@ -15,13 +15,21 @@ from logging import info, warning, debug
 from PIL import Image
 
 def merge_spine_animation_one(src_json, add_json, output_file):
+    weapon_hide_dict = OrderedDict()
+    weapon_hide_dict["time"] = 0
+    weapon_hide_dict["name"] = None
+
     if src_json.has_key("animations") and add_json.has_key("animations"):
         src_animations = src_json["animations"]
         add_animations = add_json["animations"]
         for k, v in add_animations.items():
-            #if not src_animations.has_key(k):
             src_animations[k] = v
-            # print "add {0}".format(k)
+            """
+            if src_animations[k].has_key("slots"):
+                src_slots = src_animations[k]["slots"]
+                src_slots["weapon_1"] = {"attachment":[weapon_hide_dict]}
+                src_slots["weapon_2"] = {"attachment":[weapon_hide_dict]}
+            """
 
     with open(output_file, 'w') as data:
         dump = json.dumps(src_json, ensure_ascii = False)
@@ -44,6 +52,8 @@ def merge_spine_animation(xls_file, sheet_name, start_row, column_label, input_f
     add_json = {}
     for row in range(sheet.nrows):
         if (row < index_row):
+            continue
+        if int(sheet.cell_value(row, index_col+1)) == 0:
             continue
 
         spine_ext = ".json"
