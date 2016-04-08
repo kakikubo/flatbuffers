@@ -547,7 +547,7 @@ class AssetBuilder():
 
         for xlsx in self._get_xlsxes():
             sheets = self._get_xlsx_sheets(xlsx)
-            for sheet_name in merge_spine_anim_config:
+            for sheet_name in merge_spine_anim_sheet:
                 if not sheet_name in sheets:
                     continue
 
