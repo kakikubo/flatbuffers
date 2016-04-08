@@ -53,7 +53,7 @@ def merge_spine_animation(xls_file, sheet_name, start_row, column_label, input_f
     for row in range(sheet.nrows):
         if (row < index_row):
             continue
-        if int(sheet.cell_value(row, index_col+1)) == 0:
+        if int(sheet.cell_value(row, index_col+1)) != 1:
             continue
 
         spine_ext = ".json"
