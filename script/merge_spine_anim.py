@@ -10,27 +10,40 @@ import shutil
 import argparse
 import json
 import xlrd
+import copy
 from collections import OrderedDict
 from logging import info, warning, debug
 from PIL import Image
 
 def merge_spine_animation_one(src_json, add_json, output_file):
-    weapon_hide_dict = OrderedDict()
-    weapon_hide_dict["time"] = 0
-    weapon_hide_dict["name"] = None
+    animation_key_hide_dict = {"attachment":[{"time": 0, "name": None}]}
 
     if src_json.has_key("animations") and add_json.has_key("animations"):
+        hide_slots = []
+        if src_json.has_key("slots"):
+            for slot in src_json["slots"]:
+                if slot.has_key("name"):
+                    name = slot["name"]
+                    if re.search('weapon', name):
+                        hide_slots.append(name)
+                    elif re.search('effect', name):
+                        hide_slots.append(name)
+
+        #for slot in hide_slots:
+        #    print slot
+    
         src_animations = src_json["animations"]
         add_animations = add_json["animations"]
+
         for k, v in add_animations.items():
-            src_animations[k] = v
-            """
+            src_animations[k] = copy.deepcopy(v)
+            
             if src_animations[k].has_key("slots"):
                 src_slots = src_animations[k]["slots"]
-                src_slots["weapon_1"] = {"attachment":[weapon_hide_dict]}
-                src_slots["weapon_2"] = {"attachment":[weapon_hide_dict]}
-            """
-
+                for slot in hide_slots:
+                    #print "{0}:{1}".format(k, slot)
+                    src_slots[slot] = animation_key_hide_dict
+    
     with open(output_file, 'w') as data:
         dump = json.dumps(src_json, ensure_ascii = False)
         data.write(dump.encode("utf-8"))
@@ -73,6 +86,7 @@ def merge_spine_animation(xls_file, sheet_name, start_row, column_label, input_f
                 #print "open {0}".format(model_field)
                 add_json[model_field] = json.loads(data.read(), object_pairs_hook=OrderedDict)
 
+        #print output_file
         merge_spine_animation_one(src_json, add_json[model_field], output_file)
 
 # ---
