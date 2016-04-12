@@ -1,6 +1,6 @@
 #使い方
 
-jenkinsユーザで設定ファイル(kms.jenkins.plist)を所定の場所に配置した上で、launchctlに読み込ませます
+jenkinsユーザで設定ファイル((kms|argo).jenkins.plist)を所定の場所に配置した上で、launchctlに読み込ませます
 
 ```
 jenkins@asset-jenkins%  cp kms.jenkins.plist ~/Library/LaunchAgents/

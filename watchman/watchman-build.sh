@@ -1,7 +1,7 @@
 #!/bin/sh
 
 tool_dir=`pwd | sed -e 's/Box Sync/box/'`
-git_dir=/Users/jenkins/kms/asset
+git_dir=`ls -1d /Users/jenkins/*/asset | head -1 2>/dev/null`
 
 target=$1
 [ -n "$target" ] || exit 1

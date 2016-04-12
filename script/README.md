@@ -123,6 +123,6 @@ CDN への配布は main_dir 以下の contents がすべて配られるイメ�
 わりと忘れがちなので、作成時にテストするのを忘れないようにしましょう
 
 - self.main_dir: 個人アセットディレクトリ (master の場合は master_dir と同一)
-- self.org_main_dir: 個人アセットディレクトリのミラー元 (~/Box Sync/kms_xxx.yyy_asset)
-- self.master_dir: マスタアセットディレクトリ (kms_master_asset のミラー)
-- self.master_dir: ~/Box Sync/kms_master_asset
+- self.org_main_dir: 個人アセットディレクトリのミラー元 (~/Box Sync/(kms|argo)_xxx.yyy_asset)
+- self.master_dir: マスタアセットディレクトリ ((kms|argo)_master_asset のミラー)
+- self.master_dir: ~/Box Sync/(kms|argo)_master_asset

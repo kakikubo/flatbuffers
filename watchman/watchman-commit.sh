@@ -9,8 +9,7 @@ sleep=$1
 
 sonya=`dirname $0`/../chatwork/sonya.sh
 commit_log_file=/tmp/watchman-commit-message.log
-github_url=http://git.gree-dev.net
-#jenkins_url="http://127.0.0.1:8081/jenkins/job/001_KMS_GHE_CommitHook/build"
+github_url=http://git.gree-dev.net/kms/asset
 jenkins_url="http://dev-kms.dev.gree.jp/jenkins/job/001_KMS_GHE_CommitHook/build"
 
 excel_diff="`dirname $0`/../../ExcelDiffGenerator/excel-diff"
@@ -19,7 +18,7 @@ excel_diff_dir=/var/www/excel-diff
 excel_diff_url=
 
 build_log_file=/tmp/watchman-build-message.log
-asset_chat_id=35615824  # KMSアセット
+asset_chat_id=35615824 # KMSアセット
 build_chat_id=31118592 # KMSビルド
 
 exit_code=0
@@ -66,10 +65,10 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   # log
   icon=":)"
   grep -q -e '^D' $commit_log_file && icon="(devil)(devil)(devil)"
-  $sonya $asset_chat_id "[info][title]$icon git commit by `whoami`@`hostname`[/title]$github_url/kms/asset/commit/$commit_id[code]`cat $commit_log_file`[/code]$excel_diff_url[/info]" || exit $?
+  $sonya $asset_chat_id "[info][title]$icon git commit by `whoami`@`hostname`[/title]$github_url/commit/$commit_id[code]`cat $commit_log_file`[/code]$excel_diff_url[/info]" || exit $?
   if [ -s $build_log_file ]; then
     echo "=== C++ Header File is updated === " >> $build_log_file
-    $sonya  $build_chat_id "[info][title](F) C++ header file is updated. Please clean build your app[/title]$github_url/kms/asset/commit/$commit_id[code]`cat $build_log_file`[/code]$github_url/kms/asset[/info]" || exit $?
+    $sonya  $build_chat_id "[info][title](F) C++ header file is updated. Please clean build your app[/title]$github_url/commit/$commit_id[code]`cat $build_log_file`[/code]$github_url[/info]" || exit $?
   fi
 fi
 

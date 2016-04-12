@@ -6,8 +6,7 @@ jq=/usr/loca/bin/jq
 cd `dirname $0`/..
 tool_dir=`pwd`
 
-root_dir=$1
-[ -n "$root_dir" ] || root_dir=$tool_dir/../kms_master_asset
+root_dir=${1:-`ls -1d $tool_dir/../*_master_asset | head -1 2>/dev/null`}
 cd $root_dir || exit $?
 root_dir=`pwd`
 echo "watch root dir: $root_dir"

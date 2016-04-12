@@ -17,7 +17,7 @@ Neo4j のマルチサーバ + データベース設定を作成するための�
 これで、 ~/neo4j/kiyoto.suzuki 以下に port 7600 でアクセスできる Neo4j サーバインスタンスが立ち上がる設定が出力されます
 
 ###　全ユーザに設定して回る
-~/box/kms_master_asset/manifests/dev.asset_list を使います
+~/box/(kms|argo)_master_asset/manifests/dev.asset_list を使います
 
 ```
  $ ./neo4j-multi-setup-all.sh 
@@ -36,7 +36,7 @@ port は配列のインデックス * 10 で決定されます
 ```
 
 ### 全ユーザを起動して回る
-~/box/kms_master_asset/manifests/dev.asset_list のユーザすべてにコマンドを実行します
+~/box/(kms|argo)_master_asset/manifests/dev.asset_list のユーザすべてにコマンドを実行します
 
 ```
  $ ./neo4j-all.sh start

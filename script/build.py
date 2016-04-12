@@ -20,7 +20,7 @@ from multiprocessing import Process
 from logging import info, warning, debug, error
 
 class AssetBuilder():
-    def __init__(self, command=None, target=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, mirror_dir=None, cdn_dir=None, git_dir=None):
+    def __init__(self, command=None, target=None, project_prefix=None, asset_version=None, main_dir=None, master_dir=None, build_dir=None, mirror_dir=None, cdn_dir=None, git_dir=None):
         self.target            = target or 'master'
         self.is_master         = self.target == 'master'
 
@@ -29,15 +29,37 @@ class AssetBuilder():
         self.timestamp         = strftime('%Y-%m-%d %H:%M:%S')
         self_dir = os.path.dirname(os.path.abspath(__file__))
 
+        # select master dir + project prefix
+        project_prefix = project_prefix or '*'
+        if command in ('debug', 'clean'):
+            master_dir_list = [
+                os.path.normpath(os.curdir+'/'+project_prefix+'_master_asset')
+            ]
+        else:   # build standard
+            master_dir_list = [
+                os.path.normpath(self_dir+'/../../box/'+project_prefix+'_master_asset'), \
+                os.path.normpath(os.path.expanduser('~/Box Sync/'+project_prefix+'_master_asset'))
+            ]
+        for master_dir_default in master_dir_list:
+            for dir in glob(master_dir_default):
+                if os.path.isdir(dir):
+                    master_dir_default = dir
+                    break
+        self.org_master_dir = master_dir or master_dir_default
+        if not os.path.exists(self.org_master_dir):
+            raise Exception("master dir is not exists: %s" % self.org_master_dir)
+
+        self.project_prefix = re.sub('_master_asset', '', os.path.basename(self.org_master_dir))
+
         # select main dir
         if command in ('debug', 'clean'):
             main_dir_list = [
-                os.path.normpath(os.curdir+'/kms_'+target+'_asset')
+                os.path.normpath(os.curdir+'/'+self.project_prefix+'_'+target+'_asset')
             ]
         else: # build
             main_dir_list = [
-                os.path.normpath(self_dir+'/../../box/kms_'+target+'_asset'),
-                os.path.normpath(os.path.expanduser('~/Box Sync/kms_'+target+'_asset'))
+                os.path.normpath(self_dir+'/../../box/'+self.project_prefix+'_'+target+'_asset'),
+                os.path.normpath(os.path.expanduser('~/Box Sync/'+self.project_prefix+'_'+target+'_asset'))
             ]
         for main_dir_default in main_dir_list:
             if os.path.exists(main_dir_default):
@@ -46,37 +68,12 @@ class AssetBuilder():
         if not os.path.exists(self.org_main_dir):
             raise Exception("main dir is not exists: %s" % self.org_main_dir)
 
-        # select master dir
-        if command in ('debug', 'clean'):
-            master_dir_list = [
-                os.path.normpath(os.curdir+'/kms_master_asset')
-            ]
-        #elif target in ('hiroto.furuya'):
-        #    master_dir_list = [
-        #        git_dir,
-        #        os.path.normpath(self_dir+'/../client/asset'),
-        #        os.path.normpath(os.path.expanduser('~/kms/asset'))
-        #    ]
-        else:   # build standard
-            master_dir_list = [
-                os.path.normpath(self_dir+'/../../box/kms_master_asset'), \
-                os.path.normpath(os.path.expanduser('~/Box Sync/kms_master_asset'))
-            ]
-        for master_dir_default in master_dir_list:
-            if master_dir_default and os.path.exists(master_dir_default):
-                break
-        self.org_master_dir = master_dir or master_dir_default
-        if not os.path.exists(self.org_master_dir):
-            raise Exception("master dir is not exists: %s" % self.org_master_dir)
-
         # select build dir
         if command == 'build':
-            #build_dir_default = tempfile.mkdtemp(prefix = 'kms_asset_builder_build_')
-            #build_dir_default = os.curdir+'/.kms_asset_builder_build'
-            build_dir_default  = os.path.expanduser('~')+'/kms_asset_builder_build/'+self.target
-            mirror_dir_default = os.path.expanduser('~')+'/kms_asset_builder_mirror/'+self.target
+            build_dir_default  = os.path.expanduser('~')+'/'+self.project_prefix+'_asset_builder_build/'+self.target
+            mirror_dir_default = os.path.expanduser('~')+'/'+self.project_prefix+'_asset_builder_mirror/'+self.target
         else: # debug clean
-            build_dir_default  = os.curdir+'/.kms_asset_builder_build/'+self.target
+            build_dir_default  = os.curdir+'/.'+self.project_prefix+'_asset_builder_build/'+self.target
             mirror_dir_default = build_dir_default
         self.build_dir  = build_dir or build_dir_default
         self.mirror_dir = mirror_dir or mirror_dir_default
@@ -87,6 +84,17 @@ class AssetBuilder():
         self.main_dir            = self.mirror_dir+'/main'
         self.master_dir          = self.mirror_dir+'/master'
         self.remote_dir_asset    = self.asset_version_dir+'/contents' if self.is_master else self.target + '/contents'
+        
+        info("project prefix = %s", self.project_prefix)
+        info("target = %s", self.target)
+        info("asset version = '%s'", self.asset_version)
+        info("main-dir = %s", self.org_main_dir)
+        info("master-dir = %s", self.org_master_dir)
+        info("build-dir = %s", self.build_dir)
+        info("mirror-dir = %s", self.mirror_dir)
+        info("cdn-dir = %s", self.cdn_dir)
+        info("git-dir = %s", self.git_dir)
+        info("remote-dir-asset = %s", self.remote_dir_asset)
 
         for dir in (self.build_dir, self.mirror_dir) :
             if not os.path.exists(dir):
@@ -97,16 +105,6 @@ class AssetBuilder():
             self.master_dir = self.main_dir
         else:
             self.prepare_dir(self.org_master_dir, self.master_dir)
-        
-        info("target = %s", self.target)
-        info("asset version = '%s'", self.asset_version)
-        info("main-dir = %s", self.org_main_dir)
-        info("master-dir = %s", self.org_master_dir)
-        info("build-dir = %s", self.build_dir)
-        info("mirror-dir = %s", self.mirror_dir)
-        info("cdn-dir = %s", self.cdn_dir)
-        info("git-dir = %s", self.git_dir)
-        info("remote-dir-asset = %s", self.remote_dir_asset)
 
         self.manifest_dir           = self.main_dir+'/manifests'
         self.master_schema_dir      = self.main_dir+'/master_derivatives'
@@ -223,7 +221,7 @@ class AssetBuilder():
         self.MASTER_BUNDLED_ENC_FILE        = 'master_data_bundled.enc'
         self.MASTER_HEADER_FILE             = 'master_data_generated.h'
         self.MASTER_MD5_FILE                = 'master_data_generated_md5.h'
-        self.MASTER_MD5_DEFINE              = 'KMS_MASTER_DATA_VERSION'
+        self.MASTER_MD5_DEFINE              = self.project_prefix.upper()+'_MASTER_DATA_VERSION'
         self.MASTER_DIFF_FILE               = 'master_data.diff.html'
         self.EDITOR_MASTER_JSON_SCHEMA_FILE = 'editor_master_schema.json'
         self.EDITOR_MASTER_JSON_DATA_FILE   = 'editor_master_data.json'
@@ -232,9 +230,9 @@ class AssetBuilder():
         self.EDITOR_MASTER_BIN_FILE         = 'editor_master_data.bin'
         self.EDITOR_MASTER_HEADER_FILE      = 'editor_master_data_generated.h'
         self.EDITOR_MASTER_MD5_FILE         = 'editor_master_data_generated_md5.h'
-        self.EDITOR_MASTER_MD5_DEFINE       = 'KMS_MASTER_DATA_VERSION'
+        self.EDITOR_MASTER_MD5_DEFINE       = self.project_prefix.upper()+'_MASTER_DATA_VERSION'
         self.MASTER_FBS_ROOT_NAME           = 'MasterDataFBS'
-        self.MASTER_FBS_NAMESPACE           = 'kms.masterdata'
+        self.MASTER_FBS_NAMESPACE           = self.project_prefix+'.masterdata'
         self.CHAR_MAP_FILE                  = 'char_map.json'
         self.LL_MESSAGE_JSON_FILE           = 'll_message.json'
         self.LL_CHAR_MAP_JSON_FILE          = 'll_char_map.json'
@@ -242,11 +240,11 @@ class AssetBuilder():
         self.USER_HEADER_FILE               = 'user_data.h'
         self.USER_CLASS_FILE                = 'user_data.cpp'
         self.USER_MD5_FILE                  = 'user_data_md5.h'
-        self.USER_MD5_DEFINE                = 'KMS_USER_DATA_VERSION'
+        self.USER_MD5_DEFINE                = self.project_prefix.upper()+'_USER_DATA_VERSION'
         self.USER_JSON_SCHEMA_FILE          = 'user_schema.json'
         self.USER_JSON_DATA_FILE            = 'default.json'
         self.USER_LUA_ENUM_FILE             = 'user_enum.lua'
-        self.USER_FBS_NAMESPACE             = 'kms.userdata'
+        self.USER_FBS_NAMESPACE             = self.project_prefix+'.userdata'
         self.LABEL_LUA_FILE                 = 'label.lua'
         self.AES_KEY_TEXT_FILE              = 'aes_256_key.txt'
         self.AES_IV_TEXT_FILE               = 'aes_iv.txt'
@@ -261,10 +259,10 @@ class AssetBuilder():
         self.NEO4J_URL_FORMAT               = "http://neo4j:fflkms001@localhost:{port}/db/data/"
         self.NEO4J_PORT_BASE                = 7500
         self.NEO4J_GRAPHSTYLE_FILE          = 'graphstyle.grass'
-        self.DEV_CDN_URL                    = 'http://kms-dev.dev.gree.jp/cdn'
-        self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-kms-assets'
-        self.S3_CDN_INTERNAL_URL            = 's3://gree-kms-assets'
-        self.S3_DEPLOY_INTERNAL_URL         = 's3://gree-kms-deploy'
+        self.DEV_CDN_URL                    = 'http://'+self.project_prefix+'-dev.dev.gree.jp/cdn'
+        self.S3_CDN_URL                     = 'https://s3-ap-northeast-1.amazonaws.com/gree-'+self.project_prefix+'-assets'
+        self.S3_CDN_INTERNAL_URL            = 's3://gree-'+self.project_prefix+'-assets'
+        self.S3_DEPLOY_INTERNAL_URL         = 's3://gree-'+self.project_prefix+'-deploy'
         self.S3_CREDENTIALS_FILE            = '~/.aws/credentials'
         self.MASTER_DATA_ROW_START          = 3
 
@@ -1267,29 +1265,27 @@ examples:
     $ cd kms_master_data/hook
     $ ./script/build.py build master
 
-  build on local (for development)
+  build on local (for debug)
     $ ./script/build.py debug master --log-level DEBUG
 
   clean up after build on local (for development)
     $ ./script/build.py clean master
-
-  build all for 'kms_xxx.yyy_asset'
-    $ kms_master_asset/hook/build.py build xxx.yyy
         """)
-    parser.add_argument('command',         help = 'build command (build|debug)')
-    parser.add_argument('target',          help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
-    parser.add_argument('--asset-version', help = 'asset version. default: <target>.<unix-timestamp>')
-    parser.add_argument('--master-dir',    help = 'master asset directory. default: same as script top')
-    parser.add_argument('--main-dir',      help = 'asset generated directory. default: same as script top')
-    parser.add_argument('--build-dir',     help = 'build directory. default: ~/kms_asset_builder_build')
-    parser.add_argument('--mirror-dir',    help = 'mirror directory. default: ~/kms_asset_builder_mirror')
-    parser.add_argument('--cdn-dir',       help = 'cdn directory to deploy. default: /var/www/cdn')
-    parser.add_argument('--git-dir',       help = 'git directory to deploy. default: (not to deploy)')
-    parser.add_argument('--log-level',     help = 'log level (WARNING|INFO|DEBUG). default: INFO')
+    parser.add_argument('command',          help = 'build command (build|debug)')
+    parser.add_argument('target',           help = 'target name (e.g. master, kiyoto.suzuki, ...) default: master')
+    parser.add_argument('--project-prefix', help = 'project prefix default ~/box/<prefix>_master_asset')
+    parser.add_argument('--asset-version',  help = 'asset version. default: <target>.<unix-timestamp>')
+    parser.add_argument('--master-dir',     help = 'master asset directory. default: same as script top')
+    parser.add_argument('--main-dir',       help = 'asset generated directory. default: same as script top')
+    parser.add_argument('--build-dir',      help = 'build directory. default: ~/(kms|argo)_asset_builder_build')
+    parser.add_argument('--mirror-dir',     help = 'mirror directory. default: ~/(kms|argo)_asset_builder_mirror')
+    parser.add_argument('--cdn-dir',        help = 'cdn directory to deploy. default: /var/www/cdn')
+    parser.add_argument('--git-dir',        help = 'git directory to deploy. default: (not to deploy)')
+    parser.add_argument('--log-level',      help = 'log level (WARNING|INFO|DEBUG). default: INFO')
     args = parser.parse_args()
     logging.basicConfig(level = args.log_level or "INFO", format = '%(asctime)-15s %(process)d %(levelname)s %(message)s')
 
-    asset_builder = AssetBuilder(command = args.command, target = args.target, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, mirror_dir = args.mirror_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
+    asset_builder = AssetBuilder(command = args.command, target = args.target, project_prefix = args.project_prefix, asset_version = args.asset_version, main_dir = args.main_dir, master_dir = args.master_dir, build_dir = args.build_dir, mirror_dir = args.mirror_dir, cdn_dir = args.cdn_dir, git_dir = args.git_dir)
     try:
         if args.command in ('build', 'debug'):
             asset_builder.build()
