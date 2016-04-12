@@ -1,7 +1,7 @@
 #!/bin/sh
 
 port_base=7500
-asset_list=${KMS_ASSET_LIST:-~/box/kms_master_asset/manifests/dev.asset_list.json}
+asset_list=${KMS_ASSET_LIST:-`ls -1d ~/box/*_master_asset/manifests/dev.asset_list.json | head -1 2>/dev/null`}
 
 for user_name in `jq -r '.[]' $asset_list`; do
   echo "$user_name..."

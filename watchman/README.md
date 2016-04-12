@@ -1,10 +1,10 @@
 ## watchman
 
-- 監視対象は <kms_x_asset>/contents/files と master/ 以下のみです 
+- 監視対象は (kms|argo)_<xxx.yyy>_asset/contents/files と master/ 以下のみです 
   - watchman/watchman-xxx.json.template を参照してください
 - コールバックでは以下のことをします
   - build.py build を実行し、自動生成ファイル一式を更新します
-  - ターゲットが master (kms_master_asset) の場合 追加/削除ファイルをチェックして git add/rm します
+  - ターゲットが master ((kms|argo)_master_asset) の場合 追加/削除ファイルをチェックして git add/rm します
   - 更新ファイルがあれば git commit + push します
     - コールバックが頻繁に来る/Box Sync での同期に時間がかかるため、watchman-commit.sh で 5 秒遅延させています
 
@@ -20,7 +20,7 @@ watchman での監視設定をセットアップします。
 - ログは log/watchman-callback.log に出力されます
 
 ### watchman-setup-all.sh
-watchman-setup.sh をすべての ~/box/kms_*_asset に対して呼び出します
+watchman-setup.sh をすべての ~/box/*_*_asset に対して呼び出します
 
 ### watchman-callback.sh
 watchman での監視対象に変更があった場合に呼ばれるスクリプトです

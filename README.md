@@ -1,26 +1,26 @@
-# KMS tool リポジトリ
+# Toybox tool リポジトリ
 
 Asset パイプライン用のスクリプトなどをおいています
 
 ビルド用の Jenkins マシンや開発用の PHP サーバで動くものがメインになります
 
 # jenkins マシンでの差分監視と自動コミット
-以下のような構成で、box sync にファイルを投げ込むと、数秒後に自動で gitlab の kms/asset が更新されます
+以下のような構成で、box sync にファイルを投げ込むと、数秒後に自動で gitlab の (kms|argo)/asset が更新されます
 
 ```
 master
  each user                jenkins (Jenkins Mac Book)                                    git (Gree GHE)
- +-------------------+    +-------------------------------------------------------+    +-----------+
- | Box Sync          | -> | Box Sync         -> jenkins -> build.py -> git commit | -> | Github    |
- | kms_master_asset  |    | kms_master_asset   (watchman)              git push   |    | kms/asset |
- +-------------------+    +-------------------------------------------------------+    +-----------+
+ +--------------------------+    +--------------------------------------------------------------+    +------------------+
+ | Box Sync                 | -> | Box Sync                -> jenkins -> build.py -> git commit | -> | Github           |
+ | (kms|argo)_master_asset  |    | (kms|argo)_master_asset   (watchman)              git push   |    | (kms|argo)/asset |
+ +--------------------------+    +--------------------------------------------------------------+    +------------------+
 
 personal working
  each user                jenkins (Jenkins Mac Book)
- +-------------------+    +-----------------------------------------------------------------------------------+
- | Box Sync          | -> | Box Sync         -> jenkins -> build.py -> /var/www/cdn/xxx.yyy                   |
- | kms_xxx.yyy_asset |    | kms_xxx.yyy_asset  (watchman)              http://kms-dev.dev.gree.jp/cdn/xxx.yyy |
- +-------------------+    +-----------------------------------------------------------------------------------+
+ +--------------------------+    +--------------------------------------------------------------------------------------------------------------+
+ | Box Sync                 | -> | Box Sync                             -> jenkins -> build.py -> /var/www/cdn/xxx.yyy                          |
+ | (kms|argo)_xxx.yyy_asset |    | (kms|argo)_xxx.yyy_asset  (watchman)                           http://(kms|argo)-dev.dev.gree.jp/cdn/xxx.yyy |
+ +--------------------------+    +--------------------------------------------------------------------------------------------------------------+
 ```
 
 以前は watchman に ~/Box Sync 以下を監視させて、変更をフックして build.py (watchman-build.sh) を起動していましたが、
@@ -29,7 +29,7 @@ personal working
 ## ディレクトリ設計
 
 ### このリポジトリの動作環境
-~/kms/tool 以下にチェックアウトして使うことを想定しています。
+~/toybox/tool 以下にチェックアウトして使うことを想定しています。
 
 いちおう他の場所に置いても動作するように作っているつもりです。
 
@@ -37,7 +37,7 @@ personal working
 Jenkins マシンでは ~/Box Sync を ~/box にシンボリックリンクしています
 
 ### git asset repository
-~/kms/asset 以下にチェックアウトして使うことを想定しています
+~/(kms|argo)/asset 以下にチェックアウトして使うことを想定しています
 
 これは build.py --git-dir で指定し、変えることができます
 
@@ -104,10 +104,10 @@ $ make
 ### デバッグの仕方
 手元の PC でもデバッグすることができます。
 
-kms_master_asset をビルドする場合は以下のようにします
+(kms_master_asset をビルドする場合は以下のようにします
 
 ```
-$ git clone git@git.gree-dev.net:kms/tool.git
+$ git clone git@git.gree-dev.net:toybox/tool.git
 $ cd tool
 $ cp -rp ~/Box\ Sync/kms_master_asset kms_master_asset
 $ ./script/build.py debug master
@@ -116,7 +116,7 @@ $ ./script/build.py debug master
 個人アセットの場合は、次のようになります
 
 ```
-$ git clone git@git.gree-dev.net:kms/tool.git
+$ git clone git@git.gree-dev.net:toybox/tool.git
 $ cd tool
 $ cp -rp ~/Box\ Sync/kms_master_asset kms_master_asset
 $ cp -rp ~/Box\ Sync/kms_kiyoto.suzuki_asset kms_kiyoto.suzuki_asset

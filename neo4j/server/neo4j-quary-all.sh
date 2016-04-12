@@ -1,6 +1,6 @@
 #!/bin/sh
 
-asset_list=${KMS_ASSET_LIST:-~/box/kms_master_asset/manifests/dev.asset_list.json}
+asset_list=${KMS_ASSET_LIST:-`ls -1d ~/box/*_master_asset/manifests/dev.asset_list.json | head -1 2>/dev/null`}
 query=`dirname $0`/../query.py
 
 exit_code=0
