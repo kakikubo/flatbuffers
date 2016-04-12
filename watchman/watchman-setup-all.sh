@@ -3,7 +3,7 @@
 cd `dirname $0`
 
 # fixed path
-for i in ~/box/kms_*_asset; do
+for i in ~/box/*_*_asset; do
   ./watchman-setup.sh $i || exit $?
 done
 

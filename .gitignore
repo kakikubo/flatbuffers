@@ -4,7 +4,7 @@ watchman/watchman-*.log
 
 cgi-bin/chatwork-users.json
 
-.kms_asset_builder_build/
+.*_asset_builder_build/
 
 *.pyc
 *.swp
