@@ -74,8 +74,10 @@ def merge_spine_animation(xls_file, sheet_name, start_row, column_label, input_f
         model_base = os.path.abspath(input_file_dir) + "/" + str(model_id) + spine_ext
         model_field = os.path.abspath(input_file_dir) + "/" + sheet.cell_value(row, index_col) + spine_ext
         output_file = os.path.abspath(output_file_dir) + "/" + str(model_id) + spine_ext
+        if not os.path.exists(model_base):
+            continue
 
-        # print "{0}+{1}->{2}".format(model_base, model_field, output_file)
+        debug("{0}+{1}->{2}".format(model_base, model_field, output_file))
 
         src_json = {}
         with open(model_base, 'r') as data:
@@ -96,7 +98,7 @@ if __name__ == '__main__':
     sys.stdout = codecs.lookup('utf_8')[-1](sys.stdout)
     parser = argparse.ArgumentParser(description='merge spine files', epilog="""\
 example:
-    $ ./merge_spine.py xls_file, sheet_name, start_row, column_label, input_file_dir, output_file_dir""")
+    $ ./merge_spine.py xls_file sheet_name start_row column_label input_file_dir output_file_dir""")
 
     parser.add_argument('xls_file', help='excel file')
     parser.add_argument('sheet_name', help='sheet name in excel file')
