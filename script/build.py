@@ -493,7 +493,7 @@ class AssetBuilder():
         if os.path.dirname(dest_bin) != os.path.dirname(dest_header):
             raise Exception("%s and %s must be same dir" % (dest_bin, dest_header))
 
-        cmdline = [self.flatc_bin, '-c', '-b', '-o', dest_dir, src_fbs, src_json]
+        cmdline = [self.flatc_bin, '--scoped-enums', '-c', '-b', '-o', dest_dir, src_fbs, src_json]
         info(' '.join(cmdline))
         self.call_flatc(cmdline)
 
