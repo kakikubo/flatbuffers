@@ -126,7 +126,7 @@ class Neo4jImporter():
             dest.append([node1, node2])
         return dest
 
-    def query_node_map(self, node_type, key, sub_key_map = False):
+    def query_node_map(self, node_type, key, sub_key_map = False, deleted_table_nodes = None):
         q = 'MATCH (n {_nodeType: "%s"}) RETURN n' % node_type
         debug("QUERY NODE MAP: '%s'" % q)
 
@@ -135,7 +135,13 @@ class Neo4jImporter():
             val = node.properties[key]
             if sub_key_map:
                 if not self.key_map.has_key(val):
+                    # deleted table
+                    if deleted_table_nodes != None:
+                        if not deleted_table_nodes.has_key(val):
+                            deleted_table_nodes[val] = []
+                        deleted_table_nodes[val].append(node)
                     continue
+
                 sub_key = self.key_map[val]
                 sub_val = node.properties[sub_key]
                 if not node_map.has_key(val):
@@ -440,7 +446,8 @@ class Neo4jImporter():
 
     def create_data_nodes(self):
         info("create data nodes: begin")
-        data_node_map = self.query_node_map('data', '_table', True)
+        deleted_table_nodes = {}
+        data_node_map = self.query_node_map('data', '_table', True, deleted_table_nodes)
 
         # create or update table nodes
         for table, schema in self.schema.iteritems():
@@ -464,6 +471,11 @@ class Neo4jImporter():
             if data_node_map.has_key(table):
                 for id, nodes in data_node_map[table].iteritems():
                     self.delete_nodes("MATCH (n:`%s` {id: %d}) DETACH DELETE n" % (table, id))
+
+        for table, nodes in deleted_table_nodes.iteritems():
+            info("delete data nodes: %s" % table)
+            for node in nodes:
+                self.delete_nodes("MATCH (n:`%s`) WHERE id(n) = %d DETACH DELETE n" % (table, node.id))
         return True
 
     def create_data_indexes(self):
