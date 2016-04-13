@@ -134,6 +134,8 @@ class Neo4jImporter():
         for node, in self.gdb.query(q, returns=(client.Node)):
             val = node.properties[key]
             if sub_key_map:
+                if not self.key_map.has_key(val):
+                    continue
                 sub_key = self.key_map[val]
                 sub_val = node.properties[sub_key]
                 if not node_map.has_key(val):
