@@ -343,7 +343,7 @@ class Neo4jImporter():
 
         # deleted nodes
         for id, nodes in fref_node_map.iteritems():
-            self.delete_nodes('MATCH (n: {id: "%s", _nodeType: "fref"}) DETACH DELETE n' % id)
+            self.delete_nodes('MATCH (n {id: "%s", _nodeType: "fref"}) DETACH DELETE n' % id)
         return True
 
     def create_fref_relationships(self):
