@@ -49,6 +49,11 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
   git commit --file $commit_log_file || exit $?
   commit_id=`git log -1 | head -1 | cut -c 8-`
 
+  # git git push
+  git pull --rebase origin $branch || exit $?
+  git push origin $branch || exit_code=$?
+  echo "automatic sync with git is done: $exit_code"
+
   # excel diff
   excel_diff_url=
   if grep .xlsx $commit_log_file; then
@@ -57,10 +62,6 @@ if git status | grep 'Changes to be committed:' > /dev/null; then
     excel_diff_url=$excel_diff_root_url/$excel_diff_html
   fi
 
-  # git git push
-  git pull --rebase origin $branch || exit $?
-  git push origin $branch || exit_code=$?
-  echo "automatic sync with git is done: $exit_code"
 
   # log
   icon=":)"
