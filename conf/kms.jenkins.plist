@@ -9,7 +9,7 @@
         <key>ProgramArguments</key>
         <array>
             <string>/bin/bash</string>
-            <string>/Users/jenkins/kms/tool/conf/jenkins_boot.sh</string>
+            <string>/Users/jenkins/toybox/tool/conf/jenkins_boot.sh</string>
         </array>
         <key>RunAtLoad</key>
         <true/>
