@@ -1205,7 +1205,7 @@ class AssetBuilder():
 
         # phase 4: asset packaging 
         processes = [
-            Process(target=self.build_webviews),
+            # Process(target=self.build_webviews),
             Process(target=self.build_encrypt),
             Process(target=self.build_file_list, args=(self.LOCATION_CYPHER_FILE, self.LOCATION_FILE_LIST)),
             Process(target=self.build_file_list, args=(self.CHARACTER_CYPHER_FILE, self.CHARACTER_FILE_LIST)),
