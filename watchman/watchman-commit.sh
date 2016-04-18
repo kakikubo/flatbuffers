@@ -12,7 +12,7 @@ commit_log_file=/tmp/watchman-commit-message.log
 github_url=http://git.gree-dev.net/kms/asset
 jenkins_url="http://dev-kms.dev.gree.jp/jenkins/job/001_KMS_GHE_CommitHook/build"
 
-excel_diff="`dirname $0`/../../ExcelDiffGenerator/excel-diff"
+excel_diff="`dirname $0`/../../tool/ExcelDiffGenerator/excel-diff"
 excel_diff_root_url="http://g-pc-00363221.intra.gree-office.net/excel-diff"
 excel_diff_dir=/var/www/excel-diff
 excel_diff_url=
