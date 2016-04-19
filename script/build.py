@@ -1118,6 +1118,9 @@ class AssetBuilder():
         info("deploy to s3 cdn: %s" % self.ASSET_LIST_FILE)
         check_call(aws_s3 + ['cp', self.build_dir+'/'+self.ASSET_LIST_FILE, self.S3_CDN_INTERNAL_URL+'/'])
         info("deploy to s3 cdn: done")
+        info("deploy to s3 cdn: %s" % self.main_dir+'/webview/')
+        check_call(aws_s3 + ['sync', '--exclude', '.DS_Store', self.main_dir+'/webview/', s3_internal_url+'/webview'])
+        info("deploy to s3 cdn: done")
         return True
 
     def deploy_s3_server(self):
